@@ -1,0 +1,121 @@
+package fit.nlu.tmdt.modules.auth.controller;
+
+import fit.nlu.tmdt.common.annotations.LogExecutionTime;
+import fit.nlu.tmdt.common.utils.ApiResponse;
+import fit.nlu.tmdt.modules.auth.dto.request.*;
+import fit.nlu.tmdt.modules.auth.dto.response.AuthResponse;
+import fit.nlu.tmdt.modules.auth.service.AuthService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+/**
+ * Authentication Controller
+ */
+@RestController
+@RequestMapping("/v1/auth")
+@RequiredArgsConstructor
+@Slf4j
+@Tag(name = "Authentication", description = "Authentication APIs")
+public class AuthController {
+
+    private final AuthService authService;
+
+    @PostMapping("/register")
+    @Operation(summary = "Register new account")
+    @LogExecutionTime
+    public ResponseEntity<ApiResponse<AuthResponse>> register(@Valid @RequestBody RegisterRequest request) {
+        log.info("Register request for email: {}", request.getEmail());
+        AuthResponse response = authService.register(request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.created("Registration successful. Please verify your email.", response));
+    }
+
+    @PostMapping("/login")
+    @Operation(summary = "Login with email and password")
+    @LogExecutionTime
+    public ResponseEntity<ApiResponse<AuthResponse>> login(@Valid @RequestBody LoginRequest request) {
+        log.info("Login request for email: {}", request.getEmail());
+        AuthResponse response = authService.login(request);
+        return ResponseEntity.ok(ApiResponse.success("Login successful", response));
+    }
+
+    @PostMapping("/refresh")
+    @Operation(summary = "Refresh access token")
+    public ResponseEntity<ApiResponse<AuthResponse>> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
+        log.info("Refresh token request");
+        AuthResponse response = authService.refreshToken(request);
+        return ResponseEntity.ok(ApiResponse.success("Token refreshed successfully", response));
+    }
+
+    @PostMapping("/logout")
+    @Operation(summary = "Logout current user")
+    public ResponseEntity<ApiResponse<Void>> logout(@RequestAttribute(name = "userId", required = false) Long userId) {
+        if (userId != null) {
+            authService.logout(userId);
+        }
+        return ResponseEntity.ok(ApiResponse.success("Logout successful", null));
+    }
+
+    @PostMapping("/forgot-password")
+    @Operation(summary = "Request password reset")
+    public ResponseEntity<ApiResponse<Void>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        log.info("Forgot password request for: {}", request.getEmail());
+        authService.forgotPassword(request);
+        return ResponseEntity.ok(ApiResponse.success("If an account exists with this email, a password reset OTP has been sent", null));
+    }
+
+    @PostMapping("/reset-password")
+    @Operation(summary = "Reset password with OTP")
+    public ResponseEntity<ApiResponse<Void>> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        log.info("Reset password request for: {}", request.getEmail());
+        authService.resetPassword(request);
+        return ResponseEntity.ok(ApiResponse.success("Password reset successfully", null));
+    }
+
+    @PostMapping("/verify-email")
+    @Operation(summary = "Verify email with OTP")
+    public ResponseEntity<ApiResponse<Void>> verifyEmail(
+            @RequestAttribute(name = "userId", required = false) Long userId,
+            @Valid @RequestBody VerifyEmailRequest request) {
+        log.info("Verify email request for user: {}", userId);
+        authService.verifyEmail(userId, request);
+        return ResponseEntity.ok(ApiResponse.success("Email verified successfully", null));
+    }
+
+    @PostMapping("/resend-verify-email")
+    @Operation(summary = "Resend verification email")
+    public ResponseEntity<ApiResponse<Void>> resendVerifyEmail(
+            @RequestAttribute(name = "userId", required = false) Long userId) {
+        log.info("Resend verify email request for user: {}", userId);
+        authService.resendVerifyEmail(userId);
+        return ResponseEntity.ok(ApiResponse.success("Verification email sent", null));
+    }
+
+    @PostMapping("/change-password")
+    @Operation(summary = "Change password")
+    public ResponseEntity<ApiResponse<Void>> changePassword(
+            @RequestAttribute(name = "userId", required = false) Long userId,
+            @Valid @RequestBody ChangePasswordRequest request) {
+        log.info("Change password request for user: {}", userId);
+        authService.changePassword(userId, request);
+        return ResponseEntity.ok(ApiResponse.success("Password changed successfully", null));
+    }
+
+    @PostMapping("/oauth2/{provider}")
+    @Operation(summary = "OAuth2 login (Google/Facebook)")
+    public ResponseEntity<ApiResponse<AuthResponse>> oauth2Login(
+            @PathVariable String provider,
+            @RequestParam String code) {
+        log.info("OAuth2 login request: {}", provider);
+        // In real implementation, exchange code for user info from OAuth provider
+        // This is a simplified version
+        AuthResponse response = authService.oauth2Login(provider, "oauth_id", "user@example.com", "OAuth User");
+        return ResponseEntity.ok(ApiResponse.success("OAuth2 login successful", response));
+    }
+}
