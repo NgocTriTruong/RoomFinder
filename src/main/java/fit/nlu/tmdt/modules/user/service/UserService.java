@@ -3,6 +3,8 @@ package fit.nlu.tmdt.modules.user.service;
 import fit.nlu.tmdt.modules.auth.dto.response.UserResponse;
 import fit.nlu.tmdt.modules.user.dto.request.UpdateProfileRequest;
 import fit.nlu.tmdt.modules.user.dto.request.KYCRequest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 /**
  * User Service Interface
@@ -43,6 +45,16 @@ public interface UserService {
      * Approve or Reject KYC (Admin)
      */
     UserResponse verifyUser(Long userId, String status, String adminNote);
+
+    /**
+     * Get admin user list with filters
+     */
+    Page<UserResponse> getAdminUsers(String search, String role, String status, String verificationStatus, Pageable pageable);
+
+    /**
+     * Update user status (Admin)
+     */
+    UserResponse updateUserStatus(Long userId, String status);
 
     /**
      * Landlord Profile Response DTO

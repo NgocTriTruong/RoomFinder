@@ -4,13 +4,17 @@ import fit.nlu.tmdt.common.exceptions.BusinessException;
 import fit.nlu.tmdt.common.utils.ErrorCode;
 import fit.nlu.tmdt.modules.auth.dto.response.UserResponse;
 import fit.nlu.tmdt.modules.auth.entity.User;
+import fit.nlu.tmdt.modules.auth.entity.enums.UserStatus;
 import fit.nlu.tmdt.modules.post.entity.enums.PostStatus;
 import fit.nlu.tmdt.modules.auth.repository.UserRepository;
+import fit.nlu.tmdt.modules.auth.repository.UserSpecifications;
 import fit.nlu.tmdt.modules.post.repository.PostRepository;
 import fit.nlu.tmdt.modules.user.dto.request.UpdateProfileRequest;
 import fit.nlu.tmdt.modules.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -66,6 +70,41 @@ public class UserServiceImpl implements UserService {
 
         user = userRepository.save(user);
         log.info("KYC {} for user: {}", status, userId);
+        return toUserResponse(user);
+    }
+
+    @Override
+    public Page<UserResponse> getAdminUsers(String search, String role, String status, String verificationStatus, Pageable pageable) {
+        return userRepository.findAll(
+                UserSpecifications.adminSearch(search, role, status, verificationStatus),
+                pageable
+        ).map(this::toUserResponse);
+    }
+
+    @Override
+    @Transactional
+    public UserResponse updateUserStatus(Long userId, String status) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_001, "User not found"));
+
+        UserStatus userStatus;
+        try {
+            userStatus = UserStatus.valueOf(status.trim().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Invalid user status");
+        }
+
+        user.setStatus(userStatus);
+
+        if (userStatus == UserStatus.ACTIVE) {
+            user.setLockoutEnd(null);
+            user.setFailedLoginAttempts(0);
+        } else if (userStatus == UserStatus.LOCKED && user.getLockoutEnd() == null) {
+            user.setLockoutEnd(LocalDateTime.now().plusDays(3650));
+        }
+
+        user = userRepository.save(user);
+        log.info("User status updated: {} -> {}", userId, userStatus);
         return toUserResponse(user);
     }
 

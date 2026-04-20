@@ -28,7 +28,7 @@ public class UpdatePostRequest {
 
     private String priceType;
 
-    @Positive(message = "Deposit must be positive")
+    @PositiveOrZero(message = "Deposit must be zero or positive")
     private Double deposit;
 
     @Size(min = 3, max = 10, message = "At least 3 images required, maximum 10")

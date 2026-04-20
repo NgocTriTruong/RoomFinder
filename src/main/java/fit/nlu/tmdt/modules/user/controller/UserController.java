@@ -3,6 +3,7 @@ package fit.nlu.tmdt.modules.user.controller;
 import fit.nlu.tmdt.common.annotations.CurrentUser;
 import fit.nlu.tmdt.common.annotations.LogExecutionTime;
 import fit.nlu.tmdt.common.utils.ApiResponse;
+import fit.nlu.tmdt.common.utils.PageResponse;
 import fit.nlu.tmdt.modules.auth.dto.response.UserResponse;
 import fit.nlu.tmdt.modules.media.dto.response.CentralMediaResponse;
 import fit.nlu.tmdt.modules.media.entity.enums.MediaCategory;
@@ -14,6 +15,10 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -92,6 +97,62 @@ public class UserController {
         log.info("Get landlord profile request: {}", id);
         UserService.LandlordProfileResponse response = userService.getLandlordProfile(id);
         return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @GetMapping("/admin/all")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Get all users (admin)")
+    @LogExecutionTime
+    public ResponseEntity<ApiResponse<PageResponse<UserResponse>>> getAdminUsers(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String role,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String verificationStatus,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDirection) {
+
+        Sort sort = sortDirection.equalsIgnoreCase("asc")
+                ? Sort.by(sortBy).ascending()
+                : Sort.by(sortBy).descending();
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        Page<UserResponse> users = userService.getAdminUsers(search, role, status, verificationStatus, pageable);
+        return ResponseEntity.ok(ApiResponse.success(PageResponse.of(users)));
+    }
+
+    @GetMapping("/admin/pending-kyc")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Get pending KYC users (admin)")
+    @LogExecutionTime
+    public ResponseEntity<ApiResponse<PageResponse<UserResponse>>> getPendingKycUsers(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDirection) {
+
+        Sort sort = sortDirection.equalsIgnoreCase("asc")
+                ? Sort.by(sortBy).ascending()
+                : Sort.by(sortBy).descending();
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        Page<UserResponse> users = userService.getAdminUsers(null, "LANDLORD", null, "PENDING", pageable);
+        return ResponseEntity.ok(ApiResponse.success(PageResponse.of(users)));
+    }
+
+    @PutMapping("/admin/status/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Update user status (admin)")
+    @LogExecutionTime
+    public ResponseEntity<ApiResponse<UserResponse>> updateUserStatus(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> body) {
+
+        String status = body.get("status");
+        log.info("Update user status: {} -> {}", id, status);
+        UserResponse response = userService.updateUserStatus(id, status);
+        return ResponseEntity.ok(ApiResponse.success("User status updated", response));
     }
 
     @PostMapping("/kyc")

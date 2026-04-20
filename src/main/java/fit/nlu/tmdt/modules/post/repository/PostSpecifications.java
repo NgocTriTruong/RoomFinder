@@ -20,13 +20,17 @@ import java.util.List;
 public class PostSpecifications {
 
     public static Specification<Post> withSearchParams(PostSearchParams params) {
+        return withSearchParams(params, false);
+    }
+
+    public static Specification<Post> withSearchParams(PostSearchParams params, boolean adminMode) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
             // Status filter
             if (params.getStatus() != null) {
                 predicates.add(cb.equal(root.get("status"), params.getStatus()));
-            } else {
+            } else if (!adminMode) {
                 predicates.add(cb.equal(root.get("status"), PostStatus.APPROVED));
             }
 

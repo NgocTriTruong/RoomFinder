@@ -82,6 +82,11 @@ public interface PostService {
     Page<PostResponse> getPendingPosts(Pageable pageable);
 
     /**
+     * Admin: Get posts with optional status filter
+     */
+    Page<PostResponse> getAdminPosts(PostSearchParams params, Pageable pageable);
+
+    /**
      * Boost a post
      */
     Map<String, Object> boostPost(Long postId, Long boostPackageId, Long landlordId);

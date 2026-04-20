@@ -220,6 +220,26 @@ public class PostController {
         return ResponseEntity.ok(ApiResponse.success(PageResponse.of(posts)));
     }
 
+    @GetMapping("/admin")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Get admin posts with optional status filter")
+    @LogExecutionTime
+    public ResponseEntity<ApiResponse<PageResponse<PostResponse>>> getAdminPosts(
+            @ModelAttribute PostSearchParams params,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDirection) {
+
+        Sort sort = sortDirection.equalsIgnoreCase("asc")
+                ? Sort.by(sortBy).ascending()
+                : Sort.by(sortBy).descending();
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        Page<PostResponse> posts = postService.getAdminPosts(params, pageable);
+        return ResponseEntity.ok(ApiResponse.success(PageResponse.of(posts)));
+    }
+
     @PutMapping("/{id}/approve")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Approve post (admin)")

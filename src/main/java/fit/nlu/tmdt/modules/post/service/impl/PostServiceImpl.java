@@ -323,6 +323,12 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
+    public Page<PostResponse> getAdminPosts(PostSearchParams params, Pageable pageable) {
+        Page<Post> posts = postRepository.findAll(PostSpecifications.withSearchParams(params, true), pageable);
+        return posts.map(post -> toPostResponse(post, null));
+    }
+
+    @Override
     @Transactional
     public Map<String, Object> boostPost(Long postId, Long boostPackageId, Long landlordId) {
         Post post = postRepository.findByIdActive(postId)
