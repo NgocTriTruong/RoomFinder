@@ -29,4 +29,8 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     List<Transaction> findByUserIdAndStatusAndDeletedAtIsNull(@Param("userId") Long userId, @Param("status") PaymentStatus status);
 
     boolean existsByOrderIdAndDeletedAtIsNull(String orderId);
+
+    // ==================== STATISTICS QUERIES ====================
+
+    List<Transaction> findByCreatedAtBetween(LocalDateTime start, LocalDateTime end);
 }

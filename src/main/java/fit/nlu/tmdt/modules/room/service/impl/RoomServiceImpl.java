@@ -13,6 +13,7 @@ import fit.nlu.tmdt.modules.room.entity.enums.RoomDirection;
 import fit.nlu.tmdt.modules.room.repository.AmenityRepository;
 import fit.nlu.tmdt.modules.room.repository.RoomRepository;
 import fit.nlu.tmdt.modules.room.service.RoomService;
+import org.hibernate.Hibernate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -223,6 +224,11 @@ public class RoomServiceImpl implements RoomService {
     }
 
     private RoomResponse toRoomResponse(Room room) {
+        // Initialize lazy collections within transaction context
+        Hibernate.initialize(room.getImages());
+        Hibernate.initialize(room.getAmenities());
+        Hibernate.initialize(room.getLandlord());
+
         User landlord = room.getLandlord();
 
         List<RoomResponse.AmenityResponse> amenities = room.getAmenities().stream()

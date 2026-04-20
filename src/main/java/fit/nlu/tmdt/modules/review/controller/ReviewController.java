@@ -58,6 +58,17 @@ public class ReviewController {
         return ResponseEntity.ok(ApiResponse.success(reviews));
     }
 
+    @GetMapping("/my")
+    @Operation(summary = "Get current user's reviews")
+    @LogExecutionTime
+    public ResponseEntity<ApiResponse<List<ReviewResponse>>> getMyReviews(
+            @CurrentUser Long userId) {
+
+        log.info("Get reviews for user: {}", userId);
+        List<ReviewResponse> reviews = reviewService.getUserReviews(userId);
+        return ResponseEntity.ok(ApiResponse.success(reviews));
+    }
+
     @PutMapping("/{id}")
     @Operation(summary = "Update a review")
     @LogExecutionTime

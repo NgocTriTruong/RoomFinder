@@ -4,6 +4,7 @@ import fit.nlu.tmdt.common.annotations.CurrentUser;
 import fit.nlu.tmdt.common.annotations.LogExecutionTime;
 import fit.nlu.tmdt.common.utils.ApiResponse;
 import fit.nlu.tmdt.modules.message.dto.request.SendMessageRequest;
+import fit.nlu.tmdt.modules.message.dto.request.SendMediaMessageRequest;
 import fit.nlu.tmdt.modules.message.dto.response.ConversationResponse;
 import fit.nlu.tmdt.modules.message.dto.response.MessageResponse;
 import fit.nlu.tmdt.modules.message.service.MessageService;
@@ -42,6 +43,19 @@ public class MessageController {
         MessageResponse response = messageService.sendMessage(request, senderId);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.created("Message sent", response));
+    }
+
+    @PostMapping("/media")
+    @Operation(summary = "Send a media message", description = "Send message with image, video, audio, or document attachment")
+    @LogExecutionTime
+    public ResponseEntity<ApiResponse<MessageResponse>> sendMediaMessage(
+            @Valid @RequestBody SendMediaMessageRequest request,
+            @CurrentUser Long senderId) {
+
+        log.info("Send media message from user: {}", senderId);
+        MessageResponse response = messageService.sendMediaMessage(request, senderId);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.created("Media message sent", response));
     }
 
     @GetMapping("/conversations")

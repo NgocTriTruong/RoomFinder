@@ -107,7 +107,8 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGlobalException(Exception ex, WebRequest request) {
-        log.error("Unexpected error: ", ex);
+        log.error("Unexpected error at {}: {} - {}", request.getDescription(false), ex.getClass().getSimpleName(), ex.getMessage(), ex);
+        log.error("Stack trace:", ex);
 
         ErrorResponse errorResponse = ErrorResponse.builder()
                 .status(HttpStatus.INTERNAL_SERVER_ERROR.value())

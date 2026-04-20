@@ -17,10 +17,6 @@ public enum ErrorCode {
     AUTH_003("AUTH_003", "Email not verified", HttpStatus.FORBIDDEN),
     AUTH_004("AUTH_004", "Token expired", HttpStatus.UNAUTHORIZED),
     AUTH_005("AUTH_005", "Invalid refresh token", HttpStatus.UNAUTHORIZED),
-    AUTH_006("AUTH_006", "OTP expired", HttpStatus.BAD_REQUEST),
-    AUTH_007("AUTH_007", "Invalid OTP", HttpStatus.BAD_REQUEST),
-    AUTH_008("AUTH_008", "Too many failed attempts", HttpStatus.TOO_MANY_REQUESTS),
-
     // User (USER_xxx)
     USER_001("USER_001", "User not found", HttpStatus.NOT_FOUND),
     USER_002("USER_002", "Email already exists", HttpStatus.CONFLICT),
@@ -101,6 +97,20 @@ public enum ErrorCode {
     FAV_001("FAV_001", "Favorite not found", HttpStatus.NOT_FOUND),
     FAV_002("FAV_002", "Already in favorites", HttpStatus.CONFLICT),
     FAV_003("FAV_003", "Not in favorites", HttpStatus.NOT_FOUND),
+
+    // Media (MEDIA_xxx)
+    MEDIA_001("MEDIA_001", "Media file not found", HttpStatus.NOT_FOUND),
+    MEDIA_002("MEDIA_002", "Failed to upload file", HttpStatus.BAD_REQUEST),
+    MEDIA_003("MEDIA_003", "All files failed to upload", HttpStatus.BAD_REQUEST),
+    MEDIA_004("MEDIA_004", "File is not ready", HttpStatus.BAD_REQUEST),
+    MEDIA_005("MEDIA_005", "File is empty", HttpStatus.BAD_REQUEST),
+    MEDIA_006("MEDIA_006", "File type not allowed", HttpStatus.BAD_REQUEST),
+    MEDIA_007("MEDIA_007", "File size exceeds limit", HttpStatus.BAD_REQUEST),
+    MEDIA_008("MEDIA_008", "Invalid filename", HttpStatus.BAD_REQUEST),
+    MEDIA_009("MEDIA_009", "Storage limit exceeded", HttpStatus.BAD_REQUEST),
+
+    // Authorization
+    UNAUTHORIZED("UNAUTHORIZED", "Unauthorized access", HttpStatus.UNAUTHORIZED),
 
     // Validation
     VALIDATION_ERROR("VALIDATION_ERROR", "Validation failed", HttpStatus.BAD_REQUEST),

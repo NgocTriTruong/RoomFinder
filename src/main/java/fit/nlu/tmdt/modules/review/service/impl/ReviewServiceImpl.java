@@ -18,6 +18,7 @@ import fit.nlu.tmdt.modules.review.repository.ReviewRepository;
 import fit.nlu.tmdt.modules.review.service.ReviewService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.hibernate.Hibernate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -248,6 +249,10 @@ public class ReviewServiceImpl implements ReviewService {
     }
 
     private ReviewResponse toResponse(Review review) {
+        Hibernate.initialize(review.getPost());
+        Hibernate.initialize(review.getLandlord());
+        Hibernate.initialize(review.getImages());
+
         return ReviewResponse.builder()
                 .id(review.getId())
                 .userId(review.getUser().getId())

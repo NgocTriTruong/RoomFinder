@@ -18,6 +18,7 @@ import fit.nlu.tmdt.modules.subscription.repository.SubscriptionRepository;
 import fit.nlu.tmdt.modules.subscription.service.SubscriptionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -278,6 +279,8 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     private SubscriptionResponse toSubscriptionResponse(Subscription subscription) {
         Package pkg = subscription.getPkg();
 
+        Hibernate.initialize(pkg.getFeatures());
+
         return SubscriptionResponse.builder()
                 .id(subscription.getId())
                 .packageId(pkg.getId())
@@ -302,6 +305,8 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     }
 
     private PackageResponse toPackageResponse(Package pkg) {
+        Hibernate.initialize(pkg.getFeatures());
+
         return PackageResponse.builder()
                 .id(pkg.getId())
                 .name(pkg.getName())

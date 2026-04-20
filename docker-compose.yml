@@ -20,23 +20,6 @@ services:
       timeout: 5s
       retries: 5
 
-  redis:
-    image: redis:7-alpine
-    container_name: tmdt-redis
-    ports:
-      - "6381:6379"
-    volumes:
-      - tmdt_redis_data:/data
-    restart: unless-stopped
-
-    command: redis-server --appendonly yes
-
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
 volumes:
   tmdt_postgres_data:
-  tmdt_redis_data:

@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -55,4 +56,8 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
 
     @Query("SELECT r FROM Review r WHERE r.landlord.id = :landlordId AND r.isVisible = true AND r.deletedAt IS NULL ORDER BY r.createdAt DESC")
     List<Review> findByLandlordIdAndIsVisibleAndDeletedAtIsNull(@Param("landlordId") Long landlordId, Boolean isVisible);
+
+    // ==================== STATISTICS QUERIES ====================
+
+    List<Review> findByCreatedAtBetween(LocalDateTime start, LocalDateTime end);
 }

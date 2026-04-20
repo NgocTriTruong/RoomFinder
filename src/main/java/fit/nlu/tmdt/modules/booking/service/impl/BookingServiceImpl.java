@@ -15,6 +15,7 @@ import fit.nlu.tmdt.modules.post.entity.Post;
 import fit.nlu.tmdt.modules.post.repository.PostRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -278,6 +279,8 @@ public class BookingServiceImpl implements BookingService {
         Post post = booking.getPost();
         User user = booking.getUser();
         User landlord = booking.getLandlord();
+
+        Hibernate.initialize(post.getRoom());
 
         return BookingResponse.builder()
                 .id(booking.getId())

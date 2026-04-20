@@ -15,25 +15,6 @@ import org.springframework.stereotype.Service;
 public class EmailService {
 
     @Async("emailExecutor")
-    public void sendVerificationEmail(String to, String otpCode) {
-        log.info("Sending verification email to: {} with OTP: {}", to, otpCode);
-        // TODO: Implement actual email sending with Spring Mail
-        // Example:
-        // MimeMessage message = mailSender.createMimeMessage();
-        // MimeMessageHelper helper = new MimeMessageHelper(message, true);
-        // helper.setTo(to);
-        // helper.setSubject("Email Verification - TMDT");
-        // helper.setText(buildVerificationEmailContent(otpCode), true);
-        // mailSender.send(message);
-    }
-
-    @Async("emailExecutor")
-    public void sendPasswordResetEmail(String to, String otpCode) {
-        log.info("Sending password reset email to: {} with OTP: {}", to, otpCode);
-        // TODO: Implement actual email sending
-    }
-
-    @Async("emailExecutor")
     public void sendBookingConfirmationEmail(String to, String bookingDetails) {
         log.info("Sending booking confirmation email to: {}", to);
         // TODO: Implement

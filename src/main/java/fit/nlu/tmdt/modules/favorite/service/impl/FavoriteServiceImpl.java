@@ -13,6 +13,7 @@ import fit.nlu.tmdt.modules.post.repository.PostRepository;
 import fit.nlu.tmdt.modules.room.entity.Room;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.hibernate.Hibernate;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -109,6 +110,7 @@ public class FavoriteServiceImpl implements FavoriteService {
         // Get posts similar to recently viewed ones
         // This is a simplified recommendation - in production you'd use ML/CBRS
         Post firstPost = recentPosts.get(0);
+        Hibernate.initialize(firstPost.getRoom());
         List<Post> suggestedPosts = postRepository.findSimilarPosts(
                 firstPost.getId(),
                 firstPost.getRoom().getDistrict(),
@@ -142,7 +144,10 @@ public class FavoriteServiceImpl implements FavoriteService {
 
     private FavoriteResponse buildPostResponse(Post post) {
         Room room = post.getRoom();
-        
+
+        Hibernate.initialize(room.getAmenities());
+        Hibernate.initialize(post.getLandlord());
+
         FavoriteResponse.FavoriteResponseBuilder builder = FavoriteResponse.builder()
                 .roomId(room.getId())
                 .roomTitle(post.getTitle())
@@ -181,6 +186,8 @@ public class FavoriteServiceImpl implements FavoriteService {
 
     private FavoriteResponse buildFavoriteResponse(Favorite favorite, Post activePost) {
         Room room = favorite.getRoom();
+
+        Hibernate.initialize(room.getAmenities());
 
         // Use post data if available, otherwise use room data
         String title = activePost != null ? activePost.getTitle() : null;

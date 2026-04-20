@@ -30,26 +30,6 @@ public interface AuthService {
     void logout(Long userId);
 
     /**
-     * Quên mật khẩu - gửi OTP
-     */
-    void forgotPassword(ForgotPasswordRequest request);
-
-    /**
-     * Reset mật khẩu với OTP
-     */
-    void resetPassword(ResetPasswordRequest request);
-
-    /**
-     * Xác thực email
-     */
-    void verifyEmail(Long userId, VerifyEmailRequest request);
-
-    /**
-     * Gửi lại email xác thực
-     */
-    void resendVerifyEmail(Long userId);
-
-    /**
      * Đổi mật khẩu
      */
     void changePassword(Long userId, ChangePasswordRequest request);

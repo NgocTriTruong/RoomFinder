@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -41,4 +42,20 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
 
     @Query("SELECT COUNT(u) FROM User u WHERE u.role = :role AND u.isVerified = true")
     long countVerifiedByRole(@Param("role") UserRole role);
+
+    // ==================== STATISTICS QUERIES ====================
+
+    @Query("SELECT COUNT(u) FROM User u WHERE u.role = :role")
+    long countByRole(@Param("role") UserRole role);
+
+    @Query("SELECT COUNT(u) FROM User u WHERE u.role = :role AND u.isVerified = false")
+    long countUnverifiedByRole(@Param("role") UserRole role);
+
+    @Query("SELECT COUNT(u) FROM User u WHERE u.role = :role AND u.createdAt BETWEEN :start AND :end")
+    long countByRoleAndCreatedAtBetween(@Param("role") UserRole role, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+
+    List<User> findByCreatedAtBetween(LocalDateTime start, LocalDateTime end);
+
+    @Query("SELECT COUNT(u) FROM User u WHERE u.createdAt BETWEEN :start AND :end")
+    long countByCreatedAtBetween(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 }

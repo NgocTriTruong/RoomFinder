@@ -6,6 +6,8 @@ import fit.nlu.tmdt.modules.post.entity.Post;
 import fit.nlu.tmdt.modules.post.entity.enums.PostStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
@@ -38,6 +40,7 @@ public interface PostRepository extends JpaRepository<Post, Long>, JpaSpecificat
     long countByLandlordIdAndStatus(Long landlordId, PostStatus status);
 
     // Query với EntityGraph để tránh N+1
+    @EntityGraph(attributePaths = {"images", "room", "room.amenities", "landlord"})
     @Query("SELECT p FROM Post p WHERE p.id = :id AND p.deletedAt IS NULL")
     Optional<Post> findByIdActive(@Param("id") Long id);
 
@@ -92,7 +95,7 @@ public interface PostRepository extends JpaRepository<Post, Long>, JpaSpecificat
     Page<Post> findMostViewedPosts(Pageable pageable);
 
     // Get recent posts viewed by user (based on room history)
-    @Query(value = "SELECT DISTINCT p FROM Post p " +
+    @Query("SELECT p FROM Post p " +
             "JOIN RoomHistory rh ON rh.post.id = p.id " +
             "WHERE rh.user.id = :userId AND p.deletedAt IS NULL " +
             "ORDER BY rh.viewedAt DESC")
@@ -106,6 +109,50 @@ public interface PostRepository extends JpaRepository<Post, Long>, JpaSpecificat
     List<Post> findSimilarPosts(@Param("postId") Long postId, @Param("district") String district, Pageable pageable);
 
     // Featured posts (boosted + high rating)
+    @EntityGraph(attributePaths = {"images", "room", "room.amenities", "landlord"})
     @Query("SELECT p FROM Post p WHERE p.status = 'APPROVED' AND p.deletedAt IS NULL ORDER BY p.isBoosted DESC, p.viewCount DESC, p.createdAt DESC")
     List<Post> findFeaturedPosts(@Param("limit") int limit);
+
+    // ==================== SPECIFICATION QUERIES WITH ENTITY GRAPH ====================
+
+    // Note: For search with graph, use postRepository.postsWithGraph() in PostService
+
+    // ==================== STATISTICS QUERIES ====================
+
+    long countByLandlordIdAndCreatedAtBetween(Long landlordId, LocalDateTime start, LocalDateTime end);
+
+    List<Post> findByCreatedAtBetween(LocalDateTime start, LocalDateTime end);
+
+    long countByCreatedAtBetween(LocalDateTime start, LocalDateTime end);
+
+    @Query("SELECT AVG(p.price) FROM Post p WHERE p.status = 'APPROVED' AND p.deletedAt IS NULL")
+    Double avgPrice();
+
+    @Query("SELECT AVG(p.viewCount) FROM Post p WHERE p.status = 'APPROVED' AND p.deletedAt IS NULL")
+    Double avgViewCount();
+
+    @Query("SELECT SUM(p.viewCount) FROM Post p WHERE p.deletedAt IS NULL")
+    Long sumViewCount();
+
+    @Query("SELECT SUM(p.favoriteCount) FROM Post p WHERE p.deletedAt IS NULL")
+    Long sumFavoriteCount();
+
+    @Query("SELECT SUM(p.viewCount) FROM Post p WHERE p.landlord.id = :landlordId AND p.deletedAt IS NULL")
+    Long sumViewCountByLandlordId(@Param("landlordId") Long landlordId);
+
+    @Query("SELECT SUM(p.favoriteCount) FROM Post p WHERE p.landlord.id = :landlordId AND p.deletedAt IS NULL")
+    Long sumFavoriteCountByLandlordId(@Param("landlordId") Long landlordId);
+
+    @Query("SELECT p.landlord.id, p.landlord.fullName, COUNT(p), SUM(p.viewCount) " +
+            "FROM Post p WHERE p.createdAt BETWEEN :start AND :end AND p.deletedAt IS NULL " +
+            "GROUP BY p.landlord.id, p.landlord.fullName ORDER BY COUNT(p) DESC")
+    List<Object[]> findTopLandlordsByPosts(LocalDateTime start, LocalDateTime end, Pageable pageable);
+
+    @Query("SELECT COUNT(p) FROM Post p WHERE p.status = 'EXPIRED' AND p.deletedAt IS NULL")
+    long countExpiredPosts();
+
+    @Query("SELECT p.room.province, COUNT(p) FROM Post p " +
+            "WHERE p.createdAt BETWEEN :start AND :end AND p.deletedAt IS NULL " +
+            "GROUP BY p.room.province ORDER BY COUNT(p) DESC")
+    List<Object[]> countByProvince(LocalDateTime start, LocalDateTime end);
 }

@@ -33,7 +33,7 @@ public class AuthController {
         log.info("Register request for email: {}", request.getEmail());
         AuthResponse response = authService.register(request);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.created("Registration successful. Please verify your email.", response));
+                .body(ApiResponse.created("Registration successful", response));
     }
 
     @PostMapping("/login")
@@ -60,41 +60,6 @@ public class AuthController {
             authService.logout(userId);
         }
         return ResponseEntity.ok(ApiResponse.success("Logout successful", null));
-    }
-
-    @PostMapping("/forgot-password")
-    @Operation(summary = "Request password reset")
-    public ResponseEntity<ApiResponse<Void>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
-        log.info("Forgot password request for: {}", request.getEmail());
-        authService.forgotPassword(request);
-        return ResponseEntity.ok(ApiResponse.success("If an account exists with this email, a password reset OTP has been sent", null));
-    }
-
-    @PostMapping("/reset-password")
-    @Operation(summary = "Reset password with OTP")
-    public ResponseEntity<ApiResponse<Void>> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
-        log.info("Reset password request for: {}", request.getEmail());
-        authService.resetPassword(request);
-        return ResponseEntity.ok(ApiResponse.success("Password reset successfully", null));
-    }
-
-    @PostMapping("/verify-email")
-    @Operation(summary = "Verify email with OTP")
-    public ResponseEntity<ApiResponse<Void>> verifyEmail(
-            @RequestAttribute(name = "userId", required = false) Long userId,
-            @Valid @RequestBody VerifyEmailRequest request) {
-        log.info("Verify email request for user: {}", userId);
-        authService.verifyEmail(userId, request);
-        return ResponseEntity.ok(ApiResponse.success("Email verified successfully", null));
-    }
-
-    @PostMapping("/resend-verify-email")
-    @Operation(summary = "Resend verification email")
-    public ResponseEntity<ApiResponse<Void>> resendVerifyEmail(
-            @RequestAttribute(name = "userId", required = false) Long userId) {
-        log.info("Resend verify email request for user: {}", userId);
-        authService.resendVerifyEmail(userId);
-        return ResponseEntity.ok(ApiResponse.success("Verification email sent", null));
     }
 
     @PostMapping("/change-password")

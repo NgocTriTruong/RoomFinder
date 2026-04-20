@@ -42,4 +42,9 @@ public interface ReportRepository extends JpaRepository<Report, Long> {
     List<Report> findByPostId(@Param("postId") Long postId);
 
     boolean existsByReporterIdAndTargetIdAndTargetTypeAndDeletedAtIsNull(Long reporterId, Long targetId, String targetType);
+
+    // ==================== STATISTICS QUERIES ====================
+
+    @Query("SELECT COUNT(r) FROM Report r WHERE r.createdAt BETWEEN :start AND :end")
+    long countByCreatedAtBetween(@Param("start") java.time.LocalDateTime start, @Param("end") java.time.LocalDateTime end);
 }

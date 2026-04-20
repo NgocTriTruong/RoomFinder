@@ -4,6 +4,9 @@ import fit.nlu.tmdt.common.annotations.CurrentUser;
 import fit.nlu.tmdt.common.annotations.LogExecutionTime;
 import fit.nlu.tmdt.common.utils.ApiResponse;
 import fit.nlu.tmdt.modules.auth.dto.response.UserResponse;
+import fit.nlu.tmdt.modules.media.dto.response.CentralMediaResponse;
+import fit.nlu.tmdt.modules.media.entity.enums.MediaCategory;
+import fit.nlu.tmdt.modules.media.service.CentralMediaService;
 import fit.nlu.tmdt.modules.user.dto.request.UpdateProfileRequest;
 import fit.nlu.tmdt.modules.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -26,6 +29,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class UserController {
 
     private final UserService userService;
+    private final CentralMediaService centralMediaService;
 
     @GetMapping("/profile")
     @Operation(summary = "Get current user profile")
@@ -64,9 +68,15 @@ public class UserController {
             @CurrentUser Long userId,
             @RequestParam("file") MultipartFile file) {
         log.info("Upload avatar request for user: {}", userId);
-        // TODO: Implement file upload to S3/MinIO
-        String avatarUrl = "https://storage.example.com/avatars/" + userId + "/" + file.getOriginalFilename();
+        
+        // Upload file qua CentralMediaService
+        CentralMediaResponse mediaResponse = centralMediaService.uploadFile(
+                file, MediaCategory.USER_AVATAR, userId);
+        
+        // Update avatar URL
+        String avatarUrl = mediaResponse.getFileUrl();
         UserResponse response = userService.uploadAvatar(userId, avatarUrl);
+        
         return ResponseEntity.ok(ApiResponse.success("Avatar uploaded successfully", response));
     }
 

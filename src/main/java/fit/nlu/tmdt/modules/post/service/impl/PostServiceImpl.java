@@ -22,6 +22,8 @@ import fit.nlu.tmdt.modules.subscription.entity.Subscription;
 import fit.nlu.tmdt.modules.subscription.repository.BoostRepository;
 import fit.nlu.tmdt.modules.subscription.repository.PackageRepository;
 import fit.nlu.tmdt.modules.subscription.repository.SubscriptionRepository;
+import org.hibernate.Session;
+import org.hibernate.Hibernate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -53,6 +55,7 @@ public class PostServiceImpl implements PostService {
     private final SubscriptionRepository subscriptionRepository;
     private final BoostRepository boostRepository;
     private final PackageRepository packageRepository;
+    private final fit.nlu.tmdt.modules.booking.repository.BookingRepository bookingRepository;
 
     @Value("${post.default-duration-days:30}")
     private int defaultDurationDays;
@@ -219,7 +222,7 @@ public class PostServiceImpl implements PostService {
                 post.getFavoriteCount(),
                 post.getContactCount(),
                 post.getBookingCount(),
-                0  // TODO: Calculate completed bookings
+                (int) bookingRepository.countByPostIdAndStatusAndDeletedAtIsNull(postId, fit.nlu.tmdt.modules.booking.entity.enums.BookingStatus.COMPLETED)
         );
     }
 
@@ -364,6 +367,13 @@ public class PostServiceImpl implements PostService {
     // ==================== HELPER METHODS ====================
 
     private PostResponse toPostResponse(Post post, Long userId) {
+        // Initialize lazy collections within transaction context
+        Hibernate.initialize(post.getImages());
+        if (post.getRoom() != null) {
+            Hibernate.initialize(post.getRoom().getAmenities());
+        }
+        Hibernate.initialize(post.getLandlord());
+
         Room room = post.getRoom();
         User landlord = post.getLandlord();
 

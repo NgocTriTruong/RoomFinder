@@ -40,4 +40,8 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Long
 
     @Query("SELECT COUNT(s) FROM Subscription s WHERE s.landlord.id = :landlordId AND s.pkg.id = :packageId")
     int countByLandlordIdAndPackageId(@Param("landlordId") Long landlordId, @Param("packageId") Long packageId);
+
+    // ==================== STATISTICS QUERIES ====================
+
+    List<Subscription> findByCreatedAtBetween(LocalDateTime start, LocalDateTime end);
 }
