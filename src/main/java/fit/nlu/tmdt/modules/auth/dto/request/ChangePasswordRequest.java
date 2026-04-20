@@ -21,11 +21,6 @@ public class ChangePasswordRequest {
     private String currentPassword;
 
     @NotBlank(message = "New password is required")
-    @Size(min = 8, max = 100, message = "Password must be at least 8 characters")
-    @Pattern(
-            regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>\\/?]).*$",
-            message = "Password must contain at least one uppercase, one lowercase, one number, and one special character"
-    )
     private String newPassword;
 
     @NotBlank(message = "Please confirm your new password")

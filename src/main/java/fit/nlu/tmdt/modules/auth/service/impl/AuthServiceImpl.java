@@ -74,9 +74,22 @@ public class AuthServiceImpl implements AuthService {
 
         user = userRepository.save(user);
 
-        log.info("User registered successfully with ID: {}", user.getId());
+        // 5. Generate tokens for auto-login
+        String accessToken = jwtTokenProvider.generateAccessToken(user.getId(), user.getEmail(), user.getRole().name());
+        String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId());
+
+        // 6. Save refresh token
+        user.setRefreshToken(refreshToken);
+        userRepository.save(user);
+
+        log.info("User registered and logged in successfully with ID: {}", user.getId());
 
         return AuthResponse.builder()
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .tokenType("Bearer")
+                .expiresIn(accessTokenExpiration / 1000)
+                .refreshExpiresIn(refreshTokenExpiration / 1000)
                 .user(toUserResponse(user))
                 .build();
     }
