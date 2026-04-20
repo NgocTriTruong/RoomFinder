@@ -7,6 +7,7 @@ import fit.nlu.tmdt.common.utils.PageResponse;
 import fit.nlu.tmdt.modules.post.dto.request.CreatePostRequest;
 import fit.nlu.tmdt.modules.post.dto.request.PostSearchParams;
 import fit.nlu.tmdt.modules.post.dto.request.UpdatePostRequest;
+import fit.nlu.tmdt.modules.post.dto.response.LandlordDashboardStats;
 import fit.nlu.tmdt.modules.post.dto.response.PostResponse;
 import fit.nlu.tmdt.modules.post.service.PostService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -152,6 +153,18 @@ public class PostController {
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
         Page<PostResponse> posts = postService.getMyPosts(landlordId, pageable);
         return ResponseEntity.ok(ApiResponse.success(PageResponse.of(posts)));
+    }
+
+    @GetMapping("/landlord/dashboard/stats")
+    @PreAuthorize("hasRole('LANDLORD')")
+    @Operation(summary = "Get landlord dashboard stats")
+    @LogExecutionTime
+    public ResponseEntity<ApiResponse<LandlordDashboardStats>> getLandlordDashboardStats(
+            @CurrentUser Long landlordId) {
+
+        log.info("Get landlord dashboard stats for landlord: {}", landlordId);
+        LandlordDashboardStats stats = postService.getLandlordDashboardStats(landlordId);
+        return ResponseEntity.ok(ApiResponse.success(stats));
     }
 
     @GetMapping("/{id}/stats")

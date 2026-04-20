@@ -35,9 +35,11 @@ public interface PostRepository extends JpaRepository<Post, Long>, JpaSpecificat
 
     boolean existsByRoomIdAndStatusInAndDeletedAtIsNull(Long roomId, List<PostStatus> statuses);
 
-    long countByLandlordId(Long landlordId);
+    @Query("SELECT COUNT(p) FROM Post p WHERE p.landlord.id = :landlordId AND p.deletedAt IS NULL")
+    long countByLandlordId(@Param("landlordId") Long landlordId);
 
-    long countByLandlordIdAndStatus(Long landlordId, PostStatus status);
+    @Query("SELECT COUNT(p) FROM Post p WHERE p.landlord.id = :landlordId AND p.status = :status AND p.deletedAt IS NULL")
+    long countByLandlordIdAndStatus(@Param("landlordId") Long landlordId, @Param("status") PostStatus status);
 
     // Query với EntityGraph để tránh N+1
     @EntityGraph(attributePaths = {"images", "room", "room.amenities", "landlord"})

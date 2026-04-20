@@ -73,7 +73,7 @@ public class Review extends BaseEntity {
 
     @ElementCollection
     @CollectionTable(name = "review_images", joinColumns = @JoinColumn(name = "review_id"))
-    @Column(name = "image_url", length = 500)
+    @Column(name = "image_url", columnDefinition = "TEXT")
     @Builder.Default
     private java.util.List<String> images = new java.util.ArrayList<>();
 

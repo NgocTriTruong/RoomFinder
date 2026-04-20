@@ -174,7 +174,46 @@ public class CentralMediaFile extends BaseEntity {
             }
             return baseUrl + fileUrl;
         }
+        String relativePath = toPublicRelativePath(filePath);
+        if (relativePath != null) {
+            return baseUrl + relativePath;
+        }
         return null;
+    }
+
+    /**
+     * Lấy URL thumbnail đầy đủ
+     */
+    public String getThumbnailFullUrl(String baseUrl) {
+        if (thumbnailUrl != null && !thumbnailUrl.isEmpty()) {
+            if (thumbnailUrl.startsWith("http")) {
+                return thumbnailUrl;
+            }
+            return baseUrl + thumbnailUrl;
+        }
+        String relativePath = toPublicRelativePath(thumbnailPath);
+        if (relativePath != null) {
+            return baseUrl + relativePath;
+        }
+        return getFullUrl(baseUrl);
+    }
+
+    private String toPublicRelativePath(String storedPath) {
+        if (storedPath == null || storedPath.isBlank()) {
+            return null;
+        }
+
+        String normalized = storedPath.replace("\\", "/");
+        int uploadsIndex = normalized.indexOf("uploads/");
+        if (uploadsIndex >= 0) {
+            return normalized.substring(uploadsIndex + "uploads".length());
+        }
+
+        if (normalized.startsWith("uploads/")) {
+            return normalized.substring("uploads".length());
+        }
+
+        return normalized.startsWith("/") ? normalized : "/" + normalized;
     }
 
     /**

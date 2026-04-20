@@ -2,6 +2,7 @@ package fit.nlu.tmdt.modules.user.service;
 
 import fit.nlu.tmdt.modules.auth.dto.response.UserResponse;
 import fit.nlu.tmdt.modules.user.dto.request.UpdateProfileRequest;
+import fit.nlu.tmdt.modules.user.dto.request.KYCRequest;
 
 /**
  * User Service Interface
@@ -32,6 +33,16 @@ public interface UserService {
      * Get landlord profile with stats
      */
     LandlordProfileResponse getLandlordProfile(Long landlordId);
+
+    /**
+     * Submit KYC verification (Landlord)
+     */
+    UserResponse submitKYC(Long userId, KYCRequest request);
+
+    /**
+     * Approve or Reject KYC (Admin)
+     */
+    UserResponse verifyUser(Long userId, String status, String adminNote);
 
     /**
      * Landlord Profile Response DTO

@@ -10,6 +10,7 @@ import fit.nlu.tmdt.modules.post.dto.request.UpdatePostRequest;
 import fit.nlu.tmdt.modules.post.dto.response.*;
 import fit.nlu.tmdt.modules.post.entity.Post;
 import fit.nlu.tmdt.modules.post.entity.enums.PostStatus;
+import fit.nlu.tmdt.modules.booking.entity.enums.BookingStatus;
 import fit.nlu.tmdt.modules.post.repository.PostRepository;
 import fit.nlu.tmdt.modules.post.repository.PostSpecifications;
 import fit.nlu.tmdt.modules.post.service.PostService;
@@ -22,7 +23,6 @@ import fit.nlu.tmdt.modules.subscription.entity.Subscription;
 import fit.nlu.tmdt.modules.subscription.repository.BoostRepository;
 import fit.nlu.tmdt.modules.subscription.repository.PackageRepository;
 import fit.nlu.tmdt.modules.subscription.repository.SubscriptionRepository;
-import org.hibernate.Session;
 import org.hibernate.Hibernate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -60,6 +60,9 @@ public class PostServiceImpl implements PostService {
     @Value("${post.default-duration-days:30}")
     private int defaultDurationDays;
 
+    @Value("${post.free-quota:2}")
+    private int freePostQuota;
+
     @Override
     public Page<PostResponse> searchPosts(PostSearchParams params, Pageable pageable, Long userId) {
         // Default status is APPROVED for public search
@@ -84,12 +87,23 @@ public class PostServiceImpl implements PostService {
     public PostResponse createPost(CreatePostRequest request, Long landlordId) {
         log.info("Creating post for landlord: {}", landlordId);
 
-        // 1. Check subscription
+        // 1. Check subscription or free quota
         Subscription subscription = subscriptionRepository.findActiveByLandlordId(landlordId, LocalDateTime.now())
-                .orElseThrow(() -> new BusinessException(ErrorCode.POST_002, "You need an active subscription to create posts"));
+                .orElse(null);
 
-        if (!subscription.hasRemainingPosts()) {
-            throw new BusinessException(ErrorCode.POST_003, "You have no remaining posts. Please purchase a package.");
+        if (subscription != null) {
+            if (!subscription.usePost()) {
+                throw new BusinessException(ErrorCode.POST_003, "You have no remaining posts. Please purchase a package.");
+            }
+            subscriptionRepository.save(subscription);
+        } else {
+            long usedFreePosts = postRepository.countByLandlordId(landlordId);
+            if (usedFreePosts >= freePostQuota) {
+                throw new BusinessException(
+                        ErrorCode.POST_002,
+                        "You have used all free posts. Please purchase a package to continue posting."
+                );
+            }
         }
 
         // 2. Check room exists and belongs to landlord
@@ -208,7 +222,37 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
-    public PostStatsResponse getPostStats(Long postId, Long landlordId) {
+    public LandlordDashboardStats getLandlordDashboardStats(Long landlordId) {
+        long totalPosts = postRepository.countByLandlordId(landlordId);
+        long activePosts = postRepository.countByLandlordIdAndStatus(landlordId, PostStatus.APPROVED);
+        Long totalViews = postRepository.sumViewCountByLandlordId(landlordId);
+        long totalBookings = bookingRepository.countByLandlordId(landlordId);
+        long pendingBookings = bookingRepository.countByLandlordIdAndStatus(landlordId, fit.nlu.tmdt.modules.booking.entity.enums.BookingStatus.PENDING);
+
+        // Mock recent activity for now (last 7 days)
+        List<LandlordDashboardStats.DailyActivity> recentActivity = new ArrayList<>();
+        LocalDateTime now = LocalDateTime.now();
+        for (int i = 6; i >= 0; i--) {
+            LocalDateTime date = now.minusDays(i);
+            recentActivity.add(LandlordDashboardStats.DailyActivity.builder()
+                    .date(date.toLocalDate().toString())
+                    .views((long) (Math.random() * 50)) // TODO: Thực tế nên query từ ViewHistory
+                    .contacts((long) (Math.random() * 10))
+                    .build());
+        }
+
+        return LandlordDashboardStats.builder()
+                .totalPosts(totalPosts)
+                .activePosts(activePosts)
+                .totalViews(totalViews != null ? totalViews : 0)
+                .totalBookings(totalBookings)
+                .pendingBookings(pendingBookings)
+                .recentActivity(recentActivity)
+                .build();
+    }
+
+    @Override
+    public PostService.PostStatsResponse getPostStats(Long postId, Long landlordId) {
         Post post = postRepository.findByIdActive(postId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.POST_001, "Post not found"));
 
@@ -216,13 +260,13 @@ public class PostServiceImpl implements PostService {
             throw new BusinessException(ErrorCode.POST_008, "You don't own this post");
         }
 
-        return new PostStatsResponse(
+        return new PostService.PostStatsResponse(
                 post.getId(),
                 post.getViewCount(),
                 post.getFavoriteCount(),
                 post.getContactCount(),
                 post.getBookingCount(),
-                (int) bookingRepository.countByPostIdAndStatusAndDeletedAtIsNull(postId, fit.nlu.tmdt.modules.booking.entity.enums.BookingStatus.COMPLETED)
+                (int) bookingRepository.countByPostIdAndStatusAndDeletedAtIsNull(postId, BookingStatus.COMPLETED)
         );
     }
 

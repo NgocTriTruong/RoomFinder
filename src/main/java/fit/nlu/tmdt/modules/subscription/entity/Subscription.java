@@ -132,6 +132,9 @@ public class Subscription extends BaseEntity {
         if (!hasRemainingPosts()) {
             return false;
         }
+        if (maxPosts == null) {
+            return true;
+        }
         if (remainingPosts != null) {
             remainingPosts--;
             usedPosts++;

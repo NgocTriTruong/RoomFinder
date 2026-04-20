@@ -93,7 +93,7 @@ public class Room extends BaseEntity {
 
     @ElementCollection
     @CollectionTable(name = "room_images", joinColumns = @JoinColumn(name = "room_id"))
-    @Column(name = "image_url", length = 500)
+    @Column(name = "image_url", columnDefinition = "TEXT")
     @Builder.Default
     private List<String> images = new ArrayList<>();
 

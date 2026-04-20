@@ -134,7 +134,7 @@ public class Post extends BaseEntity {
 
     @ElementCollection
     @CollectionTable(name = "post_images", joinColumns = @JoinColumn(name = "post_id"))
-    @Column(name = "image_url", length = 500)
+    @Column(name = "image_url", columnDefinition = "TEXT")
     @OrderColumn(name = "image_order")
     @Builder.Default
     private List<String> images = new ArrayList<>();

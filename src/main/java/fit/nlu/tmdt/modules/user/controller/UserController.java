@@ -15,8 +15,12 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import fit.nlu.tmdt.modules.user.dto.request.KYCRequest;
+
+import java.util.Map;
 
 /**
  * User Controller
@@ -88,5 +92,31 @@ public class UserController {
         log.info("Get landlord profile request: {}", id);
         UserService.LandlordProfileResponse response = userService.getLandlordProfile(id);
         return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @PostMapping("/kyc")
+    @PreAuthorize("hasRole('LANDLORD')")
+    @Operation(summary = "Submit KYC verification (Landlord)")
+    @LogExecutionTime
+    public ResponseEntity<ApiResponse<UserResponse>> submitKYC(
+            @CurrentUser Long userId,
+            @Valid @RequestBody KYCRequest request) {
+        log.info("Submit KYC request for user: {}", userId);
+        UserResponse response = userService.submitKYC(userId, request);
+        return ResponseEntity.ok(ApiResponse.success("KYC submitted successfully", response));
+    }
+
+    @PostMapping("/admin/verify/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Approve or Reject KYC (Admin)")
+    @LogExecutionTime
+    public ResponseEntity<ApiResponse<UserResponse>> verifyUser(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> body) {
+        String status = body.get("status");
+        String adminNote = body.get("adminNote");
+        log.info("Verify user {} request: status={}", id, status);
+        UserResponse response = userService.verifyUser(id, status, adminNote);
+        return ResponseEntity.ok(ApiResponse.success("User verification processed", response));
     }
 }

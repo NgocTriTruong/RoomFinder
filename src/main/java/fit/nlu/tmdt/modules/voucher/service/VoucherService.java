@@ -1,6 +1,7 @@
 package fit.nlu.tmdt.modules.voucher.service;
 
 import fit.nlu.tmdt.modules.voucher.dto.request.ApplyVoucherRequest;
+import fit.nlu.tmdt.modules.voucher.dto.request.VoucherRequest;
 import fit.nlu.tmdt.modules.voucher.dto.response.VoucherResponse;
 import fit.nlu.tmdt.modules.voucher.dto.response.VoucherValidationResponse;
 
@@ -40,4 +41,24 @@ public interface VoucherService {
      * Get featured vouchers
      */
     List<VoucherResponse> getFeaturedVouchers();
+
+    /**
+     * Create a new voucher (admin)
+     */
+    VoucherResponse createVoucher(VoucherRequest request, Long adminId);
+
+    /**
+     * Update an existing voucher (admin)
+     */
+    VoucherResponse updateVoucher(Long id, VoucherRequest request);
+
+    /**
+     * Delete a voucher (admin)
+     */
+    void deleteVoucher(Long id);
+
+    /**
+     * Get all vouchers (admin)
+     */
+    List<VoucherResponse> getAllVouchers();
 }

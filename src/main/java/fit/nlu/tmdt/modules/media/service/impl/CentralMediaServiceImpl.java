@@ -115,6 +115,7 @@ public class CentralMediaServiceImpl implements CentralMediaService {
             // Save file
             Path filePath = uploadPath.resolve(newFilename);
             Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+            String publicFileUrl = toPublicUrl(filePath.toString());
 
             // Create entity
             CentralMediaFile mediaFile = CentralMediaFile.builder()
@@ -123,6 +124,7 @@ public class CentralMediaServiceImpl implements CentralMediaService {
                     .originalName(originalFilename)
                     .fileName(newFilename)
                     .filePath(filePath.toString())
+                    .fileUrl(publicFileUrl)
                     .fileSize(file.getSize())
                     .mimeType(file.getContentType())
                     .extension(extension)
@@ -136,6 +138,9 @@ public class CentralMediaServiceImpl implements CentralMediaService {
 
             // Create thumbnail for images
             createThumbnail(mediaFile, filePath.toFile());
+            if (mediaFile.getThumbnailPath() != null) {
+                mediaFile.setThumbnailUrl(toPublicUrl(mediaFile.getThumbnailPath()));
+            }
 
             // Mark as ready
             mediaFile.markAsReady();
@@ -513,8 +518,7 @@ public class CentralMediaServiceImpl implements CentralMediaService {
                 .originalName(mediaFile.getOriginalName())
                 .fileName(mediaFile.getFileName())
                 .fileUrl(mediaFile.getFullUrl(mediaBaseUrl))
-                .thumbnailUrl(mediaFile.getThumbnailUrl() != null ? 
-                        mediaBaseUrl + mediaFile.getThumbnailUrl() : mediaFile.getFullUrl(mediaBaseUrl))
+                .thumbnailUrl(mediaFile.getThumbnailFullUrl(mediaBaseUrl))
                 .fileSize(mediaFile.getFileSize())
                 .formattedSize(mediaFile.getFormattedSize())
                 .mimeType(mediaFile.getMimeType())
@@ -525,11 +529,28 @@ public class CentralMediaServiceImpl implements CentralMediaService {
                 .referenceId(mediaFile.getReferenceId())
                 .isPrimary(mediaFile.getIsPrimary())
                 .createdAt(mediaFile.getCreatedAt())
-                .previewUrl(mediaFile.getThumbnailUrl() != null ?
-                        mediaBaseUrl + mediaFile.getThumbnailUrl() : mediaFile.getFullUrl(mediaBaseUrl))
+                .previewUrl(mediaFile.getThumbnailFullUrl(mediaBaseUrl))
                 .isImage(mediaFile.isImage())
                 .isVideo(mediaFile.isVideo())
                 .isAudio(mediaFile.isAudio())
                 .build();
+    }
+
+    private String toPublicUrl(String storedPath) {
+        if (storedPath == null || storedPath.isBlank()) {
+            return null;
+        }
+
+        String normalized = storedPath.replace("\\", "/");
+        int uploadsIndex = normalized.indexOf("uploads/");
+        if (uploadsIndex >= 0) {
+            return "/" + normalized.substring(uploadsIndex + "uploads".length() + 1);
+        }
+
+        if (normalized.startsWith("uploads/")) {
+            return "/" + normalized.substring("uploads/".length());
+        }
+
+        return normalized.startsWith("/") ? normalized : "/" + normalized;
     }
 }

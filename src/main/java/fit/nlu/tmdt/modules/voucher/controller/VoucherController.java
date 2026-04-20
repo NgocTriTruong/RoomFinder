@@ -13,7 +13,9 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import fit.nlu.tmdt.modules.voucher.dto.request.VoucherRequest;
 
 import java.util.List;
 
@@ -84,5 +86,46 @@ public class VoucherController {
         log.info("Get featured vouchers");
         List<VoucherResponse> vouchers = voucherService.getFeaturedVouchers();
         return ResponseEntity.ok(ApiResponse.success(vouchers));
+    }
+
+    // ==========================================
+    // ADMIN ENDPOINTS
+    // ==========================================
+
+    @GetMapping("/admin/all")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Get all vouchers (Admin)")
+    public ResponseEntity<ApiResponse<List<VoucherResponse>>> getAllVouchers() {
+        log.info("Admin: Get all vouchers");
+        return ResponseEntity.ok(ApiResponse.success(voucherService.getAllVouchers()));
+    }
+
+    @PostMapping("/admin")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Create voucher (Admin)")
+    public ResponseEntity<ApiResponse<VoucherResponse>> createVoucher(
+            @Valid @RequestBody VoucherRequest request,
+            @CurrentUser Long adminId) {
+        log.info("Admin: Create voucher code={}", request.getCode());
+        return ResponseEntity.ok(ApiResponse.success("Voucher created", voucherService.createVoucher(request, adminId)));
+    }
+
+    @PutMapping("/admin/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Update voucher (Admin)")
+    public ResponseEntity<ApiResponse<VoucherResponse>> updateVoucher(
+            @PathVariable Long id,
+            @Valid @RequestBody VoucherRequest request) {
+        log.info("Admin: Update voucher id={}", id);
+        return ResponseEntity.ok(ApiResponse.success("Voucher updated", voucherService.updateVoucher(id, request)));
+    }
+
+    @DeleteMapping("/admin/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Delete voucher (Admin)")
+    public ResponseEntity<ApiResponse<Void>> deleteVoucher(@PathVariable Long id) {
+        log.info("Admin: Delete voucher id={}", id);
+        voucherService.deleteVoucher(id);
+        return ResponseEntity.ok(ApiResponse.success("Voucher deleted", null));
     }
 }

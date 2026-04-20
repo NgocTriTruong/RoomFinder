@@ -75,6 +75,7 @@ public enum ErrorCode {
     VOU_004("VOU_004", "Voucher usage limit reached", HttpStatus.BAD_REQUEST),
     VOU_005("VOU_005", "Minimum order amount not met", HttpStatus.BAD_REQUEST),
     VOU_006("VOU_006", "Voucher not applicable for this package", HttpStatus.BAD_REQUEST),
+    VOU_007("VOU_007", "Voucher code already exists", HttpStatus.CONFLICT),
 
     // Review (REV_xxx)
     REV_001("REV_001", "Review not found", HttpStatus.NOT_FOUND),

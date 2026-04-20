@@ -15,8 +15,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
 
 /**
  * User Service Implementation
@@ -29,6 +29,45 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final PostRepository postRepository;
+
+    @Override
+    @Transactional
+    public UserResponse submitKYC(Long userId, fit.nlu.tmdt.modules.user.dto.request.KYCRequest request) {
+        if (userId == null) {
+            throw new BusinessException(ErrorCode.AUTH_001, "User ID cannot be null");
+        }
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_001, "User not found"));
+
+        user.setFrontIdCardUrl(request.getFrontIdCardUrl());
+        user.setBackIdCardUrl(request.getBackIdCardUrl());
+        user.setSelfieUrl(request.getSelfieUrl());
+        user.setVerificationStatus("PENDING");
+
+        user = userRepository.save(user);
+        log.info("KYC submitted for user: {}", userId);
+        return toUserResponse(user);
+    }
+
+    @Override
+    @Transactional
+    public UserResponse verifyUser(Long userId, String status, String adminNote) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_001, "User not found"));
+
+        if ("APPROVED".equals(status)) {
+            user.setVerificationStatus("APPROVED");
+            user.setIsVerified(true);
+            user.setVerifiedAt(LocalDateTime.now());
+        } else if ("REJECTED".equals(status)) {
+            user.setVerificationStatus("REJECTED");
+            user.setIsVerified(false);
+        }
+
+        user = userRepository.save(user);
+        log.info("KYC {} for user: {}", status, userId);
+        return toUserResponse(user);
+    }
 
     @Override
     public UserResponse getCurrentProfile(Long userId) {
@@ -102,7 +141,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public LandlordProfileResponse getLandlordProfile(Long landlordId) {
+    public UserService.LandlordProfileResponse getLandlordProfile(Long landlordId) {
         User user = userRepository.findById(landlordId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_001, "User not found"));
 
@@ -110,7 +149,7 @@ public class UserServiceImpl implements UserService {
         long totalPosts = postRepository.countByLandlordId(landlordId);
         long activePosts = postRepository.countByLandlordIdAndStatus(landlordId, PostStatus.APPROVED);
 
-        return new LandlordProfileResponse(
+        return new UserService.LandlordProfileResponse(
                 user.getId(),
                 user.getFullName(),
                 user.getAvatarUrl(),
@@ -134,6 +173,10 @@ public class UserServiceImpl implements UserService {
                 .role(user.getRole().name())
                 .status(user.getStatus().name())
                 .isVerified(user.getIsVerified())
+                .verificationStatus(user.getVerificationStatus())
+                .frontIdCardUrl(user.getFrontIdCardUrl())
+                .backIdCardUrl(user.getBackIdCardUrl())
+                .selfieUrl(user.getSelfieUrl())
                 .verifiedAt(user.getVerifiedAt())
                 .dateOfBirth(user.getDateOfBirth())
                 .address(user.getAddress())

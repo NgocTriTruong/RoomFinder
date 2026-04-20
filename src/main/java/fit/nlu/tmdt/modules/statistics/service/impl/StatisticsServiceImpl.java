@@ -6,7 +6,6 @@ import fit.nlu.tmdt.modules.auth.repository.UserRepository;
 import fit.nlu.tmdt.modules.booking.entity.Booking;
 import fit.nlu.tmdt.modules.booking.entity.enums.BookingStatus;
 import fit.nlu.tmdt.modules.booking.repository.BookingRepository;
-import fit.nlu.tmdt.modules.media.entity.CentralMediaFile;
 import fit.nlu.tmdt.modules.media.entity.enums.MediaCategory;
 import fit.nlu.tmdt.modules.media.repository.CentralMediaFileRepository;
 import fit.nlu.tmdt.modules.payment.entity.Transaction;
@@ -28,7 +27,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;

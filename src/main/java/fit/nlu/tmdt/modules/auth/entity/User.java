@@ -64,6 +64,19 @@ public class User extends BaseEntity {
     @Builder.Default
     private Boolean isVerified = false;
 
+    @Column(name = "verification_status", length = 20)
+    @Builder.Default
+    private String verificationStatus = "NONE"; // NONE, PENDING, APPROVED, REJECTED
+
+    @Column(name = "front_id_card_url", length = 500)
+    private String frontIdCardUrl;
+
+    @Column(name = "back_id_card_url", length = 500)
+    private String backIdCardUrl;
+
+    @Column(name = "selfie_url", length = 500)
+    private String selfieUrl;
+
     @Column(name = "verified_at")
     private LocalDateTime verifiedAt;
 

@@ -22,6 +22,8 @@ public interface VoucherRepository extends JpaRepository<Voucher, Long> {
 
     List<Voucher> findByIsActiveAndDeletedAtIsNull(Boolean isActive);
 
+    List<Voucher> findAllByDeletedAtIsNull();
+
     @Query("SELECT v FROM Voucher v WHERE v.isActive = true AND v.isPublic = true AND v.deletedAt IS NULL " +
             "AND (v.validFrom IS NULL OR v.validFrom <= :now) " +
             "AND (v.expiresAt IS NULL OR v.expiresAt > :now) " +

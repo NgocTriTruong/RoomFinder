@@ -25,6 +25,10 @@ public class UserResponse {
     private String role;
     private String status;
     private Boolean isVerified;
+    private String verificationStatus;
+    private String frontIdCardUrl;
+    private String backIdCardUrl;
+    private String selfieUrl;
     private LocalDateTime verifiedAt;
     private LocalDate dateOfBirth;
     private String address;

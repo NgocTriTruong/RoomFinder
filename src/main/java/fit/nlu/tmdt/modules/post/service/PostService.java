@@ -3,6 +3,7 @@ package fit.nlu.tmdt.modules.post.service;
 import fit.nlu.tmdt.modules.post.dto.request.CreatePostRequest;
 import fit.nlu.tmdt.modules.post.dto.request.PostSearchParams;
 import fit.nlu.tmdt.modules.post.dto.request.UpdatePostRequest;
+import fit.nlu.tmdt.modules.post.dto.response.LandlordDashboardStats;
 import fit.nlu.tmdt.modules.post.dto.response.PostResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -44,6 +45,11 @@ public interface PostService {
      * Get my posts
      */
     Page<PostResponse> getMyPosts(Long landlordId, Pageable pageable);
+
+    /**
+     * Get landlord dashboard stats
+     */
+    LandlordDashboardStats getLandlordDashboardStats(Long landlordId);
 
     /**
      * Get post stats
