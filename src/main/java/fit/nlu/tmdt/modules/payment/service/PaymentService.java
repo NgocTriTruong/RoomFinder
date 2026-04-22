@@ -14,19 +14,19 @@ public interface PaymentService {
     PaymentResponse createOrder(Long userId, CreatePaymentRequest request);
 
     /**
-     * Lấy URL phê duyệt thanh toán PayPal cho transaction.
+     * Lấy URL thanh toán VNPay cho transaction
      */
     String getPaymentUrl(Long transactionId, Long userId, HttpServletRequest servletRequest);
 
     /**
-     * Xử lý callback return từ PayPal.
+     * Xử lý IPN callback từ VNPay
      */
-    PaymentResponse processPayPalReturn(String paypalOrderId);
+    void processVnpayIpn(HttpServletRequest request);
 
     /**
-     * Xử lý khi người dùng hủy thanh toán PayPal.
+     * Xử lý return URL từ VNPay (sau khi user hoàn tất thanh toán)
      */
-    PaymentResponse processPayPalCancel(String paypalOrderId);
+    PaymentResponse processVnpayReturn(HttpServletRequest request);
 
     /**
      * Lấy chi tiết transaction theo ID

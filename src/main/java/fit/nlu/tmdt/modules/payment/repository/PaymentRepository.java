@@ -10,9 +10,9 @@ import java.util.Optional;
 @Repository
 public interface PaymentRepository extends JpaRepository<Payment, Long> {
 
-    Optional<Payment> findByExternalOrderIdAndDeletedAtIsNull(String externalOrderId);
+    Optional<Payment> findByVnpTxnRefAndDeletedAtIsNull(String vnpTxnRef);
 
     List<Payment> findByTransactionIdAndDeletedAtIsNull(Long transactionId);
 
-    boolean existsByExternalOrderIdAndIsProcessedTrue(String externalOrderId);
+    boolean existsByVnpTxnRefAndIsProcessedTrue(String vnpTxnRef);
 }

@@ -4,6 +4,9 @@ import fit.nlu.tmdt.common.exceptions.BusinessException;
 import fit.nlu.tmdt.common.utils.ErrorCode;
 import fit.nlu.tmdt.modules.auth.entity.User;
 import fit.nlu.tmdt.modules.auth.repository.UserRepository;
+import fit.nlu.tmdt.modules.booking.entity.Booking;
+import fit.nlu.tmdt.modules.booking.entity.enums.BookingStatus;
+import fit.nlu.tmdt.modules.booking.repository.BookingRepository;
 import fit.nlu.tmdt.modules.favorite.entity.Favorite;
 import fit.nlu.tmdt.modules.favorite.repository.FavoriteRepository;
 import fit.nlu.tmdt.modules.favorite.repository.RoomHistoryRepository;
@@ -51,6 +54,7 @@ public class RecommendationServiceImpl implements RecommendationService {
     private final RecommendationLogRepository recommendationLogRepository;
     private final FavoriteRepository favoriteRepository;
     private final RoomHistoryRepository roomHistoryRepository;
+    private final BookingRepository bookingRepository;
     private final UserRepository userRepository;
     private final PostService postService;
 
@@ -440,7 +444,84 @@ public class RecommendationServiceImpl implements RecommendationService {
     }
 
     @Override
-    public double calculateScore(Long userId, Long postId, RecommendationType type) { return 0.5; }
+    public double calculateScore(Long userId, Long postId, RecommendationType type) {
+        if (userId == null || postId == null) {
+            return 0.5;
+        }
+        
+        try {
+            Post post = postRepository.findById(postId).orElse(null);
+            if (post == null) {
+                return 0.5;
+            }
+            
+            UserPreference pref = getOrCreatePreferences(userId);
+            Room room = post.getRoom();
+            Hibernate.initialize(room);
+            Hibernate.initialize(room.getAmenities());
+            
+            double score = 0;
+            int weightCount = 0;
+            
+            // Price match (30% weight)
+            if (pref.hasBudgetPreference()) {
+                double priceScore = calculatePriceScore(post.getPrice(), pref.getMinBudget(), pref.getMaxBudget());
+                score += priceScore * WEIGHT_PRICE;
+                weightCount++;
+            }
+            
+            // Location match (25% weight)
+            if (pref.hasLocationPreference() && room != null && room.getLatitude() != null) {
+                double dist = calculateDistance(
+                    pref.getPreferredLatitude(), pref.getPreferredLongitude(),
+                    room.getLatitude(), room.getLongitude()
+                );
+                double locationScore = Math.max(0, 1 - dist / pref.getMaxDistanceKm());
+                score += locationScore * WEIGHT_LOCATION;
+                weightCount++;
+            }
+            
+            // Area match (15% weight)
+            if (pref.hasAreaPreference() && room != null) {
+                double areaScore = calculateAreaScore(room.getArea(), pref.getMinArea(), pref.getMaxArea());
+                score += areaScore * WEIGHT_AREA;
+                weightCount++;
+            }
+            
+            // Amenities match (15% weight)
+            if (pref.hasAmenityPreference() && room != null && room.getAmenities() != null && !room.getAmenities().isEmpty()) {
+                Set<Long> prefAmenityIds = new HashSet<>(pref.getPreferredAmenityIds());
+                long matchCount = room.getAmenities().stream()
+                    .filter(a -> prefAmenityIds.contains(a.getId()))
+                    .count();
+                double amenityScore = matchCount / (double) Math.max(prefAmenityIds.size(), 1);
+                score += amenityScore * WEIGHT_AMENITIES;
+                weightCount++;
+            }
+            
+            // Trending (10% weight)
+            if (post.getViewCount() != null && post.getViewCount() > 0) {
+                score += Math.min(1.0, post.getViewCount() / 500.0) * WEIGHT_TRENDING;
+                weightCount++;
+            }
+            
+            // Boosted (5% weight)
+            if (Boolean.TRUE.equals(post.getIsBoosted())) {
+                score += WEIGHT_BOOSTED;
+                weightCount++;
+            }
+            
+            // Normalize score
+            if (weightCount > 0) {
+                return Math.min(1.0, score);
+            }
+            
+            return 0.5;
+        } catch (Exception e) {
+            log.warn("Error calculating score for user {} post {}: {}", userId, postId, e.getMessage());
+            return 0.5;
+        }
+    }
 
     @Override
     @Async
@@ -452,7 +533,40 @@ public class RecommendationServiceImpl implements RecommendationService {
         return userPreferenceRepository.findByUserId(userId).orElseGet(() -> buildPreferenceFromHistory(userId));
     }
 
-    private Set<Long> getExcludedPostIds(Long userId) { return new HashSet<>(); }
+    private Set<Long> getExcludedPostIds(Long userId) {
+        if (userId == null) {
+            return new HashSet<>();
+        }
+        
+        try {
+            Set<Long> excludedIds = new HashSet<>();
+            
+            // Exclude posts that user has already booked (completed)
+            List<Booking> completedBookings = bookingRepository.findByUserIdAndDeletedAtIsNull(userId);
+            for (Booking booking : completedBookings) {
+                if (booking.getStatus() == BookingStatus.CONFIRMED || 
+                    booking.getStatus() == BookingStatus.COMPLETED) {
+                    excludedIds.add(booking.getPost().getId());
+                }
+            }
+            
+            // Exclude posts that user has favorited (don't recommend what they already saved)
+            List<Favorite> favorites = favoriteRepository.findByUserIdAndDeletedAtIsNull(userId);
+            for (Favorite fav : favorites) {
+                if (fav.getRoom() != null) {
+                    Post activePost = postRepository.findActivePostByRoomId(fav.getRoom().getId()).orElse(null);
+                    if (activePost != null) {
+                        excludedIds.add(activePost.getId());
+                    }
+                }
+            }
+            
+            return excludedIds;
+        } catch (Exception e) {
+            log.warn("Error getting excluded post IDs for user {}: {}", userId, e.getMessage());
+            return new HashSet<>();
+        }
+    }
 
     private List<RecommendationResponse> removeDuplicatesAndSort(List<RecommendationResponse> recs) {
         Map<Long, RecommendationResponse> map = new LinkedHashMap<>();

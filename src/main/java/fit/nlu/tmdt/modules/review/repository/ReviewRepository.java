@@ -54,8 +54,8 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
     @Query("SELECT r FROM Review r WHERE r.landlord.id = :landlordId AND r.deletedAt IS NULL ORDER BY r.createdAt DESC")
     Page<Review> findByLandlordIdPaginated(@Param("landlordId") Long landlordId, Pageable pageable);
 
-    @Query("SELECT r FROM Review r WHERE r.landlord.id = :landlordId AND r.isVisible = true AND r.deletedAt IS NULL ORDER BY r.createdAt DESC")
-    List<Review> findByLandlordIdAndIsVisibleAndDeletedAtIsNull(@Param("landlordId") Long landlordId, Boolean isVisible);
+    @Query("SELECT r FROM Review r WHERE r.landlord.id = :landlordId AND r.isVisible = :isVisible AND r.deletedAt IS NULL ORDER BY r.createdAt DESC")
+    List<Review> findByLandlordIdAndIsVisibleAndDeletedAtIsNull(@Param("landlordId") Long landlordId, @Param("isVisible") Boolean isVisible);
 
     // ==================== STATISTICS QUERIES ====================
 

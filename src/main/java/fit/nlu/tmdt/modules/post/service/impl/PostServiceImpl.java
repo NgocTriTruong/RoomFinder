@@ -23,16 +23,19 @@ import fit.nlu.tmdt.modules.subscription.entity.Subscription;
 import fit.nlu.tmdt.modules.subscription.repository.BoostRepository;
 import fit.nlu.tmdt.modules.subscription.repository.PackageRepository;
 import fit.nlu.tmdt.modules.subscription.repository.SubscriptionRepository;
+import fit.nlu.tmdt.modules.statistics.service.ViewHistoryService;
 import org.hibernate.Hibernate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -56,6 +59,7 @@ public class PostServiceImpl implements PostService {
     private final BoostRepository boostRepository;
     private final PackageRepository packageRepository;
     private final fit.nlu.tmdt.modules.booking.repository.BookingRepository bookingRepository;
+    private final ViewHistoryService viewHistoryService;
 
     @Value("${post.default-duration-days:30}")
     private int defaultDurationDays;
@@ -229,15 +233,31 @@ public class PostServiceImpl implements PostService {
         long totalBookings = bookingRepository.countByLandlordId(landlordId);
         long pendingBookings = bookingRepository.countByLandlordIdAndStatus(landlordId, fit.nlu.tmdt.modules.booking.entity.enums.BookingStatus.PENDING);
 
-        // Mock recent activity for now (last 7 days)
-        List<LandlordDashboardStats.DailyActivity> recentActivity = new ArrayList<>();
+        // Get daily stats from ViewHistory table (last 7 days)
         LocalDateTime now = LocalDateTime.now();
+        LocalDate startDate = now.minusDays(6).toLocalDate();
+        LocalDate endDate = now.toLocalDate();
+        List<Object[]> dailyStats = viewHistoryService.getDailyStats(landlordId, startDate, endDate);
+
+        // Build a map for quick lookup
+        Map<LocalDate, Long> viewsMap = new HashMap<>();
+        Map<LocalDate, Long> contactsMap = new HashMap<>();
+        for (Object[] row : dailyStats) {
+            LocalDate date = (LocalDate) row[0];
+            Long views = row[1] != null ? ((Number) row[1]).longValue() : 0L;
+            Long contacts = row[2] != null ? ((Number) row[2]).longValue() : 0L;
+            viewsMap.put(date, views);
+            contactsMap.put(date, contacts);
+        }
+
+        // Fill in the last 7 days
+        List<LandlordDashboardStats.DailyActivity> recentActivity = new ArrayList<>();
         for (int i = 6; i >= 0; i--) {
-            LocalDateTime date = now.minusDays(i);
+            LocalDate date = now.minusDays(i).toLocalDate();
             recentActivity.add(LandlordDashboardStats.DailyActivity.builder()
-                    .date(date.toLocalDate().toString())
-                    .views((long) (Math.random() * 50)) // TODO: Thực tế nên query từ ViewHistory
-                    .contacts((long) (Math.random() * 10))
+                    .date(date.toString())
+                    .views(viewsMap.getOrDefault(date, 0L))
+                    .contacts(contactsMap.getOrDefault(date, 0L))
                     .build());
         }
 
@@ -279,6 +299,16 @@ public class PostServiceImpl implements PostService {
     @Async
     public void incrementViewCountAsync(Long postId) {
         postRepository.incrementViewCount(postId);
+        // Also record in ViewHistory for dashboard stats
+        postRepository.findByIdActive(postId).ifPresent(viewHistoryService::recordView);
+    }
+
+    @Override
+    public void recordContact(Long postId) {
+        Post post = postRepository.findByIdActive(postId).orElse(null);
+        if (post != null) {
+            viewHistoryService.recordContact(post);
+        }
     }
 
     @Override
@@ -408,7 +438,7 @@ public class PostServiceImpl implements PostService {
     @Override
     public List<PostResponse> getFeaturedPosts(int limit) {
         // Get boosted posts first, then by view count
-        List<Post> posts = postRepository.findFeaturedPosts(limit);
+        List<Post> posts = postRepository.findFeaturedPosts(PageRequest.of(0, limit));
         return posts.stream()
                 .map(post -> toPostResponse(post, null))
                 .collect(Collectors.toList());

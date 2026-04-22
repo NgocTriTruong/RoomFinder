@@ -69,13 +69,13 @@ public class Transaction extends BaseEntity {
     // ==========================================
 
     @Column(name = "payment_method", nullable = false, length = 50)
-    private String paymentMethod;  // PAYPAL, MOMO, ZALOPAY
+    private String paymentMethod;  // VNPAY, MOMO, ZALOPAY
 
     // ==========================================
     // PAYMENT GATEWAY INFO
     // ==========================================
 
-    @Column(name = "payment_url", length = 500)
+    @Column(name = "payment_url", length = 2000)
     private String paymentUrl;
 
     @Column(name = "gateway_transaction_id", length = 100)

@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-@Transactional
+@Transactional(readOnly = true)
 public class VoucherServiceImpl implements VoucherService {
 
     private final VoucherRepository voucherRepository;

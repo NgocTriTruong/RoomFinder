@@ -72,15 +72,5 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success("Password changed successfully", null));
     }
 
-    @PostMapping("/oauth2/{provider}")
-    @Operation(summary = "OAuth2 login (Google/Facebook)")
-    public ResponseEntity<ApiResponse<AuthResponse>> oauth2Login(
-            @PathVariable String provider,
-            @RequestParam String code) {
-        log.info("OAuth2 login request: {}", provider);
-        // In real implementation, exchange code for user info from OAuth provider
-        // This is a simplified version
-        AuthResponse response = authService.oauth2Login(provider, "oauth_id", "user@example.com", "OAuth User");
-        return ResponseEntity.ok(ApiResponse.success("OAuth2 login successful", response));
-    }
+        // OAuth2 is disabled by user request
 }

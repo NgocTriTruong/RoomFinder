@@ -103,17 +103,17 @@ public interface PostRepository extends JpaRepository<Post, Long>, JpaSpecificat
             "ORDER BY rh.viewedAt DESC")
     List<Post> findRecentPostsByUserId(@Param("userId") Long userId, Pageable pageable);
 
-    // Find similar posts for recommendations
+    // Find similar posts for recommendations (exclude current post)
     @Query("SELECT p FROM Post p " +
             "WHERE p.status = 'APPROVED' AND p.deletedAt IS NULL " +
-            "AND p.room.district = :district " +
+            "AND p.room.district = :district AND p.id != :postId " +
             "ORDER BY p.viewCount DESC")
     List<Post> findSimilarPosts(@Param("postId") Long postId, @Param("district") String district, Pageable pageable);
 
     // Featured posts (boosted + high rating)
     @EntityGraph(attributePaths = {"images", "room", "room.amenities", "landlord"})
     @Query("SELECT p FROM Post p WHERE p.status = 'APPROVED' AND p.deletedAt IS NULL ORDER BY p.isBoosted DESC, p.viewCount DESC, p.createdAt DESC")
-    List<Post> findFeaturedPosts(@Param("limit") int limit);
+    List<Post> findFeaturedPosts(Pageable pageable);
 
     // ==================== SPECIFICATION QUERIES WITH ENTITY GRAPH ====================
 

@@ -47,7 +47,7 @@ public class PaymentController {
     }
 
     @GetMapping("/{transactionId}/url")
-    @Operation(summary = "Get PayPal approval URL for a transaction")
+    @Operation(summary = "Get VNPay payment URL for a transaction")
     @PreAuthorize("isAuthenticated()")
     @LogExecutionTime
     public ResponseEntity<ApiResponse<String>> getPaymentUrl(
@@ -60,24 +60,27 @@ public class PaymentController {
         return ResponseEntity.ok(ApiResponse.success("Payment URL generated", paymentUrl));
     }
 
-    @GetMapping("/paypal/return")
-    @Operation(summary = "PayPal return URL after payment completion")
+    @PostMapping("/vnpay/ipn")
+    @Operation(summary = "VNPay IPN webhook callback")
     @LogExecutionTime
-    public ResponseEntity<ApiResponse<PaymentResponse>> paypalReturn(
-            @RequestParam("token") String paypalOrderId) {
-        log.info("Received PayPal return callback for order: {}", paypalOrderId);
-        PaymentResponse response = paymentService.processPayPalReturn(paypalOrderId);
-        return ResponseEntity.ok(ApiResponse.success("Payment processed", response));
+    public ResponseEntity<String> vnpayIpn(HttpServletRequest request) {
+        log.info("Received VNPay IPN callback");
+        try {
+            paymentService.processVnpayIpn(request);
+            return ResponseEntity.ok("{\"RspCode\":\"00\",\"Message\":\"Confirm Success\"}");
+        } catch (Exception e) {
+            log.error("Error processing VNPay IPN: {}", e.getMessage());
+            return ResponseEntity.ok("{\"RspCode\":\"99\",\"Message\":\"Unknown error\"}");
+        }
     }
 
-    @GetMapping("/paypal/cancel")
-    @Operation(summary = "PayPal cancel URL")
+    @GetMapping("/vnpay/return")
+    @Operation(summary = "VNPay return URL after payment completion")
     @LogExecutionTime
-    public ResponseEntity<ApiResponse<PaymentResponse>> paypalCancel(
-            @RequestParam(value = "token", required = false) String paypalOrderId) {
-        log.info("Received PayPal cancel callback for order: {}", paypalOrderId);
-        PaymentResponse response = paymentService.processPayPalCancel(paypalOrderId);
-        return ResponseEntity.ok(ApiResponse.success("Payment cancelled", response));
+    public ResponseEntity<ApiResponse<PaymentResponse>> vnpayReturn(HttpServletRequest request) {
+        log.info("Received VNPay return callback");
+        PaymentResponse response = paymentService.processVnpayReturn(request);
+        return ResponseEntity.ok(ApiResponse.success("Payment processed", response));
     }
 
     @GetMapping("/history")

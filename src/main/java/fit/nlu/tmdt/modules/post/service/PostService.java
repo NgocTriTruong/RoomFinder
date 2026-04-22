@@ -67,6 +67,11 @@ public interface PostService {
     void incrementViewCountAsync(Long postId);
 
     /**
+     * Record contact (when user contacts landlord)
+     */
+    void recordContact(Long postId);
+
+    /**
      * Admin: Approve post
      */
     void approvePost(Long postId, Long adminId);
