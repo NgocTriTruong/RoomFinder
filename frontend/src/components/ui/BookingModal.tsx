@@ -1,0 +1,127 @@
+import React, { useState } from 'react';
+import { X, Calendar, Clock, FileText, Loader2, Tag } from 'lucide-react';
+import bookingService from '../../services/bookingService';
+import { getErrorMessage } from '../../services/api';
+
+interface BookingModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  roomId: string;
+}
+
+export default function BookingModal({ isOpen, onClose, roomId }: BookingModalProps) {
+  const [date, setDate] = useState('');
+  const [time, setTime] = useState('');
+  const [note, setNote] = useState('');
+  const [voucherCode, setVoucherCode] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  if (!isOpen) return null;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setLoading(true);
+      // Kết hợp ngày và giờ
+      const bookingTime = new Date(`${date}T${time}`).toISOString();
+      
+      await bookingService.createBooking({
+        postId: parseInt(roomId),
+        bookingTime,
+        guestCount: 1, // Mặc định 1 người
+        note,
+        voucherCode: voucherCode || undefined
+      });
+
+      alert('Yêu cầu đặt lịch của bạn đã được gửi thành công!');
+      onClose();
+    } catch (error) {
+      alert(getErrorMessage(error));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="bg-white rounded-xl shadow-xl max-w-md w-full overflow-hidden">
+        <div className="flex justify-between items-center p-6 border-b border-gray-200">
+          <h3 className="text-lg font-bold text-gray-900">Đặt lịch xem phòng</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+        
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+              <Calendar className="w-4 h-4 mr-2 text-blue-600" /> Ngày hẹn
+            </label>
+            <input 
+              type="date" 
+              required
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2.5 border"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+              <Clock className="w-4 h-4 mr-2 text-blue-600" /> Giờ hẹn
+            </label>
+            <input 
+              type="time" 
+              required
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
+              className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2.5 border"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+              <Tag className="w-4 h-4 mr-2 text-blue-600" /> Mã giảm giá (Voucher)
+            </label>
+            <input 
+              type="text" 
+              value={voucherCode}
+              onChange={(e) => setVoucherCode(e.target.value)}
+              placeholder="Nhập mã giảm giá nếu có"
+              className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2.5 border uppercase"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+              <FileText className="w-4 h-4 mr-2 text-blue-600" /> Ghi chú (Tùy chọn)
+            </label>
+            <textarea 
+              rows={3}
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="VD: Tôi muốn xem phòng vào buổi chiều..."
+              className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2.5 border resize-none"
+            ></textarea>
+          </div>
+
+          <div className="pt-4 flex gap-3">
+            <button 
+              type="button"
+              onClick={onClose}
+              className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+            >
+              Hủy
+            </button>
+            <button 
+              type="submit"
+              className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 transition-colors"
+            >
+              Xác nhận đặt lịch
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
