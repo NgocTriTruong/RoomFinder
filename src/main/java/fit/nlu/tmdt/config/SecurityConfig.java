@@ -46,6 +46,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(jwtAuthenticationEntryPoint))
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.GET, "/v1/config/public").permitAll()
                         .requestMatchers("/v1/auth/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/v1/posts/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/v1/recommendations/**").permitAll()
@@ -62,7 +63,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/v1/rooms/amenities/**").permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-resources/**").permitAll()
                         .requestMatchers("/uploads/**").permitAll()
-                        .requestMatchers("/v1/payments/vnpay/**").permitAll()
+                        .requestMatchers("/v1/payments/paypal/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

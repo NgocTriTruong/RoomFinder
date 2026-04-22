@@ -22,7 +22,7 @@ public class CreatePaymentRequest {
     private String orderType;  // PACKAGE_PURCHASE, BOOST_PURCHASE, SUBSCRIPTION_RENEW
 
     @NotBlank(message = "Payment method is required")
-    private String paymentMethod;  // VNPAY, MOMO, ZALOPAY
+    private String paymentMethod;  // PAYPAL, MOMO, ZALOPAY
 
     private String orderDescription;
 

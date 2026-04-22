@@ -409,6 +409,7 @@ public class CentralMediaServiceImpl implements CentralMediaService {
             case SUBSCRIPTION_IMAGE:
             case NOTIFICATION_IMAGE:
             case CHAT_IMAGE:
+            case USER_KYC:
                 return IMAGE_MIME_TYPES;
             case POST_VIDEO:
             case CHAT_VIDEO:

@@ -38,17 +38,31 @@ public class CurrentUserArgumentResolver implements HandlerMethodArgumentResolve
 
         Object principal = authentication.getPrincipal();
         
-        // Principal có thể là Long (userId) hoặc UserDetails
+        // 1. Nếu principal là Long (userId) trực tiếp
         if (principal instanceof Long) {
             return principal;
         }
 
-        // Thử lấy userId từ UserDetails
+        // 2. Nếu principal là String (ví dụ: "123")
+        if (principal instanceof String principalStr) {
+            try {
+                return Long.parseLong(principalStr);
+            } catch (NumberFormatException e) {
+                log.debug("Principal is a string but not a Long: {}", principalStr);
+            }
+        }
+
+        // 3. Thử lấy từ các lớp Principal có method getId() (ví dụ: UserPrincipal, UserDetails...)
         try {
             var getIdMethod = principal.getClass().getMethod("getId");
             return getIdMethod.invoke(principal);
+        } catch (NoSuchMethodException e) {
+            // Không log cảnh báo ở đây nếu là String "anonymousUser"
+            if (!"anonymousUser".equals(principal)) {
+                log.warn("Principal class {} does not have getId() method", principal.getClass().getName());
+            }
         } catch (Exception e) {
-            log.warn("Could not get user ID from principal", e);
+            log.warn("Error invoking getId() on principal", e);
         }
 
         return null;

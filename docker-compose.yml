@@ -22,4 +22,4 @@ services:
 
 
 volumes:
-  tmdt_postgres_data:
+  tmdt_postgres_data: 

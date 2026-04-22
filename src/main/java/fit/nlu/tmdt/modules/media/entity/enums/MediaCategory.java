@@ -8,6 +8,7 @@ public enum MediaCategory {
     
     // ========== USER ==========
     USER_AVATAR("avatars", "User avatars", "user", 5 * 1024 * 1024),  // 5MB max
+    USER_KYC("users/kyc", "User KYC documents", "user", 10 * 1024 * 1024),  // 10MB max
     
     // ========== POST ==========
     POST_IMAGE("posts/images", "Post images", "post", 10 * 1024 * 1024),  // 10MB max

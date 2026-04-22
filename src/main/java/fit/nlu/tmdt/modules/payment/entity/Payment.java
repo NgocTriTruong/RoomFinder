@@ -7,13 +7,12 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 /**
- * Payment Entity (VNPay Response)
- * Lưu thông tin phản hồi từ VNPay
+ * Payment entity for persisted gateway responses.
  */
 @Entity
 @Table(name = "payments", indexes = {
         @Index(name = "idx_payment_transaction", columnList = "transaction_id"),
-        @Index(name = "idx_payment_vnp_txnref", columnList = "vnp_txn_ref"),
+        @Index(name = "idx_payment_external_order_id", columnList = "external_order_id"),
         @Index(name = "idx_payment_created", columnList = "created_at")
 })
 @Getter
@@ -31,55 +30,52 @@ public class Payment extends BaseEntity {
     private Long transactionId;
 
     // ==========================================
-    // VNPAY RESPONSE FIELDS
+    // GATEWAY RESPONSE FIELDS
     // ==========================================
 
-    @Column(name = "vnp_txn_ref", length = 100)
-    private String vnpTxnRef;
+    @Column(name = "provider", length = 50)
+    private String provider;
 
-    @Column(name = "vnp_transaction_no", length = 100)
-    private String vnpTransactionNo;
+    @Column(name = "external_order_id", length = 100)
+    private String externalOrderId;
 
-    @Column(name = "vnp_order_info", length = 255)
-    private String vnpOrderInfo;
+    @Column(name = "external_transaction_id", length = 100)
+    private String externalTransactionId;
 
-    @Column(name = "vnp_response_code", length = 10)
-    private String vnpResponseCode;
+    @Column(name = "payer_id", length = 100)
+    private String payerId;
 
-    @Column(name = "vnp_transaction_status", length = 10)
-    private String vnpTransactionStatus;
+    @Column(name = "payer_email", length = 255)
+    private String payerEmail;
 
-    @Column(name = "vnp_bank_code", length = 20)
-    private String vnpBankCode;
+    @Column(name = "gateway_order_info", length = 255)
+    private String gatewayOrderInfo;
 
-    @Column(name = "vnp_bank_tran_no", length = 100)
-    private String vnpBankTranNo;
+    @Column(name = "response_code", length = 20)
+    private String responseCode;
 
-    @Column(name = "vnp_card_type", length = 20)
-    private String vnpCardType;
+    @Column(name = "transaction_status", length = 30)
+    private String transactionStatus;
 
-    @Column(name = "vnp_pay_date", length = 20)
-    private String vnpPayDate;
+    @Column(name = "response_message", length = 255)
+    private String responseMessage;
 
     // ==========================================
     // AMOUNT
     // ==========================================
 
-    @Column(name = "vnp_amount", precision = 20)
-    private Long vnpAmount;  // VNPay gửi số tiền x100
+    @Column(name = "amount")
+    private Double amount;
 
-    @Column(name = "vnp_fee", precision = 20)
-    private Long vnpFee;
+    @Column(name = "currency", length = 10)
+    private String currency;
 
     // ==========================================
     // ADDITIONAL INFO
     // ==========================================
 
-    @Column(name = "vnp_secure_hash", length = 255)
-    private String vnpSecureHash;
-
-    @Column(name = "vnp_secure_hash_type", length = 20)
-    private String vnpSecureHashType;
+    @Column(name = "raw_response", columnDefinition = "TEXT")
+    private String rawResponse;
 
     // ==========================================
     // STATUS
@@ -110,15 +106,15 @@ public class Payment extends BaseEntity {
      * Kiểm tra payment thành công
      */
     public boolean isSuccess() {
-        return "00".equals(vnpTransactionStatus);
+        return "COMPLETED".equalsIgnoreCase(transactionStatus);
     }
 
     /**
      * Kiểm tra payment thất bại
      */
     public boolean isFailed() {
-        return vnpTransactionStatus != null
-                && !vnpTransactionStatus.equals("00");
+        return transactionStatus != null
+                && !"COMPLETED".equalsIgnoreCase(transactionStatus);
     }
 
     /**
@@ -130,38 +126,4 @@ public class Payment extends BaseEntity {
         this.processedBy = processedById;
     }
 
-    /**
-     * Chuyển amount từ VNPay format (x100) sang double
-     */
-    public Double getAmountAsDouble() {
-        if (vnpAmount == null) {
-            return 0.0;
-        }
-        return vnpAmount / 100.0;
-    }
-
-    /**
-     * Chuyển fee từ VNPay format (x100) sang double
-     */
-    public Double getFeeAsDouble() {
-        if (vnpFee == null) {
-            return 0.0;
-        }
-        return vnpFee / 100.0;
-    }
-
-    /**
-     * Parse pay date từ VNPay format (yyyyMMddHHmmss)
-     */
-    public LocalDateTime getPayDateAsDateTime() {
-        if (vnpPayDate == null || vnpPayDate.length() != 14) {
-            return null;
-        }
-        try {
-            return LocalDateTime.parse(vnpPayDate,
-                    java.time.format.DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
-        } catch (Exception e) {
-            return null;
-        }
-    }
 }

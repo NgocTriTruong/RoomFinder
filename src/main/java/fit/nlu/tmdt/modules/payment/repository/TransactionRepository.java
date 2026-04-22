@@ -18,6 +18,8 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
 
     Optional<Transaction> findByOrderIdAndDeletedAtIsNull(String orderId);
 
+    Optional<Transaction> findByGatewayTransactionIdAndDeletedAtIsNull(String gatewayTransactionId);
+
     List<Transaction> findByUserIdAndDeletedAtIsNullOrderByCreatedAtDesc(Long userId);
 
     List<Transaction> findByStatusAndExpiresAtBeforeAndDeletedAtIsNull(PaymentStatus status, LocalDateTime now);
