@@ -67,6 +67,7 @@ public enum ErrorCode {
     SUB_003("SUB_003", "Package not found", HttpStatus.NOT_FOUND),
     SUB_004("SUB_004", "Package is not available", HttpStatus.BAD_REQUEST),
     SUB_005("SUB_005", "Boost not found", HttpStatus.NOT_FOUND),
+    SUB_006("SUB_006", "Package cannot be deleted because it is in use", HttpStatus.BAD_REQUEST),
 
     // Voucher (VOU_xxx)
     VOU_001("VOU_001", "Voucher not found", HttpStatus.NOT_FOUND),
@@ -76,6 +77,7 @@ public enum ErrorCode {
     VOU_005("VOU_005", "Minimum order amount not met", HttpStatus.BAD_REQUEST),
     VOU_006("VOU_006", "Voucher not applicable for this package", HttpStatus.BAD_REQUEST),
     VOU_007("VOU_007", "Voucher code already exists", HttpStatus.CONFLICT),
+    VOU_008("VOU_008", "You have reached the maximum usage limit for this voucher", HttpStatus.BAD_REQUEST),
 
     // Review (REV_xxx)
     REV_001("REV_001", "Review not found", HttpStatus.NOT_FOUND),

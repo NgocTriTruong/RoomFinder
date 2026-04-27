@@ -1,5 +1,6 @@
 package fit.nlu.tmdt.modules.subscription.service;
 
+import fit.nlu.tmdt.modules.subscription.dto.request.AdminPackageRequest;
 import fit.nlu.tmdt.modules.subscription.dto.request.PurchasePackageRequest;
 import fit.nlu.tmdt.modules.subscription.dto.response.PackageResponse;
 import fit.nlu.tmdt.modules.subscription.dto.response.SubscriptionResponse;
@@ -26,6 +27,8 @@ public interface SubscriptionService {
      * Get available packages
      */
     List<PackageResponse> getAvailablePackages(String type);
+
+    List<PackageResponse> getAllPackages();
 
     /**
      * Initiate package purchase (creates pending subscription)
@@ -56,4 +59,19 @@ public interface SubscriptionService {
      * Cancel subscription
      */
     void cancelSubscription(Long userId, String reason);
+
+    /**
+     * Create new package (Admin)
+     */
+    PackageResponse createPackage(AdminPackageRequest request);
+
+    /**
+     * Update existing package (Admin)
+     */
+    PackageResponse updatePackage(Long id, AdminPackageRequest request);
+
+    /**
+     * Delete package (Admin)
+     */
+    void deletePackage(Long id);
 }

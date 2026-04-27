@@ -53,6 +53,7 @@ public class PaymentResponse {
 
     private String refundReason;
 
+    @com.fasterxml.jackson.annotation.JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime paidAt;
 
     private LocalDateTime failedAt;
@@ -61,6 +62,7 @@ public class PaymentResponse {
 
     private LocalDateTime expiresAt;
 
+    @com.fasterxml.jackson.annotation.JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime createdAt;
 
     private UserSummary user;

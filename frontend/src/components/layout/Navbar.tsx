@@ -20,7 +20,7 @@ export default function Navbar() {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <div className="flex-shrink-0 flex items-center">
-            <Link to="/" className="flex items-center gap-2">
+            <Link to={user?.role === 'ADMIN' ? "/admin" : "/"} className="flex items-center gap-2">
               <div className="bg-blue-600 p-2 rounded-lg">
                 <Home className="w-6 h-6 text-white" />
               </div>
@@ -101,9 +101,12 @@ export default function Navbar() {
                           <p className="text-xs text-gray-500 truncate">{user?.email}</p>
                         </div>
                         
-                        <Link to={user?.role === 'LANDLORD' ? "/landlord" : "/tenant"} className="flex items-center px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 transition-colors">
+                        <Link 
+                          to={user?.role === 'ADMIN' ? "/admin" : (user?.role === 'LANDLORD' ? "/landlord" : "/tenant")} 
+                          className="flex items-center px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 transition-colors"
+                        >
                           <User className="w-4 h-4 mr-3 text-gray-400" />
-                          Trang {user?.role === 'LANDLORD' ? 'quản lý' : 'cá nhân'}
+                          Trang {user?.role === 'ADMIN' ? 'quản trị' : (user?.role === 'LANDLORD' ? 'quản lý' : 'cá nhân')}
                         </Link>
                         
                         <Link to="/tenant/settings" className="flex items-center px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 transition-colors">
@@ -111,14 +114,19 @@ export default function Navbar() {
                           Cài đặt tài khoản
                         </Link>
 
-                        <Link to="/tenant/saved" className="flex items-center px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 transition-colors">
-                          <Heart className="w-4 h-4 mr-3 text-gray-400" />
-                          Phòng đã lưu
-                        </Link>
+                        {user?.role !== 'ADMIN' && (
+                          <Link to="/tenant/saved" className="flex items-center px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 transition-colors">
+                            <Heart className="w-4 h-4 mr-3 text-gray-400" />
+                            Phòng đã lưu
+                          </Link>
+                        )}
 
-                        <Link to={user?.role === 'LANDLORD' ? "/landlord/bookings" : "/tenant/bookings"} className="flex items-center px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 transition-colors">
+                        <Link 
+                          to={user?.role === 'ADMIN' ? "/admin/moderation" : (user?.role === 'LANDLORD' ? "/landlord/bookings" : "/tenant/bookings")} 
+                          className="flex items-center px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 transition-colors"
+                        >
                           <Calendar className="w-4 h-4 mr-3 text-gray-400" />
-                          Lịch hẹn đặt chỗ
+                          {user?.role === 'ADMIN' ? 'Danh sách duyệt tin' : 'Lịch hẹn đặt chỗ'}
                         </Link>
 
                         <button 

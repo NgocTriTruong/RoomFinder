@@ -59,6 +59,7 @@ export interface UserResponse {
   bio: string | null;
   landlordRating: number | null;
   totalReviews: number | null;
+  adminNote?: string;
   lastLoginAt: string | null;
   createdAt: string;
 }
@@ -99,6 +100,7 @@ export interface PostResponse {
   };
   isBoosted: boolean;
   boostedUntil: string | null;
+  rejectionReason?: string | null;
   expiresAt: string;
   createdAt: string;
   updatedAt: string;
@@ -202,7 +204,7 @@ export interface CreateRoomRequest {
   rules?: string;
 }
 
-export interface UpdateRoomRequest extends Partial<CreateRoomRequest> {}
+export interface UpdateRoomRequest extends Partial<CreateRoomRequest> { }
 
 export interface CreatePostRequest {
   roomId: number;
@@ -325,6 +327,7 @@ export interface VoucherResponse {
   isPublic: boolean;
   isFeatured: boolean;
   applicableTypes: string;
+  applicablePackageIds: number[];
   usedCount: number;
 }
 

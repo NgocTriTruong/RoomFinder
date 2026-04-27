@@ -35,6 +35,7 @@ public class UserResponse {
     private String bio;
     private Double landlordRating;
     private Integer totalReviews;
+    private String adminNote;
     private LocalDateTime lastLoginAt;
     private LocalDateTime createdAt;
 }

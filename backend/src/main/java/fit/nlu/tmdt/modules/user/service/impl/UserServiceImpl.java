@@ -9,6 +9,8 @@ import fit.nlu.tmdt.modules.post.entity.enums.PostStatus;
 import fit.nlu.tmdt.modules.auth.repository.UserRepository;
 import fit.nlu.tmdt.modules.auth.repository.UserSpecifications;
 import fit.nlu.tmdt.modules.post.repository.PostRepository;
+import fit.nlu.tmdt.modules.notification.entity.Notification;
+import fit.nlu.tmdt.modules.notification.service.NotificationService;
 import fit.nlu.tmdt.modules.user.dto.request.UpdateProfileRequest;
 import fit.nlu.tmdt.modules.user.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +35,7 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final PostRepository postRepository;
+    private final NotificationService notificationService;
 
     @Override
     @Transactional
@@ -59,16 +62,33 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_001, "User not found"));
 
+        user.setAdminNote(adminNote);
+        
+        String title;
+        String content;
+
         if ("APPROVED".equals(status)) {
             user.setVerificationStatus("APPROVED");
             user.setIsVerified(true);
             user.setVerifiedAt(LocalDateTime.now());
+            
+            title = "Xác thực KYC thành công";
+            content = "Chúc mừng! Hồ sơ xác thực danh tính của bạn đã được phê duyệt. Bạn hiện đã là chủ trọ uy tín trên hệ thống.";
         } else if ("REJECTED".equals(status)) {
             user.setVerificationStatus("REJECTED");
             user.setIsVerified(false);
+            
+            title = "Xác thực KYC bị từ chối";
+            content = "Rất tiếc, hồ sơ xác thực danh tính của bạn đã bị từ chối. Lý do: " + (adminNote != null ? adminNote : "Thông tin không hợp lệ.");
+        } else {
+            return toUserResponse(userRepository.save(user));
         }
 
         user = userRepository.save(user);
+        
+        // Gửi thông báo
+        notificationService.createNotification(Notification.forSystem(user, title, content));
+        
         log.info("KYC {} for user: {}", status, userId);
         return toUserResponse(user);
     }
@@ -222,6 +242,7 @@ public class UserServiceImpl implements UserService {
                 .bio(user.getBio())
                 .landlordRating(user.getLandlordRating())
                 .totalReviews(user.getTotalReviews())
+                .adminNote(user.getAdminNote())
                 .lastLoginAt(user.getLastLoginAt())
                 .createdAt(user.getCreatedAt())
                 .build();

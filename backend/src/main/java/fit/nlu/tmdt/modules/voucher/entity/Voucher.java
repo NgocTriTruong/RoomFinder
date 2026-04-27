@@ -43,16 +43,16 @@ public class Voucher extends BaseEntity {
     // ==========================================
 
     @Column(name = "discount_type", nullable = false, length = 20)
-    private String discountType;  // PERCENTAGE, FIXED_AMOUNT
+    private String discountType; // PERCENTAGE, FIXED_AMOUNT
 
     @Column(nullable = false)
     private Double discount;
 
     @Column(name = "max_discount_amount")
-    private Double maxDiscountAmount;  // Giảm tối đa (cho percentage)
+    private Double maxDiscountAmount; // Giảm tối đa (cho percentage)
 
     @Column(name = "min_order_amount")
-    private Double minOrderAmount;  // Đơn hàng tối thiểu
+    private Double minOrderAmount; // Đơn hàng tối thiểu
 
     // ==========================================
     // QUANTITY
@@ -67,7 +67,7 @@ public class Voucher extends BaseEntity {
 
     @Column(name = "max_per_user")
     @Builder.Default
-    private Integer maxPerUser = 1;  // Mỗi user sử dụng tối đa bao nhiêu lần
+    private Integer maxPerUser = 1; // Mỗi user sử dụng tối đa bao nhiêu lần
 
     // ==========================================
     // VALIDITY
@@ -89,7 +89,7 @@ public class Voucher extends BaseEntity {
 
     @Column(name = "is_public")
     @Builder.Default
-    private Boolean isPublic = true;  // Public voucher có thể search được
+    private Boolean isPublic = true; // Public voucher có thể search được
 
     @Column(name = "is_featured")
     @Builder.Default
@@ -100,7 +100,7 @@ public class Voucher extends BaseEntity {
     // ==========================================
 
     @Column(name = "applicable_types", length = 255)
-    private String applicableTypes;  // PACKAGE_PURCHASE, BOOST_PURCHASE, SUBSCRIPTION
+    private String applicableTypes; // PACKAGE_PURCHASE, BOOST_PURCHASE, SUBSCRIPTION
 
     @ElementCollection
     @CollectionTable(name = "voucher_applicable_packages", joinColumns = @JoinColumn(name = "voucher_id"))
@@ -163,7 +163,7 @@ public class Voucher extends BaseEntity {
      */
     public boolean hasRemainingQuantity() {
         if (totalQuantity == null) {
-            return true;  // Unlimited
+            return true; // Unlimited
         }
         return remainingQuantity != null && remainingQuantity > 0;
     }
@@ -213,7 +213,7 @@ public class Voucher extends BaseEntity {
      */
     public boolean isApplicableForPackage(Long packageId) {
         if (applicablePackageIds == null || applicablePackageIds.isEmpty()) {
-            return true;  // Áp dụng cho tất cả
+            return true; // Áp dụng cho tất cả
         }
         return applicablePackageIds.contains(packageId);
     }

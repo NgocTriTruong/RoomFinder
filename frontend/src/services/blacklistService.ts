@@ -49,6 +49,15 @@ const blacklistService = {
     return response.data.data?.isBlacklisted || false;
   },
 
+  getAdminUsersBlacklist: async (userId: number): Promise<BlacklistEntry | null> => {
+    try {
+      const response = await api.get<ApiResponse<BlacklistEntry>>(`/v1/blacklist/user/${userId}`);
+      return response.data.data!;
+    } catch (error) {
+      return null;
+    }
+  },
+
   getStats: async (): Promise<any> => {
     const response = await api.get<ApiResponse<any>>('/v1/blacklist/stats');
     return response.data.data;

@@ -7,7 +7,7 @@ export interface TransactionResponse {
   serviceName: string;
   amount: number;
   paymentMethod: 'VNPAY' | 'MOMO' | 'WALLET' | 'BANK_TRANSFER';
-  status: 'PENDING' | 'SUCCESS' | 'FAILED' | 'REFUNDED';
+  status: 'PENDING' | 'PROCESSING' | 'SUCCESS' | 'FAILED' | 'REFUNDED';
   transactionRef: string;
   description: string | null;
   createdAt: string;
@@ -22,7 +22,7 @@ interface PaymentApiResponse {
   amount: number;
   paymentMethod: string;
   paymentUrl: string | null;
-  status: 'PENDING' | 'SUCCESS' | 'FAILED' | 'REFUNDED';
+  status: 'PENDING' | 'PROCESSING' | 'SUCCESS' | 'FAILED' | 'REFUNDED';
   paidAt: string | null;
   createdAt: string;
 }
@@ -55,10 +55,10 @@ const mapPayment = (payment: PaymentApiResponse): TransactionResponse => ({
   completedAt: payment.paidAt,
 });
 
-export const transactionService = {
+const transactionService = {
   getTransactions: async (page: number = 0, size: number = 20): Promise<PaginatedData<TransactionResponse>> => {
     const response = await api.get<ApiResponse<PaymentApiResponse[]>>('/v1/payments/history');
-    const items = (response.data.data || []).map(mapPayment);
+    const items = (response.data?.data || []).map(mapPayment);
     const start = page * size;
     const content = items.slice(start, start + size);
     const totalElements = items.length;
@@ -72,7 +72,6 @@ export const transactionService = {
       totalPages,
       first: page === 0,
       last: start + size >= totalElements,
-      empty: content.length === 0,
     } as PaginatedData<TransactionResponse>;
   },
 
@@ -107,6 +106,48 @@ export const transactionService = {
     const response = await api.get<ApiResponse<PaymentApiResponse>>(`/v1/payments/vnpay/return${suffix}`);
     return mapPayment(response.data.data!);
   },
+
+  getAllTransactionsForAdmin: async (page: number = 0, size: number = 20): Promise<PaginatedData<TransactionResponse>> => {
+    try {
+      const response = await api.get<ApiResponse<PaymentApiResponse[]>>('/v1/payments/admin/all');
+      const items = (response.data?.data || []).map(mapPayment);
+
+      // Sort by date descending
+      items.sort((a, b) => {
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return dateB - dateA;
+      });
+
+      const start = page * size;
+      const content = items.slice(start, start + size);
+      const totalElements = items.length;
+      const totalPages = Math.max(1, Math.ceil(totalElements / size));
+
+      return {
+        content,
+        number: page,
+        size,
+        totalElements,
+        totalPages,
+        first: page === 0,
+        last: start + size >= totalElements,
+      } as PaginatedData<TransactionResponse>;
+    } catch (e) {
+      console.error('Error fetching admin transactions:', e);
+      return {
+        content: [],
+        number: page,
+        size,
+        totalElements: 0,
+        totalPages: 1,
+        first: true,
+        last: true,
+      };
+    }
+  },
 };
 
 export default transactionService;
+export { transactionService };
+

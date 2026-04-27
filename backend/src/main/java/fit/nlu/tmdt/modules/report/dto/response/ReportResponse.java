@@ -22,6 +22,7 @@ public class ReportResponse {
     private String targetType;
     private ReportType type;
     private String reason;
+    private String description;
     private String evidenceUrl;
     private ReportStatus status;
     private Long handledBy;

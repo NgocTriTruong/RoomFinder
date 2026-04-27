@@ -10,16 +10,23 @@ import { useAuth } from '../contexts/AuthContext';
 import { PostResponse, ReviewResponse } from '../types';
 import { createAvatarPlaceholder, createPlaceholderImage } from '../utils/localImage';
 import { resolveMediaUrl } from '../utils/mediaUrl';
+import { Check, XCircle } from 'lucide-react';
+import { getErrorMessage } from '@/services/api';
 
 export default function RoomDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const [room, setRoom] = useState<PostResponse | null>(null);
   const [reviews, setReviews] = useState<ReviewResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
+  const [isActionLoading, setIsActionLoading] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  const isAdmin = user?.role === 'ADMIN';
+  const isPending = room?.status === 'PENDING';
 
   useEffect(() => {
     const fetchData = async () => {
@@ -30,7 +37,7 @@ export default function RoomDetail() {
         setRoom(roomData);
         
         const reviewData = await reviewService.getReviewsByPost(id);
-        setReviews(reviewData.content);
+        setReviews(reviewData?.content || []);
       } catch (error) {
         console.error('Lỗi khi lấy chi tiết phòng:', error);
       } finally {
@@ -40,6 +47,46 @@ export default function RoomDetail() {
 
     fetchData();
   }, [id]);
+
+  const handleApprove = async () => {
+    if (!id || !window.confirm('Bạn có chắc muốn duyệt tin này không?')) return;
+    
+    setIsActionLoading(true);
+    setActionError(null);
+    try {
+      await postService.approvePost(id);
+      // Refresh data
+      const roomData = await postService.getPostById(id);
+      setRoom(roomData);
+      alert('Duyệt tin thành công!');
+      navigate('/admin/moderation');
+    } catch (err) {
+      setActionError(getErrorMessage(err));
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!id) return;
+    const reason = window.prompt('Nhập lý do từ chối:');
+    if (!reason?.trim()) return;
+
+    setIsActionLoading(true);
+    setActionError(null);
+    try {
+      await postService.rejectPost(id, reason.trim());
+      // Refresh data
+      const roomData = await postService.getPostById(id);
+      setRoom(roomData);
+      alert('Đã từ chối tin đăng!');
+      navigate('/admin/moderation');
+    } catch (err) {
+      setActionError(getErrorMessage(err));
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -70,10 +117,17 @@ export default function RoomDetail() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <Link to="/search" className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-6 font-medium">
-        <ArrowLeft className="w-4 h-4 mr-1" />
-        Quay lại tìm kiếm
-      </Link>
+      {isAdmin ? (
+        <Link to="/admin/moderation" className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-6 font-medium">
+          <ArrowLeft className="w-4 h-4 mr-1" />
+          Quay lại danh sách duyệt
+        </Link>
+      ) : (
+        <Link to="/search" className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-6 font-medium">
+          <ArrowLeft className="w-4 h-4 mr-1" />
+          Quay lại tìm kiếm
+        </Link>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Main Content */}
@@ -99,23 +153,25 @@ export default function RoomDetail() {
             <div className="p-6">
               <div className="flex justify-between items-start">
                 <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">{room.title}</h1>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => {
-                      if (!isAuthenticated) {
-                        navigate('/login', { state: { from: `/room/${id}` } });
-                        return;
-                      }
-                    }}
-                    className="p-2 text-gray-400 hover:text-red-500 bg-gray-50 rounded-full transition-colors"
-                    aria-label="Yêu thích"
-                  >
-                    <Heart className="w-6 h-6" />
-                  </button>
-                  <button className="p-2 text-gray-400 hover:text-blue-600 bg-gray-50 rounded-full transition-colors">
-                    <Share2 className="w-6 h-6" />
-                  </button>
-                </div>
+                {!isAdmin && (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        if (!isAuthenticated) {
+                          navigate('/login', { state: { from: `/room/${id}` } });
+                          return;
+                        }
+                      }}
+                      className="p-2 text-gray-400 hover:text-red-500 bg-gray-50 rounded-full transition-colors"
+                      aria-label="Yêu thích"
+                    >
+                      <Heart className="w-6 h-6" />
+                    </button>
+                    <button className="p-2 text-gray-400 hover:text-blue-600 bg-gray-50 rounded-full transition-colors">
+                      <Share2 className="w-6 h-6" />
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="flex items-center text-gray-600 mb-6">
@@ -167,7 +223,7 @@ export default function RoomDetail() {
               <div>
                 <h2 className="text-xl font-semibold text-gray-800 mb-4">Tiện ích</h2>
                 <div className="flex flex-wrap gap-3">
-                  {amenities.map((amenity, index) => (
+                  {amenities?.map((amenity, index) => (
                     <span
                       key={index}
                       className="inline-flex items-center px-3 py-2 rounded-md bg-gray-50 text-gray-700 border border-gray-200"
@@ -176,7 +232,7 @@ export default function RoomDetail() {
                       {amenity.name}
                     </span>
                   ))}
-                  {amenities.length === 0 && <p className="text-gray-500 text-sm italic">Không có tiện ích đi kèm</p>}
+                  {(!amenities || amenities.length === 0) && <p className="text-gray-500 text-sm italic">Không có tiện ích đi kèm</p>}
                 </div>
               </div>
               
@@ -197,7 +253,7 @@ export default function RoomDetail() {
                 </div>
                 
                 <div className="space-y-6">
-                  {reviews.length > 0 ? (
+                  {reviews && reviews.length > 0 ? (
                     reviews.map((review) => (
                       <div key={review.id} className="bg-gray-50 rounded-lg p-6">
                         <div className="flex justify-between items-start mb-4">
@@ -264,48 +320,96 @@ export default function RoomDetail() {
               </div>
             </div>
 
-            <button
-              onClick={() => {
-                if (!isAuthenticated) {
-                  navigate('/login', { state: { from: `/room/${id}` } });
-                  return;
-                }
-                setIsBookingModalOpen(true);
-              }}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-medium flex items-center justify-center mb-3 transition-colors"
-            >
-              <Calendar className="w-5 h-5 mr-2" />
-              Đặt lịch xem phòng
-            </button>
+            {isAdmin ? (
+              <div className="space-y-4">
+                {isPending ? (
+                  <>
+                    <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg mb-4">
+                      <p className="text-sm text-yellow-800 font-medium">Tin này đang chờ duyệt</p>
+                    </div>
+                    
+                    {actionError && (
+                      <div className="bg-red-50 border border-red-200 p-3 rounded-lg text-xs text-red-600 mb-4">
+                        {actionError}
+                      </div>
+                    )}
 
-            <div className="grid grid-cols-2 gap-3 mb-3">
-              <a href={`tel:${room.landlord?.phone || ''}`} className="w-full bg-green-50 hover:bg-green-100 text-green-700 py-3 rounded-lg font-medium flex items-center justify-center transition-colors">
-                <Phone className="w-5 h-5 mr-2" />
-                Gọi điện
-              </a>
+                    <button
+                      onClick={handleApprove}
+                      disabled={isActionLoading}
+                      className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-bold flex items-center justify-center transition-colors disabled:opacity-50"
+                    >
+                      <Check className="w-5 h-5 mr-2" />
+                      {isActionLoading ? 'Đang xử lý...' : 'Duyệt tin đăng'}
+                    </button>
 
-              <button
-                onClick={() => {
-                  if (!isAuthenticated) {
-                    navigate('/login', { state: { from: `/room/${id}` } });
-                    return;
-                  }
-                  navigate(`/tenant/messages?receiverId=${room.landlord?.id}`);
-                }}
-                className="w-full bg-blue-50 hover:bg-blue-100 text-blue-700 py-3 rounded-lg font-medium transition-colors flex justify-center items-center"
-              >
-                Nhắn tin
-              </button>
-            </div>
+                    <button
+                      onClick={handleReject}
+                      disabled={isActionLoading}
+                      className="w-full bg-white border-2 border-red-500 text-red-500 hover:bg-red-50 py-3 rounded-lg font-bold flex items-center justify-center transition-colors disabled:opacity-50"
+                    >
+                      <XCircle className="w-5 h-5 mr-2" />
+                      Từ chối tin
+                    </button>
+                  </>
+                ) : (
+                  <div className={`p-4 rounded-lg text-center font-bold ${
+                    room.status === 'APPROVED' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                  }`}>
+                    {room.status === 'APPROVED' ? 'TIN ĐÃ ĐƯỢC DUYỆT' : `TIN ĐÃ BỊ TỪ CHỐI${room.rejectionReason ? `: ${room.rejectionReason}` : ''}`}
+                  </div>
+                )}
+                
+                <div className="mt-4 pt-4 border-t border-gray-100">
+                  <p className="text-xs text-gray-500 text-center uppercase tracking-wider font-semibold">Chế độ kiểm duyệt</p>
+                </div>
+              </div>
+            ) : (
+              <>
+                <button
+                  onClick={() => {
+                    if (!isAuthenticated) {
+                      navigate('/login', { state: { from: `/room/${id}` } });
+                      return;
+                    }
+                    setIsBookingModalOpen(true);
+                  }}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-medium flex items-center justify-center mb-3 transition-colors"
+                >
+                  <Calendar className="w-5 h-5 mr-2" />
+                  Đặt lịch xem phòng
+                </button>
 
-            <div className="mt-6 pt-6 border-t border-gray-100">
-              <button 
-                onClick={() => setIsReportModalOpen(true)}
-                className="w-full text-red-500 hover:text-red-600 text-sm font-medium transition-colors text-center"
-              >
-                Báo cáo tin đăng không hợp lệ
-              </button>
-            </div>
+                <div className="grid grid-cols-2 gap-3 mb-3">
+                  <a href={`tel:${room.landlord?.phone || ''}`} className="w-full bg-green-50 hover:bg-green-100 text-green-700 py-3 rounded-lg font-medium flex items-center justify-center transition-colors">
+                    <Phone className="w-5 h-5 mr-2" />
+                    Gọi điện
+                  </a>
+
+                  <button
+                    onClick={() => {
+                      if (!isAuthenticated) {
+                        navigate('/login', { state: { from: `/room/${id}` } });
+                        return;
+                      }
+                      navigate(`/tenant/messages?receiverId=${room.landlord?.id}`);
+                    }}
+                    className="w-full bg-blue-50 hover:bg-blue-100 text-blue-700 py-3 rounded-lg font-medium transition-colors flex justify-center items-center"
+                  >
+                    Nhắn tin
+                  </button>
+                </div>
+
+                <div className="mt-6 pt-6 border-t border-gray-100">
+                  <button 
+                    onClick={() => setIsReportModalOpen(true)}
+                    className="w-full text-red-500 hover:text-red-600 text-sm font-medium transition-colors text-center"
+                  >
+                    Báo cáo tin đăng không hợp lệ
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>

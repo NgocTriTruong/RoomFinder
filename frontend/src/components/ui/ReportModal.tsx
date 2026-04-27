@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { X, AlertTriangle, Loader2 } from 'lucide-react';
+import { X, AlertTriangle, Loader2, Camera, Trash2, Image as ImageIcon } from 'lucide-react';
 import reportService from '../../services/reportService';
+import mediaService from '../../services/mediaService';
 import { getErrorMessage } from '../../services/api';
 
 interface ReportModalProps {
@@ -13,6 +14,9 @@ export default function ReportModal({ isOpen, onClose, roomId }: ReportModalProp
   const [reason, setReason] = useState('');
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   if (!isOpen) return null;
 
@@ -22,11 +26,32 @@ export default function ReportModal({ isOpen, onClose, roomId }: ReportModalProp
 
     try {
       setLoading(true);
+      
+      let finalEvidenceUrl = undefined;
+      
+      // 1. Upload file if selected
+      if (selectedFile) {
+        setUploading(true);
+        try {
+          const mediaResponse = await mediaService.uploadFile(selectedFile, 'REPORT');
+          finalEvidenceUrl = mediaResponse.fileUrl;
+        } catch (uploadError) {
+          console.error('Upload failed:', uploadError);
+          alert('Không thể tải ảnh lên. Vui lòng thử lại hoặc gửi báo cáo không kèm ảnh.');
+          setUploading(false);
+          setLoading(false);
+          return;
+        }
+        setUploading(false);
+      }
+
+      // 2. Submit report
       await reportService.createReport({
         targetId: parseInt(roomId),
         targetType: 'POST',
         reason,
-        description
+        description,
+        evidenceUrl: finalEvidenceUrl
       });
 
       alert('Báo cáo của bạn đã được gửi thành công! Chúng tôi sẽ xem xét trong thời gian sớm nhất.');
@@ -35,6 +60,28 @@ export default function ReportModal({ isOpen, onClose, roomId }: ReportModalProp
       alert(getErrorMessage(error));
     } finally {
       setLoading(false);
+      setUploading(false);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        alert('Dung lượng ảnh không được vượt quá 5MB');
+        return;
+      }
+      setSelectedFile(file);
+      const url = URL.createObjectURL(file);
+      setPreviewUrl(url);
+    }
+  };
+
+  const removeFile = () => {
+    setSelectedFile(null);
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
     }
   };
 
@@ -94,6 +141,43 @@ export default function ReportModal({ isOpen, onClose, roomId }: ReportModalProp
             ></textarea>
           </div>
 
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Bằng chứng hình ảnh (Tùy chọn)
+            </label>
+            
+            {previewUrl ? (
+              <div className="relative inline-block group">
+                <img 
+                  src={previewUrl} 
+                  alt="Preview" 
+                  className="w-full max-h-48 object-cover rounded-lg border-2 border-red-100"
+                />
+                <button
+                  type="button"
+                  onClick={removeFile}
+                  className="absolute top-2 right-2 p-1.5 bg-red-600 text-white rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                  title="Xóa ảnh"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                  <Camera className="w-8 h-8 text-gray-400 mb-2" />
+                  <p className="text-xs text-gray-500">Bấm để tải ảnh bằng chứng (Tối đa 5MB)</p>
+                </div>
+                <input 
+                  type="file" 
+                  className="hidden" 
+                  accept="image/*"
+                  onChange={handleFileChange}
+                />
+              </label>
+            )}
+          </div>
+
           <div className="flex gap-3">
             <button 
               type="button"
@@ -104,9 +188,11 @@ export default function ReportModal({ isOpen, onClose, roomId }: ReportModalProp
             </button>
             <button 
               type="submit"
-              className="flex-1 bg-red-600 text-white py-2.5 rounded-lg font-bold hover:bg-red-700 transition-colors"
+              disabled={loading || uploading}
+              className="flex-1 bg-red-600 text-white py-2.5 rounded-lg font-bold hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              Gửi báo cáo
+              {(loading || uploading) && <Loader2 className="w-4 h-4 animate-spin" />}
+              {uploading ? 'Đang tải ảnh...' : loading ? 'Đang gửi...' : 'Gửi báo cáo'}
             </button>
           </div>
         </form>

@@ -49,6 +49,14 @@ export const subscriptionService = {
     const response = await api.get<ApiResponse<any>>('/v1/subscriptions/current');
     return response.data.data;
   },
+
+  /**
+   * Get all packages for admin
+   */
+  getAllPackages: async (): Promise<PackageResponse[]> => {
+    const response = await api.get<ApiResponse<PackageResponse[]>>('/v1/subscriptions/admin/packages');
+    return response.data.data!;
+  },
 };
 
 export default subscriptionService;

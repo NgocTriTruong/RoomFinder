@@ -37,4 +37,9 @@ public interface PaymentService {
      * Lấy lịch sử thanh toán của user
      */
     List<PaymentResponse> getPaymentHistory(Long userId);
+
+    /**
+     * Lấy toàn bộ lịch sử thanh toán (Admin)
+     */
+    List<PaymentResponse> getAllTransactions();
 }

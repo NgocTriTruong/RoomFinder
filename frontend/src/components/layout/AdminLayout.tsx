@@ -12,7 +12,8 @@ import {
   ShieldCheck,
   Tag,
   UserX,
-  FileSearch
+  FileSearch,
+  CreditCard
 } from 'lucide-react';
 import { createAvatarPlaceholder } from '../../utils/localImage';
 import { useAuth } from '../../contexts/AuthContext';
@@ -31,6 +32,7 @@ export default function AdminLayout() {
     { path: '/admin/packages', icon: <Package className="w-5 h-5" />, label: 'Quản lý Gói dịch vụ' },
     { path: '/admin/vouchers', icon: <Tag className="w-5 h-5" />, label: 'Quản lý Voucher' },
     { path: '/admin/reports', icon: <AlertTriangle className="w-5 h-5" />, label: 'Báo cáo vi phạm' },
+    { path: '/admin/transactions', icon: <CreditCard className="w-5 h-5" />, label: 'Quản lý Giao dịch' },
   ];
 
   const getBreadcrumb = () => {

@@ -55,6 +55,9 @@ public class Report extends BaseEntity {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String reason;
 
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
     @Column(name = "evidence_url", length = 500)
     private String evidenceUrl;
 

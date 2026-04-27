@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight, Loader2, Lock, Search, Unlock, ShieldCheck, UserCircle2 } from 'lucide-react';
 import userService from '../../services/userService';
+import blacklistService from '../../services/blacklistService';
 import type { PaginatedData, UserResponse } from '@/types';
 import { createAvatarPlaceholder } from '@/utils/localImage';
 
@@ -15,6 +16,13 @@ export default function UserManagementPage() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'ACTIVE' | 'LOCKED' | 'INACTIVE'>('all');
   const [page, setPage] = useState(0);
   const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
+
+  // Blacklist Modal State
+  const [isBlacklistModalOpen, setIsBlacklistModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<UserResponse | null>(null);
+  const [blacklistReason, setBlacklistReason] = useState('');
+  const [blacklistType, setBlacklistType] = useState<'TEMPORARY' | 'PERMANENT'>('TEMPORARY');
+  const [blacklistDays, setBlacklistDays] = useState(30);
 
   const loadUsers = useCallback(async () => {
     setLoading(true);
@@ -48,13 +56,18 @@ export default function UserManagementPage() {
   };
 
   const handleToggleStatus = async (user: UserResponse) => {
-    const nextStatus = user.status === 'LOCKED' ? 'ACTIVE' : 'LOCKED';
-    const confirmMessage =
-      nextStatus === 'LOCKED'
-        ? `Khóa tài khoản ${user.fullName}?`
-        : `Mở khóa tài khoản ${user.fullName}?`;
+    if (user.status === 'ACTIVE' || user.status === 'INACTIVE') {
+      // Show blacklist modal instead of simple toggle
+      setSelectedUser(user);
+      setBlacklistReason('');
+      setBlacklistType('TEMPORARY');
+      setBlacklistDays(30);
+      setIsBlacklistModalOpen(true);
+      return;
+    }
 
-    if (!window.confirm(confirmMessage)) {
+    // Unlock logic
+    if (!window.confirm(`Mở khóa tài khoản ${user.fullName}?`)) {
       return;
     }
 
@@ -62,12 +75,42 @@ export default function UserManagementPage() {
     setError(null);
 
     try {
-      await userService.updateUserStatus(user.id, nextStatus);
+      // Find the active blacklist entry to remove it
+      const blacklistEntry = await blacklistService.getAdminUsersBlacklist(user.id);
+      if (blacklistEntry) {
+        await blacklistService.removeFromBlacklist(blacklistEntry.id, 'Admin mở khóa từ trang quản lý');
+      } else {
+        // Fallback to simple status update if no blacklist entry found
+        await userService.updateUserStatus(user.id, 'ACTIVE');
+      }
       await loadUsers();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Không thể cập nhật trạng thái tài khoản');
+      setError(err instanceof Error ? err.message : 'Không thể mở khóa tài khoản');
     } finally {
       setActionLoadingId(null);
+    }
+  };
+
+  const handleConfirmBlacklist = async () => {
+    if (!selectedUser || !blacklistReason) return;
+    
+    setActionLoadingId(selectedUser.id);
+    setIsBlacklistModalOpen(false);
+    setError(null);
+
+    try {
+      await blacklistService.addToBlacklist({
+        userId: selectedUser.id,
+        reason: blacklistReason,
+        type: blacklistType,
+        days: blacklistType === 'TEMPORARY' ? blacklistDays : undefined
+      });
+      await loadUsers();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Không thể khóa tài khoản');
+    } finally {
+      setActionLoadingId(null);
+      setSelectedUser(null);
     }
   };
 
@@ -140,6 +183,7 @@ export default function UserManagementPage() {
             onChange={(e) => {
               setRoleFilter(e.target.value as typeof roleFilter);
               setPage(0);
+              // Filter will be triggered by useEffect
             }}
             className="px-3 py-2 border border-gray-200 rounded-lg bg-white text-sm"
           >
@@ -153,6 +197,7 @@ export default function UserManagementPage() {
             onChange={(e) => {
               setStatusFilter(e.target.value as typeof statusFilter);
               setPage(0);
+              // Filter will be triggered by useEffect
             }}
             className="px-3 py-2 border border-gray-200 rounded-lg bg-white text-sm"
           >
@@ -161,12 +206,6 @@ export default function UserManagementPage() {
             <option value="LOCKED">Bị khóa</option>
             <option value="INACTIVE">Không hoạt động</option>
           </select>
-          <button
-            onClick={handleFilterChange}
-            className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors"
-          >
-            Lọc
-          </button>
         </div>
       </div>
 
@@ -254,9 +293,6 @@ export default function UserManagementPage() {
                         >
                           {user.status === 'LOCKED' ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
                         </button>
-                        <div className="p-2 rounded-lg bg-gray-50 text-gray-400" title="ID người dùng">
-                          <UserCircle2 className="w-4 h-4" />
-                        </div>
                       </div>
                     </td>
                   </tr>
@@ -293,6 +329,80 @@ export default function UserManagementPage() {
           </div>
         </div>
       </div>
+
+      {/* Blacklist Modal */}
+      {isBlacklistModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="p-6">
+              <div className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center mb-4">
+                <Lock className="w-6 h-6 text-red-600" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 mb-2">Khóa tài khoản người dùng</h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Bạn đang thực hiện khóa tài khoản <strong>{selectedUser?.fullName}</strong>. Hành động này sẽ đưa người dùng vào danh sách đen.
+              </p>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Lý do khóa</label>
+                  <textarea
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all resize-none h-24 text-sm"
+                    placeholder="Nhập lý do chi tiết..."
+                    value={blacklistReason}
+                    onChange={(e) => setBlacklistReason(e.target.value)}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Loại khóa</label>
+                    <select
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white"
+                      value={blacklistType}
+                      onChange={(e) => setBlacklistType(e.target.value as any)}
+                    >
+                      <option value="TEMPORARY">Tạm thời</option>
+                      <option value="PERMANENT">Vĩnh viễn</option>
+                    </select>
+                  </div>
+                  {blacklistType === 'TEMPORARY' && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Số ngày</label>
+                      <input
+                        type="number"
+                        min="1"
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                        value={blacklistDays}
+                        onChange={(e) => setBlacklistDays(parseInt(e.target.value) || 1)}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-8">
+                <button
+                  onClick={() => {
+                    setIsBlacklistModalOpen(false);
+                    setSelectedUser(null);
+                  }}
+                  className="flex-1 px-4 py-2.5 border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-semibold"
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  onClick={handleConfirmBlacklist}
+                  disabled={!blacklistReason}
+                  className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors font-semibold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Xác nhận khóa
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

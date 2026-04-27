@@ -10,6 +10,25 @@ export interface DashboardStats {
   userGrowth: number;
   pendingReports: number;
   activePackages: number;
+  totalPosts?: number;
+}
+
+export interface ComprehensiveStats {
+  overview: DashboardStats;
+  revenue: {
+    totalRevenue: number;
+    transactionCount: number;
+    dailyRevenue: Record<string, number>;
+    revenueByType: Record<string, number>;
+  };
+  users: {
+    totalUsers: number;
+    roleBreakdown: Record<string, number>;
+  };
+  posts: {
+    totalPosts: number;
+    statusBreakdown: Record<string, number>;
+  };
 }
 
 export interface AdminPackageResponse {
@@ -17,11 +36,21 @@ export interface AdminPackageResponse {
   name: string;
   description: string;
   price: number;
+  originalPrice?: number;
+  discountPercent?: number;
+  discountedPrice?: number;
   durationDays: number;
-  type: 'POST' | 'BOOST' | 'SUB';
-  postLimit: number;
-  boostLimit: number;
+  type: string;
+  typeDisplayName?: string;
+  maxPosts: number;
+  boostDays: number;
+  features?: string[];
   isActive: boolean;
+  isFeatured?: boolean;
+  displayOrder?: number;
+  validFrom?: string;
+  validTo?: string;
+  maxPurchasePerUser?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -80,122 +109,75 @@ export const adminService = {
    * Get dashboard statistics
    */
   getDashboardStats: async (): Promise<DashboardStats> => {
-    const response = await api.get<ApiResponse<DashboardStats>>('/v1/admin/dashboard/stats');
+    const response = await api.get<ApiResponse<DashboardStats>>('/v1/statistics/dashboard');
     return response.data.data!;
   },
 
   /**
-   * Get all packages (admin)
+   * Package Management
    */
   getPackages: async (page: number = 0, size: number = 20): Promise<PaginatedData<AdminPackageResponse>> => {
-    const response = await api.get<ApiResponse<PaginatedData<AdminPackageResponse>>>('/v1/admin/packages', {
-      params: { page, size },
-    });
+    try {
+      // Try admin endpoint first (to see all packages)
+      let items: AdminPackageResponse[] = [];
+      try {
+        const response = await api.get<ApiResponse<any[]>>('/v1/subscriptions/admin/packages');
+        items = (response.data.data || []) as AdminPackageResponse[];
+      } catch (adminError) {
+        // Fallback to public endpoint if admin endpoint is not yet available (e.g., backend not restarted)
+        console.warn('Admin packages endpoint failed, falling back to public endpoint', adminError);
+        const response = await api.get<ApiResponse<any[]>>('/v1/subscriptions/packages');
+        items = (response.data.data || []) as AdminPackageResponse[];
+      }
+
+      const start = page * size;
+      const content = items.slice(start, start + size);
+      const totalElements = items.length;
+      return {
+        content,
+        totalElements,
+        totalPages: Math.max(1, Math.ceil(totalElements / size)),
+        size,
+        number: page,
+        first: page === 0,
+        last: start + size >= totalElements
+      };
+    } catch (e) {
+      console.error('Failed to fetch packages:', e);
+      return {
+        content: [],
+        totalElements: 0,
+        totalPages: 1,
+        size,
+        number: page,
+        first: true,
+        last: true
+      };
+    }
+  },
+
+  createPackage: async (data: Partial<AdminPackageResponse>): Promise<AdminPackageResponse> => {
+    const response = await api.post<ApiResponse<AdminPackageResponse>>('/v1/subscriptions/admin/packages', data);
     return response.data.data!;
   },
 
-  /**
-   * Create a new package
-   */
-  createPackage: async (data: {
-    name: string;
-    description: string;
-    price: number;
-    durationDays: number;
-    type: 'POST' | 'BOOST' | 'SUB';
-    postLimit: number;
-    boostLimit: number;
-  }): Promise<AdminPackageResponse> => {
-    const response = await api.post<ApiResponse<AdminPackageResponse>>('/v1/admin/packages', data);
+  updatePackage: async (id: number, data: Partial<AdminPackageResponse>): Promise<AdminPackageResponse> => {
+    const response = await api.put<ApiResponse<AdminPackageResponse>>(`/v1/subscriptions/admin/packages/${id}`, data);
     return response.data.data!;
   },
 
-  /**
-   * Update a package
-   */
-  updatePackage: async (id: number, data: Partial<{
-    name: string;
-    description: string;
-    price: number;
-    durationDays: number;
-    postLimit: number;
-    boostLimit: number;
-    isActive: boolean;
-  }>): Promise<AdminPackageResponse> => {
-    const response = await api.put<ApiResponse<AdminPackageResponse>>(`/v1/admin/packages/${id}`, data);
-    return response.data.data!;
-  },
-
-  /**
-   * Delete a package
-   */
   deletePackage: async (id: number): Promise<void> => {
-    await api.delete(`/v1/admin/packages/${id}`);
+    await api.delete(`/v1/subscriptions/admin/packages/${id}`);
   },
 
   /**
-   * Get all users (admin)
+   * Get comprehensive statistics
    */
-  getUsers: async (page: number = 0, size: number = 20, role?: string): Promise<PaginatedData<AdminUserResponse>> => {
-    const response = await api.get<ApiResponse<PaginatedData<AdminUserResponse>>>('/v1/admin/users', {
-      params: { page, size, role },
+  getComprehensiveStats: async (period: string = 'LAST_30_DAYS'): Promise<ComprehensiveStats> => {
+    const response = await api.get<ApiResponse<ComprehensiveStats>>('/v1/statistics/comprehensive', {
+      params: { period, includeChartData: true }
     });
     return response.data.data!;
-  },
-
-  /**
-   * Update user status (lock/unlock)
-   */
-  updateUserStatus: async (id: number, status: 'ACTIVE' | 'LOCKED'): Promise<void> => {
-    await api.put(`/v1/admin/users/${id}/status`, { status });
-  },
-
-  /**
-   * Get all posts (admin)
-   */
-  getPosts: async (page: number = 0, size: number = 20, status?: string): Promise<PaginatedData<AdminPostResponse>> => {
-    const response = await api.get<ApiResponse<PaginatedData<AdminPostResponse>>>('/v1/admin/posts', {
-      params: { page, size, status },
-    });
-    return response.data.data!;
-  },
-
-  /**
-   * Approve a post
-   */
-  approvePost: async (id: number): Promise<void> => {
-    await api.put(`/v1/admin/posts/${id}/approve`);
-  },
-
-  /**
-   * Reject a post
-   */
-  rejectPost: async (id: number, reason: string): Promise<void> => {
-    await api.put(`/v1/admin/posts/${id}/reject`, { reason });
-  },
-
-  /**
-   * Hide a post
-   */
-  hidePost: async (id: number): Promise<void> => {
-    await api.put(`/v1/admin/posts/${id}/hide`);
-  },
-
-  /**
-   * Get all reports (admin)
-   */
-  getReports: async (page: number = 0, size: number = 20, status?: string): Promise<PaginatedData<AdminReportResponse>> => {
-    const response = await api.get<ApiResponse<PaginatedData<AdminReportResponse>>>('/v1/admin/reports', {
-      params: { page, size, status },
-    });
-    return response.data.data!;
-  },
-
-  /**
-   * Resolve a report
-   */
-  resolveReport: async (id: number, action: 'RESOLVED' | 'IGNORED', resolution?: string): Promise<void> => {
-    await api.put(`/v1/admin/reports/${id}/resolve`, { action, resolution });
   },
 };
 

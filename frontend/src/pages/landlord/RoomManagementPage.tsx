@@ -22,41 +22,7 @@ export default function RoomManagementPage() {
     try {
       setIsLoading(true);
       const data = await roomService.getMyRooms();
-      // Convert RoomResponse[] to RoomDetailResponse[] for display
-      // In real implementation, you might want to fetch full details
-      const roomsWithDetails: RoomDetailResponse[] = data.map(room => ({
-        id: room.id,
-        roomNumber: null,
-        address: room.address,
-        province: null,
-        district: null,
-        ward: null,
-        latitude: room.latitude,
-        longitude: room.longitude,
-        area: room.area,
-        floor: 0,
-        maxOccupancy: 0,
-        direction: null,
-        hasWindows: true,
-        hasBalcony: false,
-        thumbnailUrl: room.thumbnailUrl || (room.images && room.images.length > 0 ? room.images[0] : null) || null,
-        images: room.images || [],
-        amenities: room.amenities || [],
-        nearbyUniversityId: null,
-        nearbyUniversityName: null,
-        distanceToUniversity: null,
-        nearestBusStation: null,
-        isPetFriendly: false,
-        isParkingAvailable: false,
-        curfew: null,
-        rules: null,
-        viewCount: 0,
-        favoriteCount: 0,
-        landlord: room.landlord,
-        createdAt: '',
-        updatedAt: '',
-      }));
-      setRooms(roomsWithDetails);
+      setRooms(data);
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {

@@ -28,6 +28,16 @@ VALUES (NOW(), NOW(), 'user2@tmdt.vn', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZRGdjGj/n
 INSERT INTO users (created_at, updated_at, email, password, full_name, phone, role, status, is_verified, verified_at, provider)
 VALUES (NOW(), NOW(), 'user3@tmdt.vn', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZRGdjGj/n3.5QeH/T7pBHH2p5y5y', 'Ngô Thu Minh', '0967890123', 'USER', 'ACTIVE', true, NOW(), 'LOCAL');
 
+-- Additional users for statistics
+INSERT INTO users (created_at, updated_at, email, password, full_name, phone, role, status, is_verified, verified_at, provider)
+VALUES 
+(NOW() - INTERVAL '25 days', NOW(), 'landlord4@tmdt.vn', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZRGdjGj/n3.5QeH/T7pBHH2p5y5y', 'Phạm Hoàng Nam', '0987654321', 'LANDLORD', 'ACTIVE', true, NOW(), 'LOCAL'),
+(NOW() - INTERVAL '20 days', NOW(), 'landlord5@tmdt.vn', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZRGdjGj/n3.5QeH/T7pBHH2p5y5y', 'Vũ Minh Tuấn', '0987654322', 'LANDLORD', 'ACTIVE', true, NOW(), 'LOCAL'),
+(NOW() - INTERVAL '15 days', NOW(), 'user4@tmdt.vn', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZRGdjGj/n3.5QeH/T7pBHH2p5y5y', 'Đỗ Thùy Linh', '0987654323', 'USER', 'ACTIVE', true, NOW(), 'LOCAL'),
+(NOW() - INTERVAL '10 days', NOW(), 'user5@tmdt.vn', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZRGdjGj/n3.5QeH/T7pBHH2p5y5y', 'Bùi Xuân Huấn', '0987654324', 'USER', 'ACTIVE', true, NOW(), 'LOCAL'),
+(NOW() - INTERVAL '5 days', NOW(), 'user6@tmdt.vn', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZRGdjGj/n3.5QeH/T7pBHH2p5y5y', 'Lê Tùng Vân', '0987654325', 'USER', 'ACTIVE', true, NOW(), 'LOCAL'),
+(NOW() - INTERVAL '2 days', NOW(), 'user7@tmdt.vn', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZRGdjGj/n3.5QeH/T7pBHH2p5y5y', 'Trần My', '0987654326', 'USER', 'ACTIVE', true, NOW(), 'LOCAL');
+
 -- =============================================
 -- 2. TIỆN ÍCH (Amenities) - 24 items
 -- =============================================
@@ -375,16 +385,22 @@ VALUES (NOW(), 4, 2, 3, 1, NOW(), NOW() + INTERVAL '30 days', false, true);
 -- =============================================
 
 INSERT INTO bookings (created_at, updated_at, user_id, landlord_id, post_id, booking_time, end_time, status, confirmation_code, note)
-VALUES (NOW(), NOW(), 5, 2, 1, NOW() + INTERVAL '1 day', NOW() + INTERVAL '1 day 2 hours', 'PENDING', 'BK001ABC', 'Tôi muốn xem phòng vào giờ hành chính');
+VALUES (NOW() + INTERVAL '1 hour', NOW(), 5, 2, 1, NOW() + INTERVAL '1 day', NOW() + INTERVAL '1 day 2 hours', 'PENDING', 'BK001ABC', 'Tôi muốn xem phòng vào giờ hành chính');
 
 INSERT INTO bookings (created_at, updated_at, user_id, landlord_id, post_id, booking_time, end_time, status, confirmation_code, note)
-VALUES (NOW(), NOW(), 6, 3, 4, NOW() + INTERVAL '2 days', NOW() + INTERVAL '2 days 2 hours', 'CONFIRMED', 'BK002DEF', 'Gọi điện trước khi đến');
+VALUES (NOW() + INTERVAL '2 hours', NOW(), 6, 3, 4, NOW() + INTERVAL '2 days', NOW() + INTERVAL '2 days 2 hours', 'CONFIRMED', 'BK002DEF', 'Gọi điện trước khi đến');
 
 INSERT INTO bookings (created_at, updated_at, user_id, landlord_id, post_id, booking_time, end_time, status, confirmation_code, note)
-VALUES (NOW(), NOW(), 7, 4, 7, NOW() - INTERVAL '3 days', NOW() - INTERVAL '3 days 2 hours', 'COMPLETED', 'BK003GHI', 'Đã xem phòng rất hài lòng');
+VALUES (NOW() - INTERVAL '3 days', NOW(), 7, 4, 7, NOW() - INTERVAL '3 days', NOW() - INTERVAL '3 days 2 hours', 'COMPLETED', 'BK003GHI', 'Đã xem phòng rất hài lòng');
 
 INSERT INTO bookings (created_at, updated_at, user_id, landlord_id, post_id, booking_time, end_time, status, confirmation_code, cancellation_reason)
-VALUES (NOW(), NOW(), 5, 2, 2, NOW() - INTERVAL '5 days', NOW() - INTERVAL '5 days 2 hours', 'CANCELLED', 'BK004JKL', 'Đã tìm được phòng khác gần hơn');
+VALUES (NOW() - INTERVAL '5 days', NOW(), 5, 2, 2, NOW() - INTERVAL '5 days', NOW() - INTERVAL '5 days 2 hours', 'CANCELLED', 'BK004JKL', 'Đã tìm được phòng khác gần hơn');
+
+INSERT INTO bookings (created_at, updated_at, user_id, landlord_id, post_id, booking_time, end_time, status, confirmation_code, note)
+VALUES (NOW() - INTERVAL '1 day', NOW(), 6, 2, 1, NOW() + INTERVAL '3 days', NOW() + INTERVAL '3 days 2 hours', 'PENDING', 'BK005MNO', 'Cần xem thêm tiện ích');
+
+INSERT INTO bookings (created_at, updated_at, user_id, landlord_id, post_id, booking_time, end_time, status, confirmation_code, note)
+VALUES (NOW() - INTERVAL '2 days', NOW(), 5, 3, 4, NOW() + INTERVAL '4 days', NOW() + INTERVAL '4 days 2 hours', 'CONFIRMED', 'BK006PQR', 'Đã chốt ngày xem');
 
 -- =============================================
 -- 11. REVIEWS
@@ -454,6 +470,49 @@ INSERT INTO vouchers (created_at, code, name, discount_type, discount, max_disco
 VALUES (NOW(), 'FLAT100K', 'Giảm 100K', 'FIXED', 100000.00, 0.00, 500000.00, 200, 180, NOW() + INTERVAL '45 days', true);
 
 -- =============================================
+-- 15. BÁO CÁO VI PHẠM (Reports)
+-- =============================================
+
+INSERT INTO reports (created_at, updated_at, reporter_id, target_id, target_type, type, reason, status)
+VALUES (NOW() - INTERVAL '1 day', NOW(), 5, 1, 'POST', 'SPAM', 'Tin đăng trùng lặp nhiều lần', 'PENDING');
+
+INSERT INTO reports (created_at, updated_at, reporter_id, target_id, target_type, type, reason, status)
+VALUES (NOW() - INTERVAL '2 days', NOW(), 6, 4, 'POST', 'FAKE_POST', 'Phòng không giống như trong ảnh', 'PENDING');
+
+INSERT INTO reports (created_at, updated_at, reporter_id, target_id, target_type, type, reason, status, handled_by, handled_at, handled_note, action_taken)
+VALUES (NOW() - INTERVAL '5 days', NOW(), 7, 2, 'POST', 'FRAUD', 'Yêu cầu chuyển khoản đặt cọc trước khi xem phòng', 'RESOLVED', 1, NOW() - INTERVAL '4 days', 'Đã xác minh và gỡ bỏ tin đăng', 'REMOVE_POST');
+
+-- =============================================
+-- 16. GIAO DỊCH (Transactions) - Cho biểu đồ doanh thu
+-- =============================================
+
+INSERT INTO transactions (created_at, updated_at, user_id, order_id, order_type, order_description, amount, original_amount, payment_method, status, paid_at, expires_at)
+VALUES 
+(NOW() - INTERVAL '29 days', NOW(), 2, 'ORD-20260401-0001', 'PACKAGE_PURCHASE', 'Mua Gói Tiêu Chuẩn', 199000, 199000, 'VNPAY', 'SUCCESS', NOW() - INTERVAL '29 days', NOW()),
+(NOW() - INTERVAL '27 days', NOW(), 3, 'ORD-20260403-0002', 'PACKAGE_PURCHASE', 'Mua Gói Premium', 399000, 399000, 'MOMO', 'SUCCESS', NOW() - INTERVAL '27 days', NOW()),
+(NOW() - INTERVAL '25 days', NOW(), 4, 'ORD-20260405-0003', 'BOOST_PURCHASE', 'Đẩy tin 7 ngày', 99000, 99000, 'VNPAY', 'SUCCESS', NOW() - INTERVAL '25 days', NOW()),
+(NOW() - INTERVAL '23 days', NOW(), 2, 'ORD-20260407-0004', 'BOOST_PURCHASE', 'Đẩy tin 1 ngày', 29000, 29000, 'ZALOPAY', 'SUCCESS', NOW() - INTERVAL '23 days', NOW()),
+(NOW() - INTERVAL '21 days', NOW(), 3, 'ORD-20260409-0005', 'PACKAGE_PURCHASE', 'Mua Gói Tiêu Chuẩn', 199000, 199000, 'VNPAY', 'SUCCESS', NOW() - INTERVAL '21 days', NOW()),
+(NOW() - INTERVAL '19 days', NOW(), 4, 'ORD-20260411-0006', 'BOOST_PURCHASE', 'Đẩy tin 30 ngày', 299000, 299000, 'MOMO', 'SUCCESS', NOW() - INTERVAL '19 days', NOW()),
+(NOW() - INTERVAL '17 days', NOW(), 2, 'ORD-20260413-0007', 'PACKAGE_PURCHASE', 'Mua Gói Cơ Bản', 99000, 99000, 'VNPAY', 'SUCCESS', NOW() - INTERVAL '17 days', NOW()),
+(NOW() - INTERVAL '15 days', NOW(), 3, 'ORD-20260415-0008', 'BOOST_PURCHASE', 'Đẩy tin 7 ngày', 99000, 99000, 'ZALOPAY', 'SUCCESS', NOW() - INTERVAL '15 days', NOW()),
+(NOW() - INTERVAL '13 days', NOW(), 4, 'ORD-20260417-0009', 'PACKAGE_PURCHASE', 'Mua Gói Premium', 399000, 399000, 'VNPAY', 'SUCCESS', NOW() - INTERVAL '13 days', NOW()),
+(NOW() - INTERVAL '11 days', NOW(), 2, 'ORD-20260419-0010', 'BOOST_PURCHASE', 'Đẩy tin 1 ngày', 29000, 29000, 'MOMO', 'SUCCESS', NOW() - INTERVAL '11 days', NOW()),
+(NOW() - INTERVAL '9 days', NOW(), 3, 'ORD-20260421-0011', 'PACKAGE_PURCHASE', 'Mua Gói Tiêu Chuẩn', 199000, 199000, 'VNPAY', 'SUCCESS', NOW() - INTERVAL '9 days', NOW()),
+(NOW() - INTERVAL '7 days', NOW(), 4, 'ORD-20260423-0012', 'BOOST_PURCHASE', 'Đẩy tin 7 ngày', 99000, 99000, 'ZALOPAY', 'SUCCESS', NOW() - INTERVAL '7 days', NOW()),
+(NOW() - INTERVAL '5 days', NOW(), 2, 'ORD-20260425-0013', 'PACKAGE_PURCHASE', 'Mua Gói Premium', 399000, 399000, 'VNPAY', 'SUCCESS', NOW() - INTERVAL '5 days', NOW()),
+(NOW() - INTERVAL '4 days', NOW(), 3, 'ORD-20260426-0014', 'BOOST_PURCHASE', 'Đẩy tin 30 ngày', 299000, 299000, 'MOMO', 'SUCCESS', NOW() - INTERVAL '4 days', NOW()),
+(NOW() - INTERVAL '3 days', NOW(), 4, 'ORD-20260427-0015', 'PACKAGE_PURCHASE', 'Mua Gói Tiêu Chuẩn', 199000, 199000, 'VNPAY', 'SUCCESS', NOW() - INTERVAL '3 days', NOW()),
+(NOW() - INTERVAL '2 days', NOW(), 2, 'ORD-20260428-0016', 'BOOST_PURCHASE', 'Đẩy tin 1 ngày', 29000, 29000, 'ZALOPAY', 'SUCCESS', NOW() - INTERVAL '2 days', NOW()),
+(NOW() - INTERVAL '1 day', NOW(), 3, 'ORD-20260429-0017', 'PACKAGE_PURCHASE', 'Mua Gói Cơ Bản', 99000, 99000, 'VNPAY', 'SUCCESS', NOW() - INTERVAL '1 day', NOW()),
+(NOW(), NOW(), 4, 'ORD-20260430-0018', 'BOOST_PURCHASE', 'Đẩy tin 7 ngày', 99000, 99000, 'MOMO', 'SUCCESS', NOW(), NOW());
+
+INSERT INTO transactions (created_at, updated_at, user_id, order_id, order_type, order_description, amount, original_amount, payment_method, status, failed_at, failed_reason, expires_at)
+VALUES 
+(NOW() - INTERVAL '10 days', NOW(), 2, 'ORD-FAIL-001', 'PACKAGE_PURCHASE', 'Mua Gói Premium', 399000, 399000, 'VNPAY', 'FAILED', NOW() - INTERVAL '10 days', 'Người dùng hủy thanh toán', NOW()),
+(NOW() - INTERVAL '2 days', NOW(), 3, 'ORD-FAIL-002', 'BOOST_PURCHASE', 'Đẩy tin 30 ngày', 299000, 299000, 'MOMO', 'FAILED', NOW() - INTERVAL '2 days', 'Hết hạn thanh toán', NOW());
+
+-- =============================================
 -- XÁC NHẬN
 -- =============================================
 
@@ -469,3 +528,5 @@ SELECT 'Messages: ' || COUNT(*) FROM messages;
 SELECT 'Packages: ' || COUNT(*) FROM packages;
 SELECT 'Subscriptions: ' || COUNT(*) FROM subscriptions;
 SELECT 'Vouchers: ' || COUNT(*) FROM vouchers;
+SELECT 'Reports: ' || COUNT(*) FROM reports;
+SELECT 'Transactions: ' || COUNT(*) FROM transactions;

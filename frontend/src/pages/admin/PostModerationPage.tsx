@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, EyeOff, Trash2, Eye, ChevronLeft, ChevronRight, Loader2, AlertCircle } from 'lucide-react';
+import { Check, EyeOff, Trash2, Eye, ChevronLeft, ChevronRight, Loader2, AlertCircle, ExternalLink } from 'lucide-react';
 import { postService } from '@/services/postService';
 import { getErrorMessage } from '@/services/api';
 import type { PaginatedData, PostResponse, PostStatus } from '@/types';
 import { createPlaceholderImage } from '@/utils/localImage';
 import { resolveMediaUrl } from '@/utils/mediaUrl';
+import PostModerationDetail from '@/components/admin/PostModerationDetail';
 
 type FilterTab = 'pending' | 'all';
 
@@ -58,6 +59,7 @@ export default function PostModerationPage() {
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
+  const [selectedPostId, setSelectedPostId] = useState<number | null>(null);
 
   const loadPosts = useCallback(async () => {
     setIsLoading(true);
@@ -140,6 +142,19 @@ export default function PostModerationPage() {
   const totalElements = pageData?.totalElements ?? 0;
   const startItem = totalElements === 0 ? 0 : currentPage * (pageData?.size ?? PAGE_SIZE) + 1;
   const endItem = totalElements === 0 ? 0 : startItem + posts.length - 1;
+
+  if (selectedPostId) {
+    return (
+      <PostModerationDetail 
+        postId={selectedPostId} 
+        onBack={() => setSelectedPostId(null)}
+        onActionComplete={() => {
+          setSelectedPostId(null);
+          void loadPosts();
+        }}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -259,43 +274,12 @@ export default function PostModerationPage() {
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex items-center justify-end space-x-2">
                           <button
-                            className="text-blue-600 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 p-2 rounded-lg transition-colors"
-                            title="Xem chi tiết"
-                            onClick={() => navigate(`/room/${post.id}`)}
+                            onClick={() => setSelectedPostId(post.id)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
                           >
                             <Eye className="w-4 h-4" />
+                            Chi tiết
                           </button>
-
-                          {isPending && (
-                            <>
-                              <button
-                                className="text-green-600 hover:text-green-900 bg-green-50 hover:bg-green-100 p-2 rounded-lg transition-colors disabled:opacity-60"
-                                title="Duyệt tin"
-                                onClick={() => handleApprove(post.id)}
-                                disabled={actionLoadingId === post.id}
-                              >
-                                <Check className="w-4 h-4" />
-                              </button>
-                              <button
-                                className="text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 p-2 rounded-lg transition-colors disabled:opacity-60"
-                                title="Từ chối tin"
-                                onClick={() => handleReject(post.id)}
-                                disabled={actionLoadingId === post.id}
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </>
-                          )}
-
-                          {!isPending && (
-                            <button
-                              className="text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 p-2 rounded-lg transition-colors"
-                              title="Đã xử lý"
-                              disabled
-                            >
-                              <EyeOff className="w-4 h-4" />
-                            </button>
-                          )}
                         </div>
                       </td>
                     </tr>

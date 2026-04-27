@@ -3,6 +3,8 @@
 -- Run: usql postgresql://admin:123456@localhost:5434/tmdt < seed_data.sql
 -- ================================================
 
+SET client_encoding = 'UTF8';
+
 BEGIN;
 
 -- ================================================
@@ -52,11 +54,8 @@ VALUES
 -- 3. ROOMS (use subqueries for landlord_id)
 -- ================================================
 
-DELETE FROM rooms WHERE address IN (
-  '123 Nguyễn Huệ, Quận 1','45 Lê Lợi, Quận 1','78 Pasteur, Quận 1',
-  '56 Đề Thám, Quận 3','90 Võ Văn Tần, Quận 3',
-  '201 Phạm Ngũ Lão, Quận 5','88 Trần Bình Trọng, Quận 5','15 Nguyễn Trãi, Quận 5'
-);
+-- Xóa dữ liệu cũ theo landlord để tránh lỗi font không xóa được bằng địa chỉ
+DELETE FROM rooms WHERE landlord_id IN (SELECT id FROM users WHERE email IN ('landlord1@gmail.com','landlord2@gmail.com','landlord3@gmail.com'));
 
 INSERT INTO rooms (landlord_id, address, province, district, ward, latitude, longitude, area, floor, max_occupancy, direction, has_windows, has_balcony, thumbnail_url, is_pet_friendly, is_parking_available, curfew, rules, view_count, favorite_count, created_at, updated_at, version)
 VALUES
@@ -67,22 +66,17 @@ VALUES
   ((SELECT id FROM users WHERE email='landlord2@gmail.com'), '90 Võ Văn Tần, Quận 3', 'TP Hồ Chí Minh', 'Quận 3', 'Phường 6', 10.7880, 106.6910, 28.0, 6, 2, 'NORTHEAST', true, true, 'https://picsum.photos/seed/room5/400/300', false, true, NULL, 'Không hút thuốc', 75, 5, NOW(), NOW(), 0),
   ((SELECT id FROM users WHERE email='landlord3@gmail.com'), '201 Phạm Ngũ Lão, Quận 5', 'TP Hồ Chí Minh', 'Quận 5', 'Phường 3', 10.7540, 106.6790, 20.0, 1, 1, 'SOUTH', true, false, 'https://picsum.photos/seed/room6/400/300', false, false, NULL, NULL, 300, 45, NOW(), NOW(), 0),
   ((SELECT id FROM users WHERE email='landlord3@gmail.com'), '88 Trần Bình Trọng, Quận 5', 'TP Hồ Chí Minh', 'Quận 5', 'Phường 4', 10.7560, 106.6810, 32.0, 3, 3, 'EAST', true, true, 'https://picsum.photos/seed/room7/400/300', true, true, NULL, 'Cho phép nuôi thú cưng nhỏ', 180, 20, NOW(), NOW(), 0),
-  ((SELECT id FROM users WHERE email='landlord3@gmail.com'), '15 Nguyễn Trãi, Quận 5', 'TP Hồ Chí Minh', 'Quận 5', 'Phường 2', 10.7510, 106.6750, 40.0, 8, 4, 'NORTHWEST', true, true, 'https://picsum.photos/seed/room8/400/300', false, true, '23:00', 'Có camera an ninh', 95, 8, NOW(), NOW(), 0);
+  ((SELECT id FROM users WHERE email='landlord3@gmail.com'), '15 Nguyễn Trãi, Quận 5', 'TP Hồ Chí Minh', 'Quận 5', 'Phường 2', 10.7510, 106.6750, 40.0, 8, 4, 'NORTHWEST', true, true, 'https://picsum.photos/seed/room8/400/300', false, true, '23:00', 'Có camera an ninh', 95, 8, NOW(), NOW(), 0),
+  ((SELECT id FROM users WHERE email='landlord1@gmail.com'), '99 Trần Hưng Đạo, Quận 1', 'TP Hồ Chí Minh', 'Quận 1', 'Phường Cô Giang', 10.7610, 106.6940, 20.0, 2, 1, 'SOUTH', true, false, 'https://picsum.photos/seed/pending1/400/300', false, true, NULL, NULL, 0, 0, NOW(), NOW(), 0),
+  ((SELECT id FROM users WHERE email='landlord2@gmail.com'), '150 Cách Mạng Tháng 8, Quận 3', 'TP Hồ Chí Minh', 'Quận 3', 'Phường 10', 10.7820, 106.6780, 45.0, 10, 4, 'EAST', true, true, 'https://picsum.photos/seed/pending2/400/300', false, true, NULL, NULL, 0, 0, NOW(), NOW(), 0),
+  ((SELECT id FROM users WHERE email='landlord3@gmail.com'), '50 Hùng Vương, Quận 5', 'TP Hồ Chí Minh', 'Quận 5', 'Phường 9', 10.7580, 106.6710, 18.0, 1, 1, 'WEST', true, false, 'https://picsum.photos/seed/pending3/400/300', false, false, NULL, NULL, 0, 0, NOW(), NOW(), 0);
 
 -- ================================================
 -- 4. POSTS
 -- ================================================
 
-DELETE FROM posts WHERE title IN (
-  'Phòng trọ cao cấp view sông Sài Gòn, gần quận 1 - 25m2',
-  'Cho thuê phòng 30m2 quận 1 - full nội thất, wifi free',
-  'Thuê phòng trọ 35m2 Pasteur - gần trường Y, tiện nghi đầy đủ',
-  'Phòng trọ quận 3 - 22m2 gần BV Nhi Đồng 1, giá rẻ',
-  'Thuê phòng 28m2 quận 3 - nội thất mới, gần ĐH Sư Phạm',
-  'Phòng trọ 20m2 quận 5 - rẻ nhất khu vực, gần chợ',
-  'Cho thuê phòng 32m2 quận 5 - pet friendly, có ban công',
-  'Thuê căn hộ mini 40m2 quận 5 - tầng cao view thành phố'
-);
+-- Xóa dữ liệu cũ theo landlord
+DELETE FROM posts WHERE landlord_id IN (SELECT id FROM users WHERE email IN ('landlord1@gmail.com','landlord2@gmail.com','landlord3@gmail.com'));
 
 INSERT INTO posts (landlord_id, room_id, title, description, price, deposit_amount, price_type, status, approved_by, approved_at, expires_at, is_boosted, boosted_until, view_count, favorite_count, contact_count, booking_count, created_at, updated_at, version)
 VALUES
@@ -132,7 +126,25 @@ VALUES
    (SELECT id FROM rooms WHERE address='15 Nguyễn Trãi, Quận 5'),
    'Thuê căn hộ mini 40m2 quận 5 - tầng cao view thành phố',
    'Căn hộ mini cao cấp 40m2, tầng 8 view thành phố, nội thất đầy đủ. Gần trường ĐH Y, ĐH Bách Khoa. Có thang máy, bảo vệ, camera.',
-   7500000.0, 15000000.0, 'MONTHLY', 'PENDING', NULL, NULL, NOW() + INTERVAL '30 days', false, NULL, 30, 3, 2, 0, NOW(), NOW(), 0);
+   7500000.0, 15000000.0, 'MONTHLY', 'PENDING', NULL, NULL, NOW() + INTERVAL '30 days', false, NULL, 30, 3, 2, 0, NOW(), NOW(), 0),
+
+  ((SELECT id FROM users WHERE email='landlord1@gmail.com'),
+   (SELECT id FROM rooms WHERE address='99 Trần Hưng Đạo, Quận 1' ORDER BY id DESC LIMIT 1),
+   'Phòng trọ giá sinh viên gần ĐH Văn Lang',
+   'Phòng mới xây, thoáng mát, đầy đủ tiện nghi, gần trường ĐH Văn Lang CS1. Giờ giấc tự do, có chỗ để xe rộng rãi.',
+   3000000.0, 3000000.0, 'MONTHLY', 'PENDING', NULL, NULL, NOW() + INTERVAL '30 days', false, NULL, 0, 0, 0, 0, NOW(), NOW(), 0),
+
+  ((SELECT id FROM users WHERE email='landlord2@gmail.com'),
+   (SELECT id FROM rooms WHERE address='150 Cách Mạng Tháng 8, Quận 3' ORDER BY id DESC LIMIT 1),
+   'Căn hộ dịch vụ cao cấp CMT8 full nội thất',
+   'Căn hộ 45m2, 1 phòng ngủ, 1 phòng khách, bếp riêng. Tòa nhà có thang máy, bảo vệ 24/7. Nội thất cao cấp nhập khẩu.',
+   12000000.0, 24000000.0, 'MONTHLY', 'PENDING', NULL, NULL, NOW() + INTERVAL '30 days', false, NULL, 0, 0, 0, 0, NOW(), NOW(), 0),
+
+  ((SELECT id FROM users WHERE email='landlord3@gmail.com'),
+   (SELECT id FROM rooms WHERE address='50 Hùng Vương, Quận 5' ORDER BY id DESC LIMIT 1),
+   'Ký túc xá máy lạnh gần ĐH Sư Phạm',
+   'Phòng ở ghép nam/nữ riêng biệt, máy lạnh 24/24, có người dọn dép hàng tuần. Gần ĐH Sư Phạm, ĐH Sài Gòn.',
+   1500000.0, 1500000.0, 'MONTHLY', 'PENDING', NULL, NULL, NOW() + INTERVAL '30 days', false, NULL, 0, 0, 0, 0, NOW(), NOW(), 0);
 
 -- ================================================
 -- 5. POST IMAGES
@@ -405,8 +417,7 @@ VALUES
 -- 15. NOTIFICATIONS
 -- ================================================
 
-DELETE FROM notifications WHERE title LIKE 'Lịch xem phòng%' OR title LIKE 'Có phòng mới%' OR title LIKE 'Có lịch xem%' OR title LIKE 'Phòng được yêu thích%';
-
+DELETE FROM notifications WHERE title IN ('Lịch xem phòng được xác nhận', 'Có phòng mới phù hợp', 'Có lịch xem phòng mới', 'Phòng được yêu thích nhiều');
 INSERT INTO notifications (user_id, title, content, type, is_read, created_at)
 VALUES
   ((SELECT id FROM users WHERE email='user1@gmail.com'), 'Lịch xem phòng được xác nhận', 'Lịch xem phòng tại 123 Nguyễn Huệ vào ngày mai đã được xác nhận.', 'BOOKING', false, NOW()),
@@ -414,6 +425,25 @@ VALUES
   ((SELECT id FROM users WHERE email='landlord1@gmail.com'), 'Có lịch xem phòng mới', 'Người dùng Phạm Minh D muốn xem phòng tại 123 Nguyễn Huệ.', 'BOOKING', false, NOW()),
   ((SELECT id FROM users WHERE email='landlord3@gmail.com'), 'Phòng được yêu thích nhiều', 'Phòng của bạn tại quận 5 vừa được thêm vào yêu thích.', 'FAVORITE', false, NOW());
 
+-- ================================================
+-- 16. BLACKLIST
+-- ================================================
+
+-- 1. Xóa các bảng tham chiếu đến User vi phạm trước (để tránh lỗi Khóa ngoại)
+DELETE FROM notifications WHERE user_id IN (SELECT id FROM users WHERE email IN ('baduser1@gmail.com', 'baduser2@gmail.com'));
+DELETE FROM blacklist WHERE user_id IN (SELECT id FROM users WHERE email IN ('baduser1@gmail.com', 'baduser2@gmail.com'));
+-- 2. Xóa User cũ (nếu có)
+DELETE FROM users WHERE email IN ('baduser1@gmail.com', 'baduser2@gmail.com');
+-- 3. Chèn lại User mới
+INSERT INTO users (email, password, full_name, phone, role, status, is_verified, provider, created_at, updated_at, version)
+VALUES 
+  ('baduser1@gmail.com', '1', 'Kẻ Gian Lận 1', '0999111222', 'USER', 'LOCKED', true, 'LOCAL', NOW(), NOW(), 0),
+  ('baduser2@gmail.com', '1', 'Kẻ Gian Lận 2', '0999333444', 'LANDLORD', 'LOCKED', true, 'LOCAL', NOW(), NOW(), 0);
+-- 4. Chèn vào Blacklist
+INSERT INTO blacklist (user_id, reason, type, is_permanent, expires_at, added_by, is_active, created_at, updated_at, version)
+VALUES
+  ((SELECT id FROM users WHERE email='baduser1@gmail.com'), 'Spam tin nhắn lừa đảo người dùng khác', 'PERMANENT', true, NULL, (SELECT id FROM users WHERE email='admin@gmail.com'), true, NOW() - INTERVAL '2 days', NOW(), 0),
+  ((SELECT id FROM users WHERE email='baduser2@gmail.com'), 'Đăng tin giả mạo, không đúng thực tế nhiều lần', 'TEMPORARY', false, NOW() + INTERVAL '30 days', (SELECT id FROM users WHERE email='admin@gmail.com'), true, NOW() - INTERVAL '1 day', NOW(), 0);
 COMMIT;
 
 -- ================================================
@@ -421,6 +451,7 @@ COMMIT;
 -- ================================================
 
 SELECT 'Users:' as info, COUNT(*) as count FROM users
+UNION ALL SELECT 'Blacklist:', COUNT(*) FROM blacklist
 UNION ALL SELECT 'Landlords:', COUNT(*) FROM users WHERE role = 'LANDLORD'
 UNION ALL SELECT 'Posts:', COUNT(*) FROM posts
 UNION ALL SELECT 'Approved Posts:', COUNT(*) FROM posts WHERE status = 'APPROVED'

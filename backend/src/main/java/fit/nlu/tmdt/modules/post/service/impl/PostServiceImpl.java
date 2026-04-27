@@ -24,6 +24,8 @@ import fit.nlu.tmdt.modules.subscription.repository.BoostRepository;
 import fit.nlu.tmdt.modules.subscription.repository.PackageRepository;
 import fit.nlu.tmdt.modules.subscription.repository.SubscriptionRepository;
 import fit.nlu.tmdt.modules.statistics.service.ViewHistoryService;
+import fit.nlu.tmdt.modules.notification.entity.Notification;
+import fit.nlu.tmdt.modules.notification.service.NotificationService;
 import org.hibernate.Hibernate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -60,6 +62,7 @@ public class PostServiceImpl implements PostService {
     private final PackageRepository packageRepository;
     private final fit.nlu.tmdt.modules.booking.repository.BookingRepository bookingRepository;
     private final ViewHistoryService viewHistoryService;
+    private final NotificationService notificationService;
 
     @Value("${post.default-duration-days:30}")
     private int defaultDurationDays;
@@ -97,7 +100,8 @@ public class PostServiceImpl implements PostService {
 
         if (subscription != null) {
             if (!subscription.usePost()) {
-                throw new BusinessException(ErrorCode.POST_003, "You have no remaining posts. Please purchase a package.");
+                throw new BusinessException(ErrorCode.POST_003,
+                        "You have no remaining posts. Please purchase a package.");
             }
             subscriptionRepository.save(subscription);
         } else {
@@ -105,8 +109,7 @@ public class PostServiceImpl implements PostService {
             if (usedFreePosts >= freePostQuota) {
                 throw new BusinessException(
                         ErrorCode.POST_002,
-                        "You have used all free posts. Please purchase a package to continue posting."
-                );
+                        "You have used all free posts. Please purchase a package to continue posting.");
             }
         }
 
@@ -220,6 +223,25 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
+    @Transactional
+    public void adminDeletePost(Long id, Long adminId) {
+        Post post = postRepository.findByIdActive(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.POST_001, "Post not found"));
+
+        post.softDelete();
+        post.setStatus(PostStatus.REJECTED);
+        post.setRejectionReason("Gỡ do vi phạm nội dung (Xử lý từ báo cáo)");
+        postRepository.save(post);
+
+        // Notify landlord
+        String title = "Tin đăng bị gỡ bỏ";
+        String content = "Tin đăng '" + post.getTitle() + "' của bạn đã bị gỡ bỏ do vi phạm tiêu chuẩn cộng đồng.";
+        notificationService.createNotification(Notification.forPost(post.getLandlord(), title, content, post.getId()));
+
+        log.info("Post {} force deleted by admin {}", id, adminId);
+    }
+
+    @Override
     public Page<PostResponse> getMyPosts(Long landlordId, Pageable pageable) {
         Page<Post> posts = postRepository.findByLandlordIdAndDeletedAtIsNull(landlordId, pageable);
         return posts.map(post -> toPostResponse(post, landlordId));
@@ -231,7 +253,8 @@ public class PostServiceImpl implements PostService {
         long activePosts = postRepository.countByLandlordIdAndStatus(landlordId, PostStatus.APPROVED);
         Long totalViews = postRepository.sumViewCountByLandlordId(landlordId);
         long totalBookings = bookingRepository.countByLandlordId(landlordId);
-        long pendingBookings = bookingRepository.countByLandlordIdAndStatus(landlordId, fit.nlu.tmdt.modules.booking.entity.enums.BookingStatus.PENDING);
+        long pendingBookings = bookingRepository.countByLandlordIdAndStatus(landlordId,
+                fit.nlu.tmdt.modules.booking.entity.enums.BookingStatus.PENDING);
 
         // Get daily stats from ViewHistory table (last 7 days)
         LocalDateTime now = LocalDateTime.now();
@@ -286,8 +309,7 @@ public class PostServiceImpl implements PostService {
                 post.getFavoriteCount(),
                 post.getContactCount(),
                 post.getBookingCount(),
-                (int) bookingRepository.countByPostIdAndStatusAndDeletedAtIsNull(postId, BookingStatus.COMPLETED)
-        );
+                (int) bookingRepository.countByPostIdAndStatusAndDeletedAtIsNull(postId, BookingStatus.COMPLETED));
     }
 
     @Override
@@ -327,6 +349,12 @@ public class PostServiceImpl implements PostService {
         // Decrement subscription posts
         subscriptionRepository.decrementRemainingPosts(post.getLandlord().getId());
 
+        // Send notification
+        String title = "Tin đăng được duyệt";
+        String content = "Tin đăng '" + post.getTitle()
+                + "' của bạn đã được duyệt và hiện đang hiển thị trên hệ thống.";
+        notificationService.createNotification(Notification.forPost(post.getLandlord(), title, content, post.getId()));
+
         log.info("Post approved: {} by admin: {}", postId, adminId);
     }
 
@@ -342,6 +370,11 @@ public class PostServiceImpl implements PostService {
 
         post.reject(reason);
         postRepository.save(post);
+
+        // Send notification
+        String title = "Tin đăng bị từ chối";
+        String content = "Tin đăng '" + post.getTitle() + "' của bạn đã bị từ chối. Lý do: " + reason;
+        notificationService.createNotification(Notification.forPost(post.getLandlord(), title, content, post.getId()));
 
         log.info("Post rejected: {} by admin: {} with reason: {}", postId, adminId, reason);
     }

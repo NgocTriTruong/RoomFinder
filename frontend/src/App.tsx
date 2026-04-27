@@ -51,6 +51,7 @@ import KYCManagementPage from './pages/admin/KYCManagementPage';
 import BlacklistPage from './pages/admin/BlacklistPage';
 import PackageManagementPage from './pages/admin/PackageManagementPage';
 import VoucherManagementPage from './pages/admin/VoucherManagementPage';
+import TransactionManagementPage from './pages/admin/TransactionManagementPage';
 
 function App() {
   return (
@@ -157,6 +158,7 @@ function App() {
             <Route path="blacklist" element={<BlacklistPage />} />
             <Route path="packages" element={<PackageManagementPage />} />
             <Route path="vouchers" element={<VoucherManagementPage />} />
+            <Route path="transactions" element={<TransactionManagementPage />} />
           </Route>
 
           {/* ============================================ */}

@@ -80,6 +80,9 @@ public class User extends BaseEntity {
     @Column(name = "verified_at")
     private LocalDateTime verifiedAt;
 
+    @Column(name = "admin_note", length = 500)
+    private String adminNote;
+
     // ==========================================
     // OAUTH INFO
     // ==========================================

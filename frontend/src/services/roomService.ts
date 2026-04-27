@@ -13,8 +13,8 @@ export const roomService = {
   /**
    * Get landlord's own rooms
    */
-  getMyRooms: async (): Promise<RoomResponse[]> => {
-    const response = await api.get<ApiResponse<RoomResponse[]>>('/v1/rooms/my');
+  getMyRooms: async (): Promise<RoomDetailResponse[]> => {
+    const response = await api.get<ApiResponse<RoomDetailResponse[]>>('/v1/rooms/my');
     return response.data.data!;
   },
 

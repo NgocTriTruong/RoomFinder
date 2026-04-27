@@ -81,13 +81,57 @@ public class StatisticsServiceImpl implements StatisticsService {
         stats.put("pendingReports", reportRepository.countByStatusAndDeletedAtIsNull(ReportStatus.PENDING));
         stats.put("totalReports", reportRepository.count());
 
+        // Revenue
+        List<Transaction> transactions = transactionRepository.findAll();
+        log.info("Calculating revenue from {} transactions", transactions.size());
+
+        double totalRevenue = transactions.stream()
+                .filter(t -> t.getStatus() == PaymentStatus.SUCCESS)
+                .mapToDouble(Transaction::getAmount)
+                .sum();
+        stats.put("totalRevenue", totalRevenue);
+
+        // Growth metrics
+        LocalDateTime lastMonthStart = startDate.minusMonths(1);
+        LocalDateTime lastMonthEnd = startDate;
+        
+        double lastMonthRevenue = transactions.stream()
+                .filter(t -> t.getStatus() == PaymentStatus.SUCCESS && t.getCreatedAt() != null)
+                .filter(t -> !t.getCreatedAt().isBefore(lastMonthStart) && t.getCreatedAt().isBefore(lastMonthEnd))
+                .mapToDouble(Transaction::getAmount)
+                .sum();
+        
+        double currentMonthRevenue = transactions.stream()
+                .filter(t -> t.getStatus() == PaymentStatus.SUCCESS && t.getCreatedAt() != null)
+                .filter(t -> !t.getCreatedAt().isBefore(startDate) && t.getCreatedAt().isBefore(endDate))
+                .mapToDouble(Transaction::getAmount)
+                .sum();
+
+        log.info("Revenue stats - Total: {}, Last Month: {}, Current Month: {}", totalRevenue, lastMonthRevenue, currentMonthRevenue);
+
+        double revenueGrowth = 0;
+        if (lastMonthRevenue > 0) {
+            revenueGrowth = ((currentMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100;
+        } else if (currentMonthRevenue > 0) {
+            revenueGrowth = 100.0; // 100% growth if started from 0
+        }
+        stats.put("revenueGrowth", Math.round(revenueGrowth * 10.0) / 10.0);
+
+        long lastMonthUsers = userRepository.countByCreatedAtBetween(lastMonthStart, lastMonthEnd);
+        long currentMonthUsers = userRepository.countByCreatedAtBetween(startDate, endDate);
+        double userGrowth = 0;
+        if (lastMonthUsers > 0) {
+            userGrowth = ((double)(currentMonthUsers - lastMonthUsers) / lastMonthUsers) * 100;
+        } else if (currentMonthUsers > 0) {
+            userGrowth = 100.0;
+        }
+        stats.put("userGrowth", Math.round(userGrowth * 10.0) / 10.0);
+        
+        stats.put("newPostsToday", postRepository.countByCreatedAtBetween(LocalDateTime.now().withHour(0).withMinute(0), LocalDateTime.now()));
+
         // Period stats
         stats.put("periodStart", startDate);
         stats.put("periodEnd", endDate);
-
-        // Posts in period
-        stats.put("newPostsInPeriod", postRepository.countByCreatedAtBetween(startDate, endDate));
-        stats.put("newUsersInPeriod", userRepository.countByCreatedAtBetween(startDate, endDate));
 
         return stats;
     }

@@ -8,8 +8,13 @@ import fit.nlu.tmdt.modules.report.dto.response.BlacklistResponse;
 import fit.nlu.tmdt.modules.report.entity.Blacklist;
 import fit.nlu.tmdt.modules.report.repository.BlacklistRepository;
 import fit.nlu.tmdt.modules.report.service.BlacklistService;
+import fit.nlu.tmdt.modules.auth.entity.enums.UserStatus;
+import fit.nlu.tmdt.modules.auth.entity.enums.UserRole;
+import fit.nlu.tmdt.modules.notification.entity.Notification;
+import fit.nlu.tmdt.modules.notification.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,6 +34,7 @@ public class BlacklistServiceImpl implements BlacklistService {
 
     private final BlacklistRepository blacklistRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     @Override
     @Transactional(readOnly = true)
@@ -50,8 +56,13 @@ public class BlacklistServiceImpl implements BlacklistService {
                     throw new BusinessException("BL_001", "User is already blacklisted");
                 });
 
+        // Backend Protection: Prevent blacklisting Admin
+        if (user.getRole() == UserRole.ADMIN) {
+            throw new BusinessException("BL_006", "Cannot blacklist an admin account");
+        }
+
         Blacklist blacklist;
-        if (Boolean.TRUE.equals(type) || (days == null || days <= 0)) {
+        if ("PERMANENT".equalsIgnoreCase(type) || (days == null || days <= 0)) {
             blacklist = Blacklist.createPermanent(user, reason, adminId);
             blacklist.setType("PERMANENT");
         } else {
@@ -59,8 +70,18 @@ public class BlacklistServiceImpl implements BlacklistService {
             blacklist.setType(type);
         }
 
+        // Synchronize User Status
+        user.setStatus(UserStatus.LOCKED);
+        userRepository.save(user);
+
         blacklist = blacklistRepository.save(blacklist);
         log.info("Added user {} to blacklist by admin {}, reason: {}", userId, adminId, reason);
+
+        // Send Notification
+        String title = "Tài khoản của bạn đã bị khóa";
+        String content = String.format("Tài khoản của bạn đã bị đưa vào danh sách đen. Lý do: %s. %s", 
+                reason, blacklist.getIsPermanent() ? "Đây là lệnh khóa vĩnh viễn." : "Thời hạn đến: " + blacklist.getExpiresAt());
+        notificationService.createNotification(Notification.forSystem(user, title, content));
 
         return buildResponse(blacklist);
     }
@@ -74,8 +95,7 @@ public class BlacklistServiceImpl implements BlacklistService {
             throw new BusinessException("BL_003", "User is not currently blacklisted");
         }
 
-        blacklist.deactivate(adminId, reason);
-        blacklist = blacklistRepository.save(blacklist);
+        unlockUser(blacklist, adminId, reason);
         log.info("Removed user {} from blacklist by admin {}", blacklist.getUser().getId(), adminId);
 
         return buildResponse(blacklist);
@@ -111,6 +131,45 @@ public class BlacklistServiceImpl implements BlacklistService {
         stats.put("totalPermanent", blacklistRepository.countByIsPermanentAndDeletedAtIsNull(true));
         stats.put("totalTemporary", blacklistRepository.countByIsPermanentAndDeletedAtIsNull(false));
         return stats;
+    }
+
+    /**
+     * Auto-unlock task: Runs every hour to unlock users whose blacklist period has expired
+     */
+    @Override
+    @Scheduled(cron = "0 0 * * * *") // Every hour
+    public void autoUnlockExpiredBlacklist() {
+        log.info("Running auto-unlock task for expired blacklists...");
+        List<Blacklist> expiredBlacklists = blacklistRepository.findByIsActiveAndDeletedAtIsNull(true)
+                .stream()
+                .filter(b -> !b.getIsPermanent() && b.getExpiresAt() != null && b.getExpiresAt().isBefore(LocalDateTime.now()))
+                .toList();
+
+        if (expiredBlacklists.isEmpty()) {
+            return;
+        }
+
+        for (Blacklist blacklist : expiredBlacklists) {
+            try {
+                log.info("Auto-unlocking user: {}", blacklist.getUser().getId());
+                unlockUser(blacklist, null, "Hệ thống tự động gỡ chặn sau khi hết hạn");
+            } catch (Exception e) {
+                log.error("Failed to auto-unlock user {}: {}", blacklist.getUser().getId(), e.getMessage());
+            }
+        }
+    }
+
+    private void unlockUser(Blacklist blacklist, Long adminId, String reason) {
+        blacklist.deactivate(adminId, reason);
+        
+        // Synchronize User Status - Unlock user
+        User user = blacklist.getUser();
+        user.setStatus(UserStatus.ACTIVE);
+        user.setLockoutEnd(null);
+        user.setFailedLoginAttempts(0);
+        userRepository.save(user);
+
+        blacklistRepository.save(blacklist);
     }
 
     private BlacklistResponse buildResponse(Blacklist blacklist) {

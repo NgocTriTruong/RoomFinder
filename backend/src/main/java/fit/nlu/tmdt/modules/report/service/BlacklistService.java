@@ -43,4 +43,9 @@ public interface BlacklistService {
      * Get blacklist statistics
      */
     Object getBlacklistStats();
+
+    /**
+     * Auto-unlock users whose blacklist period has expired
+     */
+    void autoUnlockExpiredBlacklist();
 }

@@ -1,6 +1,7 @@
 package fit.nlu.tmdt.modules.voucher.repository;
 
 import fit.nlu.tmdt.modules.voucher.entity.Voucher;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -16,12 +17,16 @@ import java.util.Optional;
 @Repository
 public interface VoucherRepository extends JpaRepository<Voucher, Long> {
 
+    @EntityGraph(attributePaths = {"applicablePackageIds"})
     Optional<Voucher> findByCodeAndDeletedAtIsNull(String code);
 
+    @EntityGraph(attributePaths = {"applicablePackageIds"})
     Optional<Voucher> findByIdAndDeletedAtIsNull(Long id);
 
+    @EntityGraph(attributePaths = {"applicablePackageIds"})
     List<Voucher> findByIsActiveAndDeletedAtIsNull(Boolean isActive);
 
+    @EntityGraph(attributePaths = {"applicablePackageIds"})
     List<Voucher> findAllByDeletedAtIsNull();
 
     @Query("SELECT v FROM Voucher v WHERE v.isActive = true AND v.isPublic = true AND v.deletedAt IS NULL " +
@@ -48,5 +53,6 @@ public interface VoucherRepository extends JpaRepository<Voucher, Long> {
             "AND (v.remainingQuantity IS NULL OR v.remainingQuantity > 0) " +
             "AND (v.validFrom IS NULL OR v.validFrom <= :now) " +
             "AND v.code = :code")
+    @EntityGraph(attributePaths = {"applicablePackageIds"})
     Optional<Voucher> findValidVoucherByCode(@Param("code") String code, @Param("now") LocalDateTime now);
 }

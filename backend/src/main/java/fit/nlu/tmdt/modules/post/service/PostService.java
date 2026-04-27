@@ -42,6 +42,11 @@ public interface PostService {
     void deletePost(Long id, Long landlordId);
 
     /**
+     * Admin: Force delete post due to violation
+     */
+    void adminDeletePost(Long id, Long adminId);
+
+    /**
      * Get my posts
      */
     Page<PostResponse> getMyPosts(Long landlordId, Pageable pageable);

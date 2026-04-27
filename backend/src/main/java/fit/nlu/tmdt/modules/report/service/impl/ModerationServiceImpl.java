@@ -36,6 +36,7 @@ public class ModerationServiceImpl implements ModerationService {
     private final ReportRepository reportRepository;
     private final BlacklistRepository blacklistRepository;
     private final UserRepository userRepository;
+    private final fit.nlu.tmdt.modules.post.service.PostService postService;
 
     @Override
     public ReportResponse createReport(CreateReportRequest request, Long userId) {
@@ -59,6 +60,7 @@ public class ModerationServiceImpl implements ModerationService {
                 .targetType(request.getTargetType())
                 .type(request.getType())
                 .reason(request.getReason())
+                .description(request.getDescription())
                 .evidenceUrl(request.getEvidenceUrl())
                 .postId(request.getPostId())
                 .bookingId(request.getBookingId())
@@ -114,7 +116,8 @@ public class ModerationServiceImpl implements ModerationService {
             blacklistUser(report.getTargetId(), note, adminId);
         } else if ("REMOVE_POST".equals(action) && "POST".equals(report.getTargetType())) {
             // Handle post removal
-            log.info("Post removal action for report: {}", reportId);
+            postService.adminDeletePost(report.getTargetId(), adminId);
+            log.info("Post {} removed by admin {} due to report {}", report.getTargetId(), adminId, reportId);
         }
 
         report = reportRepository.save(report);
@@ -187,6 +190,7 @@ public class ModerationServiceImpl implements ModerationService {
                 .targetType(report.getTargetType())
                 .type(report.getType())
                 .reason(report.getReason())
+                .description(report.getDescription())
                 .evidenceUrl(report.getEvidenceUrl())
                 .status(report.getStatus())
                 .postId(report.getPostId())

@@ -3,6 +3,7 @@ package fit.nlu.tmdt.modules.voucher.dto.response;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.Set;
 
 /**
  * Voucher Response DTO
@@ -30,5 +31,6 @@ public class VoucherResponse {
     private Boolean isPublic;
     private Boolean isFeatured;
     private String applicableTypes;
+    private Set<Long> applicablePackageIds;
     private Integer usedCount;
 }

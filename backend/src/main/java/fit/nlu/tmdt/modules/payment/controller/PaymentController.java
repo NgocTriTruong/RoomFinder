@@ -94,6 +94,15 @@ public class PaymentController {
         return ResponseEntity.ok(ApiResponse.success(history));
     }
 
+    @GetMapping("/admin/all")
+    @Operation(summary = "Get all system transactions (Admin only)")
+    @PreAuthorize("hasRole('ADMIN')")
+    @LogExecutionTime
+    public ResponseEntity<ApiResponse<List<PaymentResponse>>> getAllTransactions() {
+        List<PaymentResponse> history = paymentService.getAllTransactions();
+        return ResponseEntity.ok(ApiResponse.success(history));
+    }
+
     @GetMapping("/{id}")
     @Operation(summary = "Get transaction detail by ID")
     @PreAuthorize("isAuthenticated()")

@@ -7,15 +7,19 @@ import fit.nlu.tmdt.modules.voucher.dto.request.VoucherRequest;
 import fit.nlu.tmdt.modules.voucher.dto.response.VoucherResponse;
 import fit.nlu.tmdt.modules.voucher.dto.response.VoucherValidationResponse;
 import fit.nlu.tmdt.modules.voucher.entity.Voucher;
+import fit.nlu.tmdt.modules.payment.entity.enums.PaymentStatus;
+import fit.nlu.tmdt.modules.payment.repository.TransactionRepository;
 import fit.nlu.tmdt.modules.voucher.repository.VoucherRepository;
 import fit.nlu.tmdt.modules.voucher.service.VoucherService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.hibernate.Hibernate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -28,6 +32,7 @@ import java.util.stream.Collectors;
 public class VoucherServiceImpl implements VoucherService {
 
     private final VoucherRepository voucherRepository;
+    private final TransactionRepository transactionRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -42,7 +47,8 @@ public class VoucherServiceImpl implements VoucherService {
         Voucher voucher = voucherRepository.findValidVoucherByCode(request.getCode(), LocalDateTime.now())
                 .orElseThrow(() -> new BusinessException(ErrorCode.VOU_001));
 
-        return validateAndCalculate(voucher, request.getOrderAmount(), request.getPackageId(), request.getPackageType());
+        return validateAndCalculate(voucher, request.getOrderAmount(), request.getPackageId(),
+                request.getPackageType(), userId);
     }
 
     @Override
@@ -69,7 +75,7 @@ public class VoucherServiceImpl implements VoucherService {
         Voucher voucher = voucherRepository.findValidVoucherByCode(code, LocalDateTime.now())
                 .orElseThrow(() -> new BusinessException(ErrorCode.VOU_001));
 
-        return validateAndCalculate(voucher, orderAmount, packageId, null);
+        return validateAndCalculate(voucher, orderAmount, packageId, null, userId);
     }
 
     @Override
@@ -83,6 +89,7 @@ public class VoucherServiceImpl implements VoucherService {
     }
 
     @Override
+    @Transactional
     public VoucherResponse createVoucher(VoucherRequest request, Long adminId) {
         if (voucherRepository.existsByCodeAndDeletedAtIsNull(request.getCode())) {
             throw new BusinessException(ErrorCode.VOU_007, "Voucher code already exists");
@@ -116,6 +123,7 @@ public class VoucherServiceImpl implements VoucherService {
     }
 
     @Override
+    @Transactional
     public VoucherResponse updateVoucher(Long id, VoucherRequest request) {
         Voucher voucher = voucherRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.VOU_001));
@@ -126,7 +134,17 @@ public class VoucherServiceImpl implements VoucherService {
         voucher.setDiscount(request.getDiscount());
         voucher.setMaxDiscountAmount(request.getMaxDiscountAmount());
         voucher.setMinOrderAmount(request.getMinOrderAmount());
-        voucher.setTotalQuantity(request.getTotalQuantity());
+        // Logic update quantity: if totalQuantity increases, increase remainingQuantity accordingly
+        if (request.getTotalQuantity() != null) {
+            int oldTotal = voucher.getTotalQuantity() != null ? voucher.getTotalQuantity() : 0;
+            int newTotal = request.getTotalQuantity();
+            int diff = newTotal - oldTotal;
+            
+            voucher.setTotalQuantity(newTotal);
+            int currentRemaining = voucher.getRemainingQuantity() != null ? voucher.getRemainingQuantity() : 0;
+            voucher.setRemainingQuantity(Math.max(0, currentRemaining + diff));
+        }
+
         voucher.setMaxPerUser(request.getMaxPerUser());
         voucher.setValidFrom(request.getValidFrom());
         voucher.setExpiresAt(request.getExpiresAt());
@@ -142,23 +160,27 @@ public class VoucherServiceImpl implements VoucherService {
     }
 
     @Override
+    @Transactional
     public void deleteVoucher(Long id) {
         Voucher voucher = voucherRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.VOU_001));
         voucher.softDelete();
-        voucherRepository.save(voucher);
+        voucherRepository.saveAndFlush(voucher);
         log.info("Deleted voucher: {}", voucher.getCode());
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<VoucherResponse> getAllVouchers() {
-        return voucherRepository.findAllByDeletedAtIsNull().stream()
+        List<Voucher> vouchers = voucherRepository.findAllByDeletedAtIsNull();
+        vouchers.forEach(v -> Hibernate.initialize(v.getApplicablePackageIds()));
+        return vouchers.stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
     }
 
-    private VoucherValidationResponse validateAndCalculate(Voucher voucher, Double orderAmount, Long packageId, String packageType) {
+    private VoucherValidationResponse validateAndCalculate(Voucher voucher, Double orderAmount, Long packageId,
+            String packageType, Long userId) {
         if (!voucher.isActive()) {
             throw new BusinessException(ErrorCode.VOU_003);
         }
@@ -181,6 +203,15 @@ public class VoucherServiceImpl implements VoucherService {
 
         if (packageId != null && !voucher.isApplicableForPackage(packageId)) {
             throw new BusinessException(ErrorCode.VOU_006);
+        }
+
+        // Check max per user
+        if (userId != null && voucher.getMaxPerUser() != null) {
+            long usedCount = transactionRepository.countByUserIdAndVoucherCodeAndStatusAndDeletedAtIsNull(
+                    userId, voucher.getCode(), PaymentStatus.SUCCESS);
+            if (usedCount >= voucher.getMaxPerUser()) {
+                throw new BusinessException(ErrorCode.VOU_008);
+            }
         }
 
         Double discountedAmount = voucher.calculateDiscount(orderAmount);
@@ -219,6 +250,8 @@ public class VoucherServiceImpl implements VoucherService {
                 .isPublic(voucher.getIsPublic())
                 .isFeatured(voucher.getIsFeatured())
                 .applicableTypes(voucher.getApplicableTypes())
+                .applicablePackageIds(voucher.getApplicablePackageIds() != null ? voucher.getApplicablePackageIds()
+                        : new java.util.HashSet<>())
                 .usedCount(voucher.getUsedCount())
                 .build();
     }

@@ -19,6 +19,7 @@ export interface CreateVoucherRequest {
   isPublic?: boolean;
   isFeatured?: boolean;
   applicableTypes?: string;
+  applicablePackageIds?: any;
 }
 
 const voucherService = {

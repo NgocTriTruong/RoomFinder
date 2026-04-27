@@ -142,6 +142,15 @@ public class PaymentServiceImpl implements PaymentService {
                 .collect(Collectors.toList());
     }
 
+    @Override
+    public List<PaymentResponse> getAllTransactions() {
+        return transactionRepository.findAll()
+                .stream()
+                .sorted(java.util.Comparator.comparing(Transaction::getCreatedAt, java.util.Comparator.nullsLast(java.util.Comparator.reverseOrder())))
+                .map(this::mapToPaymentResponse)
+                .collect(Collectors.toList());
+    }
+
     private User findUserById(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_001.getCode(), ErrorCode.USER_001.getMessage()));

@@ -24,6 +24,8 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Long
 
     List<Subscription> findByLandlordId(Long landlordId);
 
+    long countByPkgId(Long packageId);
+
     @Modifying
     @Query("UPDATE Subscription s SET s.remainingPosts = s.remainingPosts - 1 WHERE s.landlord.id = :landlordId AND s.remainingPosts > 0")
     void decrementRemainingPosts(@Param("landlordId") Long landlordId);

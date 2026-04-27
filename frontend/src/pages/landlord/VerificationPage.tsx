@@ -123,6 +123,14 @@ export default function VerificationPage() {
           <div className="flex justify-center">{status.icon}</div>
           <h2 className="text-2xl font-bold">{status.title}</h2>
           <p className="opacity-90 max-w-md mx-auto leading-relaxed">{status.description}</p>
+          
+          {user?.verificationStatus === 'REJECTED' && user.adminNote && (
+            <div className="mt-4 p-4 bg-white/50 rounded-xl border border-red-100 text-left">
+              <p className="text-xs font-bold text-red-600 uppercase tracking-wider mb-1">Lý do từ chối từ Admin:</p>
+              <p className="text-sm italic">"{user.adminNote}"</p>
+            </div>
+          )}
+
           {user?.verificationStatus === 'REJECTED' && (
             <button 
               onClick={() => { window.location.reload(); }}

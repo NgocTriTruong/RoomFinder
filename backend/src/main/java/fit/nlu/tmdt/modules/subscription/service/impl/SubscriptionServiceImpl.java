@@ -6,6 +6,7 @@ import fit.nlu.tmdt.modules.auth.entity.User;
 import fit.nlu.tmdt.modules.auth.repository.UserRepository;
 import fit.nlu.tmdt.modules.post.entity.Post;
 import fit.nlu.tmdt.modules.post.repository.PostRepository;
+import fit.nlu.tmdt.modules.subscription.dto.request.AdminPackageRequest;
 import fit.nlu.tmdt.modules.subscription.dto.request.PurchasePackageRequest;
 import fit.nlu.tmdt.modules.subscription.dto.response.PackageResponse;
 import fit.nlu.tmdt.modules.subscription.dto.response.SubscriptionResponse;
@@ -79,6 +80,14 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         }
 
         return packages.stream()
+                .map(this::toPackageResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<PackageResponse> getAllPackages() {
+        log.info("Admin: Getting all packages");
+        return packageRepository.findAll().stream()
                 .map(this::toPackageResponse)
                 .collect(Collectors.toList());
     }
@@ -272,6 +281,79 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         subscriptionRepository.save(subscription);
 
         log.info("Subscription cancelled: {}", subscription.getId());
+    }
+
+    @Override
+    @Transactional
+    public PackageResponse createPackage(AdminPackageRequest request) {
+        log.info("Creating new package: {}", request.getName());
+
+        Package pkg = Package.builder()
+                .name(request.getName())
+                .type(request.getType())
+                .description(request.getDescription())
+                .maxPosts(request.getMaxPosts())
+                .durationDays(request.getDurationDays())
+                .boostDays(request.getBoostDays())
+                .price(request.getPrice())
+                .originalPrice(request.getOriginalPrice())
+                .discountPercent(request.getDiscountPercent())
+                .features(request.getFeatures() != null ? request.getFeatures() : new ArrayList<>())
+                .isActive(request.getIsActive() != null ? request.getIsActive() : true)
+                .displayOrder(request.getDisplayOrder() != null ? request.getDisplayOrder() : 0)
+                .isFeatured(request.getIsFeatured() != null ? request.getIsFeatured() : false)
+                .build();
+
+        pkg = packageRepository.save(pkg);
+        return toPackageResponse(pkg);
+    }
+
+    @Override
+    @Transactional
+    public PackageResponse updatePackage(Long id, AdminPackageRequest request) {
+        log.info("Updating package id: {}", id);
+
+        Package pkg = packageRepository.findById(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.SUB_003, "Package not found"));
+
+        pkg.setName(request.getName());
+        pkg.setType(request.getType());
+        pkg.setDescription(request.getDescription());
+        pkg.setMaxPosts(request.getMaxPosts());
+        pkg.setDurationDays(request.getDurationDays());
+        pkg.setBoostDays(request.getBoostDays());
+        pkg.setPrice(request.getPrice());
+        pkg.setOriginalPrice(request.getOriginalPrice());
+        pkg.setDiscountPercent(request.getDiscountPercent());
+        if (request.getFeatures() != null) {
+            pkg.setFeatures(request.getFeatures());
+        }
+        
+        if (request.getIsActive() != null) pkg.setIsActive(request.getIsActive());
+        if (request.getDisplayOrder() != null) pkg.setDisplayOrder(request.getDisplayOrder());
+        if (request.getIsFeatured() != null) pkg.setIsFeatured(request.getIsFeatured());
+
+        pkg = packageRepository.save(pkg);
+        return toPackageResponse(pkg);
+    }
+
+    @Override
+    @Transactional
+    public void deletePackage(Long id) {
+        log.info("Hard deleting package id: {}", id);
+
+        Package pkg = packageRepository.findById(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.SUB_003, "Package not found"));
+
+        // Check for subscriptions
+        long subCount = subscriptionRepository.countByPkgId(id);
+        if (subCount > 0) {
+            throw new BusinessException(ErrorCode.SUB_006, 
+                "Không thể xóa gói dịch vụ này vì đã có người dùng đăng ký (" + subCount + " lượt). " +
+                "Vui lòng sử dụng tính năng 'Tắt' để ẩn gói này.");
+        }
+
+        packageRepository.delete(pkg);
     }
 
     // ==================== HELPER METHODS ====================

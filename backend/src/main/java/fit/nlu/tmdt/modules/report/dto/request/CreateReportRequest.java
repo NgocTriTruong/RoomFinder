@@ -26,6 +26,8 @@ public class CreateReportRequest {
     @NotBlank(message = "Reason is required")
     private String reason;
 
+    private String description;
+
     private String evidenceUrl;
 
     private Long postId;

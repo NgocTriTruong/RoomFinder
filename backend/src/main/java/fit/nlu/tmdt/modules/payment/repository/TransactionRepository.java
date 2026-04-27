@@ -30,6 +30,8 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
 
     boolean existsByOrderIdAndDeletedAtIsNull(String orderId);
 
+    long countByUserIdAndVoucherCodeAndStatusAndDeletedAtIsNull(Long userId, String voucherCode, PaymentStatus status);
+
     // ==================== STATISTICS QUERIES ====================
 
     List<Transaction> findByCreatedAtBetween(LocalDateTime start, LocalDateTime end);
