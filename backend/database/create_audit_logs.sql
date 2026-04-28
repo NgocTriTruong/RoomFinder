@@ -23,3 +23,13 @@ CREATE TABLE IF NOT EXISTS audit_logs (
 CREATE INDEX IF NOT EXISTS idx_audit_logs_admin_id ON audit_logs(admin_id);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_target ON audit_logs(target_type, target_id);
+
+
+-- Chạy đoạn này để sửa lỗi DB bảng audit_logs
+ALTER TABLE audit_logs 
+ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'SUCCESS',
+ADD COLUMN IF NOT EXISTS metadata TEXT;
+
+-- (Tùy chọn) Xóa cột cũ để sạch DB
+ALTER TABLE audit_logs DROP COLUMN IF EXISTS ip_address;
+ALTER TABLE audit_logs DROP COLUMN IF EXISTS user_agent;

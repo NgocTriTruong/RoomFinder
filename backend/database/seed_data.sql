@@ -512,6 +512,22 @@ VALUES
 (NOW() - INTERVAL '10 days', NOW(), 2, 'ORD-FAIL-001', 'PACKAGE_PURCHASE', 'Mua Gói Premium', 399000, 399000, 'VNPAY', 'FAILED', NOW() - INTERVAL '10 days', 'Người dùng hủy thanh toán', NOW()),
 (NOW() - INTERVAL '2 days', NOW(), 3, 'ORD-FAIL-002', 'BOOST_PURCHASE', 'Đẩy tin 30 ngày', 299000, 299000, 'MOMO', 'FAILED', NOW() - INTERVAL '2 days', 'Hết hạn thanh toán', NOW());
 
+-- ================================================
+-- 17. BLACKLIST
+-- ================================================
+-- 1. Thêm user vi phạm
+INSERT INTO users (email, password, full_name, phone, role, status, is_verified, provider, created_at, updated_at, version)
+VALUES 
+  ('baduser1@gmail.com', '1', 'Kẻ Gian Lận 1', '0999111222', 'USER', 'LOCKED', true, 'LOCAL', NOW(), NOW(), 0),
+  ('baduser2@gmail.com', '1', 'Kẻ Gian Lận 2', '0999333444', 'LANDLORD', 'LOCKED', true, 'LOCAL', NOW(), NOW(), 0);
+
+-- 2. Thêm vào Blacklist
+INSERT INTO blacklist (user_id, reason, type, is_permanent, expires_at, added_by, is_active, created_at, updated_at, version)
+VALUES
+  ((SELECT id FROM users WHERE email='baduser1@gmail.com'), 'Spam tin nhắn lừa đảo người dùng khác', 'PERMANENT', true, NULL, (SELECT id FROM users WHERE email='admin@gmail.com'), true, NOW() - INTERVAL '2 days', NOW(), 0),
+  ((SELECT id FROM users WHERE email='baduser2@gmail.com'), 'Đăng tin giả mạo, không đúng thực tế nhiều lần', 'TEMPORARY', false, NOW() + INTERVAL '30 days', (SELECT id FROM users WHERE email='admin@gmail.com'), true, NOW() - INTERVAL '1 day', NOW(), 0);
+
+
 -- =============================================
 -- XÁC NHẬN
 -- =============================================

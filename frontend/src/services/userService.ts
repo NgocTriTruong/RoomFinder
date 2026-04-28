@@ -90,6 +90,14 @@ export const userService = {
   },
 
   /**
+   * Update any user profile (admin)
+   */
+  adminUpdateProfile: async (id: number, data: any): Promise<UserResponse> => {
+    const response = await api.put<ApiResponse<UserResponse>>(`/v1/users/admin/update/${id}`, data);
+    return response.data.data!;
+  },
+
+  /**
    * Upload avatar
    */
   uploadAvatar: async (file: File): Promise<string> => {

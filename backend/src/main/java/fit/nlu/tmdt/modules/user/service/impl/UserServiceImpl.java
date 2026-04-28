@@ -222,45 +222,77 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public UserResponse updateProfile(Long userId, UpdateProfileRequest request) {
+        return updateProfile(userId, request, null);
+    }
+
+    @Override
+    @Transactional
+    public UserResponse updateProfile(Long userId, UpdateProfileRequest request, Long adminId) {
+        log.info("Starting updateProfile for user ID: {} (By admin: {})", userId, adminId);
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_001, "User not found"));
 
-        // Update fields
-        user.setFullName(request.getFullName());
+        try {
+            // Update fields
+            user.setFullName(request.getFullName());
 
-        if (request.getPhone() != null) {
-            // Check if phone already used by another user
-            if (userRepository.existsByPhone(request.getPhone()) 
-                    && !request.getPhone().equals(user.getPhone())) {
-                throw new BusinessException(ErrorCode.USER_005, "Phone number already in use");
+            if (request.getPhone() != null && !request.getPhone().trim().isEmpty()) {
+                if (userRepository.existsByPhone(request.getPhone()) 
+                        && !request.getPhone().equals(user.getPhone())) {
+                    throw new BusinessException(ErrorCode.USER_005, "Số điện thoại đã được sử dụng bởi tài khoản khác");
+                }
+                user.setPhone(request.getPhone());
+            } else if (request.getPhone() != null && request.getPhone().trim().isEmpty()) {
+                user.setPhone(null);
             }
-            user.setPhone(request.getPhone());
-        }
 
-        if (request.getBio() != null) {
-            user.setBio(request.getBio());
-        }
-
-        if (request.getAddress() != null) {
-            user.setAddress(request.getAddress());
-        }
-
-        if (request.getDateOfBirth() != null) {
-            try {
-                user.setDateOfBirth(LocalDate.parse(request.getDateOfBirth(), DateTimeFormatter.ISO_DATE));
-            } catch (Exception e) {
-                throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Invalid date format");
+            if (request.getBio() != null) {
+                user.setBio(request.getBio());
             }
+
+            if (request.getAddress() != null) {
+                user.setAddress(request.getAddress());
+            }
+
+            if (request.getDateOfBirth() != null && !request.getDateOfBirth().trim().isEmpty()) {
+                try {
+                    user.setDateOfBirth(LocalDate.parse(request.getDateOfBirth(), DateTimeFormatter.ISO_DATE));
+                } catch (Exception e) {
+                    throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Định dạng ngày sinh không hợp lệ (YYYY-MM-DD)");
+                }
+            } else if (request.getDateOfBirth() != null && request.getDateOfBirth().trim().isEmpty()) {
+                user.setDateOfBirth(null);
+            }
+
+            if (request.getUniversityId() != null) {
+                user.setUniversityId(request.getUniversityId());
+            }
+
+            user = userRepository.save(user);
+
+            // Ghi audit log nếu người thực hiện là admin
+            if (adminId != null) {
+                try {
+                    String description = String.format("Admin (ID: %d) đã cập nhật thông tin tài khoản cho người dùng %s (ID: %d)", 
+                            adminId, user.getEmail(), user.getId());
+                    auditLogService.log(adminId, 
+                            fit.nlu.tmdt.modules.audit.enums.AuditAction.UPDATE, 
+                            fit.nlu.tmdt.modules.audit.enums.AuditTarget.USER, 
+                            user.getId(), 
+                            description, null);
+                } catch (Exception e) {
+                    log.warn("Failed to log audit for admin update: {}", e.getMessage());
+                }
+            }
+
+            log.info("Profile successfully updated for user: {}", userId);
+            return toUserResponse(user);
+        } catch (BusinessException be) {
+            throw be;
+        } catch (Exception e) {
+            log.error("Error in updateProfile for user {}: {}", userId, e.getMessage());
+            throw new BusinessException("SYSTEM_ERROR", "Lỗi hệ thống: " + e.getClass().getSimpleName() + " - " + e.getMessage());
         }
-
-        if (request.getUniversityId() != null) {
-            user.setUniversityId(request.getUniversityId());
-        }
-
-        user = userRepository.save(user);
-        log.info("Profile updated for user: {}", userId);
-
-        return toUserResponse(user);
     }
 
     @Override

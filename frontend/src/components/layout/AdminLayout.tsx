@@ -16,7 +16,10 @@ import {
   CreditCard,
   History,
   Menu,
-  X as CloseIcon
+  X as CloseIcon,
+  ChevronDown,
+  User as UserIcon,
+  Settings
 } from 'lucide-react';
 import { createAvatarPlaceholder } from '../../utils/localImage';
 import { useAuth } from '../../contexts/AuthContext';
@@ -26,11 +29,25 @@ export default function AdminLayout() {
   const location = useLocation();
   const { user, logout } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
+  const [isProfileOpen, setIsProfileOpen] = React.useState(false);
+  const profileRef = React.useRef<HTMLDivElement>(null);
 
   // Close sidebar on route change (mobile)
   React.useEffect(() => {
     setIsSidebarOpen(false);
+    setIsProfileOpen(false);
   }, [location.pathname]);
+
+  // Click outside listener for profile dropdown
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+        setIsProfileOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const menuItems = [
     { path: '/admin', icon: <LayoutDashboard className="w-5 h-5" />, label: 'Tổng quan' },
@@ -148,18 +165,61 @@ export default function AdminLayout() {
                 />
               </div>
 
-              {/* Admin Profile */}
-              <div className="flex items-center gap-3 pl-6 border-l border-gray-200">
-                <div className="text-right hidden sm:block">
-                  <p className="text-sm font-bold text-gray-900">{user?.fullName || 'System Admin'}</p>
-                  <p className="text-xs text-gray-500">{user?.email || 'admin@roomfinder.vn'}</p>
-                </div>
-                <img
-                  src={createAvatarPlaceholder(user?.fullName || 'System Admin', 100)}
-                  alt="Admin Avatar"
-                  className="w-10 h-10 rounded-full object-cover border-2 border-blue-100"
-                  referrerPolicy="no-referrer"
-                />
+              {/* Admin Profile Dropdown */}
+              <div className="relative" ref={profileRef}>
+                <button 
+                  onClick={() => setIsProfileOpen(!isProfileOpen)}
+                  className="flex items-center gap-3 pl-6 border-l border-gray-200 group focus:outline-none"
+                >
+                  <div className="text-right hidden sm:block">
+                    <p className="text-sm font-bold text-gray-900 group-hover:text-blue-600 transition-colors">{user?.fullName || 'System Admin'}</p>
+                    <p className="text-xs text-gray-500">{user?.email || 'admin@roomfinder.vn'}</p>
+                  </div>
+                  <div className="relative">
+                    <img
+                      src={createAvatarPlaceholder(user?.fullName || 'System Admin', 100)}
+                      alt="Admin Avatar"
+                      className="w-10 h-10 rounded-full object-cover border-2 border-blue-100 group-hover:border-blue-400 transition-all"
+                      referrerPolicy="no-referrer"
+                    />
+                    <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 border-2 border-white rounded-full"></div>
+                  </div>
+                  <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isProfileOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {/* Dropdown Menu */}
+                {isProfileOpen && (
+                  <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 animate-in fade-in slide-in-from-top-2 duration-200 z-50">
+                    <div className="px-4 py-3 border-b border-gray-50 mb-1">
+                      <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Tài khoản</p>
+                    </div>
+                    <button 
+                      onClick={() => navigate('/admin/profile')}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors"
+                    >
+                      <UserIcon className="w-4 h-4" />
+                      Thông tin cá nhân
+                    </button>
+                    <button 
+                      onClick={() => navigate('/admin/settings')}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors"
+                    >
+                      <Settings className="w-4 h-4" />
+                      Thiết lập hệ thống
+                    </button>
+                    <div className="h-px bg-gray-50 my-1 mx-2"></div>
+                    <button 
+                      onClick={async () => {
+                        await logout();
+                        navigate('/login', { replace: true });
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Đăng xuất
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>

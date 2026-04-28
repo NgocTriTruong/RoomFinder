@@ -41,6 +41,7 @@ import TenantBookingPage from './pages/tenant/TenantBookingPage';
 import ChatUI from './pages/tenant/ChatUI';
 import Profile from './pages/tenant/Profile';
 import LandlordChatPage from './pages/landlord/LandlordChatPage';
+import ProfilePage from './pages/shared/ProfilePage';
 
 // Admin Pages
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -53,6 +54,7 @@ import PackageManagementPage from './pages/admin/PackageManagementPage';
 import VoucherManagementPage from './pages/admin/VoucherManagementPage';
 import TransactionManagementPage from './pages/admin/TransactionManagementPage';
 import AuditLogPage from './pages/admin/AuditLogPage';
+import SystemSettingsPage from './pages/admin/SystemSettingsPage';
 
 function App() {
   return (
@@ -120,6 +122,8 @@ function App() {
             <Route path="packages" element={<SubscriptionPackagesPage />} />
             <Route path="transactions" element={<TransactionHistoryPage />} />
             <Route path="verification" element={<VerificationPage />} />
+            <Route path="profile" element={<ProfilePage />} />
+            <Route path="settings" element={<ProfilePage />} />
           </Route>
 
           {/* ============================================ */}
@@ -161,6 +165,8 @@ function App() {
             <Route path="vouchers" element={<VoucherManagementPage />} />
             <Route path="transactions" element={<TransactionManagementPage />} />
             <Route path="audit-logs" element={<AuditLogPage />} />
+            <Route path="profile" element={<ProfilePage />} />
+            <Route path="settings" element={<SystemSettingsPage />} />
           </Route>
 
           {/* ============================================ */}

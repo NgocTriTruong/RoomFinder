@@ -4,6 +4,8 @@ import userService from '../../services/userService';
 import blacklistService from '../../services/blacklistService';
 import type { PaginatedData, UserResponse } from '@/types';
 import { createAvatarPlaceholder } from '@/utils/localImage';
+import UpdateUserModal from '../../components/admin/UpdateUserModal';
+import { Pencil } from 'lucide-react';
 
 const PAGE_SIZE = 10;
 
@@ -30,6 +32,9 @@ export default function UserManagementPage() {
 
   // Create Admin Modal State
   const [isCreateAdminModalOpen, setIsCreateAdminModalOpen] = useState(false);
+  
+  // Update User Modal State
+  const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [adminFormData, setAdminFormData] = useState({
     fullName: '',
     email: '',
@@ -151,6 +156,11 @@ export default function UserManagementPage() {
     } finally {
       setActionLoadingId(null);
     }
+  };
+
+  const handleEditUser = (user: UserResponse) => {
+    setSelectedUser(user);
+    setIsUpdateModalOpen(true);
   };
 
   const handleCreateAdmin = async (e: React.FormEvent) => {
@@ -379,6 +389,14 @@ export default function UserManagementPage() {
                           title="Thay đổi vai trò"
                         >
                           <ShieldCheck className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleEditUser(user)}
+                          disabled={actionLoadingId === user.id}
+                          className="text-blue-600 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 p-2 rounded-lg transition-colors disabled:opacity-50"
+                          title="Chỉnh sửa thông tin"
+                        >
+                          <Pencil className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleToggleStatus(user)}
@@ -646,6 +664,19 @@ export default function UserManagementPage() {
             </div>
           </div>
         </div>
+      )}
+      {/* Update User Modal */}
+      {isUpdateModalOpen && selectedUser && (
+        <UpdateUserModal
+          user={selectedUser}
+          onClose={() => {
+            setIsUpdateModalOpen(false);
+            setSelectedUser(null);
+          }}
+          onSuccess={() => {
+            void loadUsers();
+          }}
+        />
       )}
     </div>
   );

@@ -25,6 +25,7 @@ public interface UserService {
      * Update user profile
      */
     UserResponse updateProfile(Long userId, UpdateProfileRequest request);
+    UserResponse updateProfile(Long userId, UpdateProfileRequest request, Long adminId);
 
     /**
      * Upload avatar

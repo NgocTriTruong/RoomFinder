@@ -172,6 +172,19 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success("User role updated", response));
     }
 
+    @PutMapping("/admin/update/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Update any user profile (Admin)")
+    @LogExecutionTime
+    public ResponseEntity<ApiResponse<UserResponse>> adminUpdateProfile(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateProfileRequest request,
+            @CurrentUser Long adminId) {
+        log.info("Admin {} updating profile for user: {}", adminId, id);
+        UserResponse response = userService.updateProfile(id, request, adminId);
+        return ResponseEntity.ok(ApiResponse.success("User profile updated successfully", response));
+    }
+
     @PostMapping("/admin/create")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Create new admin account (admin)")
