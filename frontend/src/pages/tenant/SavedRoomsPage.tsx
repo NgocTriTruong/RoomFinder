@@ -50,12 +50,37 @@ export default function SavedRoomsPage() {
 
       {favorites.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {favorites.map((fav) => (
-            <RoomCard 
-              key={fav.id} 
-              room={fav.room} 
-            />
-          ))}
+          {favorites.map((fav) => {
+            // Map flat FavoriteResponse to PostResponse structure for RoomCard
+            const mappedPost = {
+              id: fav.roomId,
+              title: fav.roomTitle,
+              price: fav.roomPrice,
+              priceType: fav.priceType,
+              images: fav.roomImageUrl ? [fav.roomImageUrl] : [],
+              room: {
+                id: fav.roomId,
+                address: fav.roomAddress,
+                thumbnailUrl: fav.roomImageUrl,
+                amenities: [], // Currently not returned by flat DTO
+                area: 0 // Currently not returned by flat DTO
+              },
+              landlord: {
+                id: fav.landlordId,
+                fullName: fav.landlordName,
+                avatar: fav.landlordAvatar
+              }
+            } as any;
+
+            return (
+              <RoomCard
+                key={fav.id}
+                room={mappedPost}
+                isSaved={true}
+                onToggleSave={() => handleToggleSave(fav.roomId)}
+              />
+            );
+          })}
         </div>
       ) : (
         <div className="text-center py-20 bg-white rounded-xl border border-dashed border-gray-300">
@@ -64,8 +89,8 @@ export default function SavedRoomsPage() {
           </div>
           <h3 className="text-lg font-medium text-gray-900">Chưa có phòng nào được lưu</h3>
           <p className="text-gray-500 mt-1 mb-6">Hãy dạo quanh một vòng và lưu lại những căn phòng bạn ưng ý nhé!</p>
-          <Link 
-            to="/search" 
+          <Link
+            to="/search"
             className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors"
           >
             <Search className="w-4 h-4" />

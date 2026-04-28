@@ -20,6 +20,9 @@ public interface FavoriteRepository extends JpaRepository<Favorite, Long> {
     Optional<Favorite> findByIdAndDeletedAtIsNull(Long id);
 
     Optional<Favorite> findByUserIdAndRoomIdAndDeletedAtIsNull(Long userId, Long roomId);
+    
+    @Query("SELECT f FROM Favorite f WHERE f.user.id = :userId AND f.room.id = :roomId")
+    Optional<Favorite> findByUserIdAndRoomId(@Param("userId") Long userId, @Param("roomId") Long roomId);
 
     boolean existsByUserIdAndRoomIdAndDeletedAtIsNull(Long userId, Long roomId);
 

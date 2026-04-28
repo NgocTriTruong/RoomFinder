@@ -1,12 +1,17 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { MessageCircle } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import ChatSidebar from '../../components/chat/ChatSidebar';
 import ChatWindow from '../../components/chat/ChatWindow';
 import { useChat } from '../../hooks/useChat';
 import { useAuth } from '../../contexts/AuthContext';
+import messageService from '../../services/messageService';
 
 export default function ChatUI() {
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const receiverIdParam = searchParams.get('receiverId');
+
   const {
     conversations,
     messages,
@@ -17,7 +22,41 @@ export default function ChatUI() {
     setActiveConversation,
     sendMessage,
     sendTyping,
+    fetchConversations
   } = useChat();
+
+  // Handle receiverId from URL
+  useEffect(() => {
+    const initConversation = async () => {
+      if (receiverIdParam && user) {
+        const rId = parseInt(receiverIdParam);
+
+        // Find existing conversation
+        const existing = conversations.find(c => c.otherUserId === rId);
+
+        if (existing) {
+          setActiveConversation(existing);
+          searchParams.delete('receiverId');
+          setSearchParams(searchParams);
+        } else {
+          // If not found locally, or list is empty, try API
+          try {
+            const newConv = await messageService.getOrCreateConversation(rId);
+            if (newConv) {
+              await fetchConversations();
+              setActiveConversation(newConv);
+              searchParams.delete('receiverId');
+              setSearchParams(searchParams);
+            }
+          } catch (err) {
+            console.error("Failed to init conversation:", err);
+          }
+        }
+      }
+    };
+
+    initConversation();
+  }, [receiverIdParam, user, conversations.length, setActiveConversation, fetchConversations, searchParams, setSearchParams]);
 
   const typingUserName = activeConversation
     ? typingUsers[activeConversation.id]?.userName

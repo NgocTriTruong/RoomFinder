@@ -32,7 +32,7 @@ export default function TenantBookingPage() {
 
   const handleCancelBooking = async (bookingId: number) => {
     if (!confirm('Bạn có chắc chắn muốn hủy lịch hẹn này?')) return;
-    
+
     setCancelling(bookingId.toString());
     try {
       await bookingService.cancelBooking(bookingId);
@@ -127,11 +127,14 @@ export default function TenantBookingPage() {
             <div key={booking.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 md:p-6 flex flex-col md:flex-row gap-6">
               {/* Thumbnail */}
               <div className="w-full md:w-48 h-32 flex-shrink-0">
-                <img 
-                  src={booking.post.images[0] || 'https://via.placeholder.com/200x150?text=No+Image'} 
-                  alt={booking.post.title} 
+                <img
+                  src={booking.post.thumbnailUrl || 'https://via.placeholder.com/400x300?text=No+Image'}
+                  alt={booking.post.title}
                   className="w-full h-full object-cover rounded-lg"
                   referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src = 'https://via.placeholder.com/400x300?text=No+Image';
+                  }}
                 />
               </div>
 
@@ -144,7 +147,7 @@ export default function TenantBookingPage() {
                     </h3>
                     <div className="hidden md:block">{getStatusBadge(booking.status)}</div>
                   </div>
-                  
+
                   <div className="md:hidden mb-3">{getStatusBadge(booking.status)}</div>
 
                   <div className="space-y-2 mt-3">
@@ -158,7 +161,7 @@ export default function TenantBookingPage() {
                     </div>
                     <div className="flex items-center text-sm text-gray-600">
                       <Home className="w-4 h-4 mr-2 text-gray-400" />
-                      <span>{booking.post.room.address}</span>
+                      <span>{booking.post.address || 'Chưa xác định địa chỉ'}</span>
                     </div>
                   </div>
                 </div>
@@ -166,7 +169,7 @@ export default function TenantBookingPage() {
                 {/* Actions */}
                 <div className="mt-4 pt-4 border-t border-gray-100 flex justify-end gap-3">
                   {(booking.status === 'PENDING' || booking.status === 'CONFIRMED') && (
-                    <button 
+                    <button
                       onClick={() => handleCancelBooking(booking.id)}
                       disabled={cancelling === booking.id.toString()}
                       className="flex items-center px-4 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors disabled:opacity-50"
@@ -179,9 +182,9 @@ export default function TenantBookingPage() {
                       Hủy lịch hẹn
                     </button>
                   )}
-                  
+
                   {booking.status === 'COMPLETED' && (
-                    <button 
+                    <button
                       onClick={() => handleOpenReview(booking)}
                       className="flex items-center px-4 py-2 text-sm font-medium text-white bg-amber-500 hover:bg-amber-600 rounded-lg transition-colors shadow-sm"
                     >
@@ -196,14 +199,14 @@ export default function TenantBookingPage() {
         </div>
       )}
 
-      <ReviewModal 
-        isOpen={isReviewModalOpen} 
-        onClose={() => setIsReviewModalOpen(false)} 
+      <ReviewModal
+        isOpen={isReviewModalOpen}
+        onClose={() => setIsReviewModalOpen(false)}
         booking={selectedBooking ? {
           id: selectedBooking.id.toString(),
           postId: selectedBooking.post.id,
           roomTitle: selectedBooking.post.title,
-        } : null} 
+        } : null}
       />
     </div>
   );

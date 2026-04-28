@@ -21,7 +21,12 @@ export default function RoomCard({ room, isSaved: propIsSaved, onToggleSave }: R
 
   useEffect(() => {
     setIsSaved(propIsSaved ?? false);
-  }, [propIsSaved]);
+
+    // If not provided as prop, and logged in, check from server
+    if (propIsSaved === undefined && isAuthenticated && room.room?.id) {
+      favoriteService.isFavorite(room.room.id).then(setIsSaved).catch(() => { });
+    }
+  }, [propIsSaved, isAuthenticated, room.room?.id]);
 
   const handleToggleSave = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -41,30 +46,34 @@ export default function RoomCard({ room, isSaved: propIsSaved, onToggleSave }: R
 
     try {
       setSaving(true);
+      const roomId = room.room?.id || room.id;
+      console.log('Toggle favorite for room:', roomId); // Debug log
+
       if (isSaved) {
-        await favoriteService.removeFavorite(room.id);
+        await favoriteService.removeFavorite(roomId);
         setIsSaved(false);
       } else {
-        await favoriteService.addFavorite(room.id);
+        await favoriteService.addFavorite(roomId);
         setIsSaved(true);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Lỗi khi lưu/bỏ lưu phòng:', error);
+      const message = error.response?.data?.message || 'Không thể thực hiện thao tác. Vui lòng thử lại sau.';
+      alert(message);
     } finally {
       setSaving(false);
     }
   };
   const thumbnail = resolveMediaUrl(room.room?.thumbnailUrl || room.images?.[0]) || createPlaceholderImage(room.title, 400, 300);
-  
+
   const amenities = room.room?.amenities?.map(a => a.name) || [];
   const area = room.room?.area || 0;
   const address = room.room?.address || 'Chưa xác định';
   const isVIP = room.isBoosted || false;
   return (
     <div
-      className={`relative flex flex-col bg-white rounded-lg overflow-hidden transition-transform hover:-translate-y-1 ${
-        isVIP ? 'shadow-md border border-amber-400' : 'shadow-sm border border-gray-100'
-      }`}
+      className={`relative flex flex-col bg-white rounded-lg overflow-hidden transition-transform hover:-translate-y-1 ${isVIP ? 'shadow-md border border-amber-400' : 'shadow-sm border border-gray-100'
+        }`}
     >
       {/* Thumbnail & Badges */}
       <div className="relative h-48 w-full overflow-hidden">
@@ -84,10 +93,14 @@ export default function RoomCard({ room, isSaved: propIsSaved, onToggleSave }: R
         )}
         <button
           onClick={handleToggleSave}
-          className="absolute top-3 right-3 p-1.5 bg-white/80 hover:bg-white rounded-full transition-colors shadow-sm"
+          disabled={saving}
+          className="absolute top-3 right-3 p-1.5 bg-white/80 hover:bg-white rounded-full transition-colors shadow-sm disabled:opacity-50"
           aria-label={isSaved ? 'Bỏ lưu phòng' : 'Lưu phòng'}
         >
-          <Heart className={`w-5 h-5 ${isSaved ? 'fill-red-500 text-red-500' : 'text-gray-400 hover:text-red-500'} ${saving ? 'animate-pulse' : ''}`} />
+          <Heart
+            className={`w-5 h-5 ${isSaved ? 'text-red-500' : 'text-gray-400 hover:text-red-500'} ${saving ? 'animate-pulse' : ''}`}
+            fill={isSaved ? 'currentColor' : 'none'}
+          />
         </button>
       </div>
 

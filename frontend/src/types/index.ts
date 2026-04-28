@@ -255,12 +255,8 @@ export interface BookingResponse {
   post: {
     id: number;
     title: string;
-    price: number;
-    images: string[];
-    room: {
-      id: number;
-      address: string;
-    };
+    thumbnailUrl: string | null;
+    address: string | null;
   };
   user: {
     id: number;
