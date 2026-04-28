@@ -150,7 +150,7 @@ public class BookingServiceImpl implements BookingService {
             throw new BusinessException(ErrorCode.BOOK_008, "Not authorized to confirm this booking");
         }
 
-        if (booking.isPending()) {
+        if (!booking.isPending()) {
             throw new BusinessException(ErrorCode.BOOK_005, "Booking already confirmed or not pending");
         }
 

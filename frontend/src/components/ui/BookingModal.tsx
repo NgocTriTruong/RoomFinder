@@ -20,21 +20,46 @@ export default function BookingModal({ isOpen, onClose, roomId }: BookingModalPr
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Kiểm tra ngày không được ở quá khứ
+    const selectedDateTime = new Date(`${date}T${time}`);
+    const now = new Date();
+
+    if (selectedDateTime <= now) {
+      alert('Thời gian hẹn phải ở tương lai!');
+      return;
+    }
+
+    // Kiểm tra phải hẹn trước ít nhất 2 tiếng (khớp với backend mặc định)
+    const twoHoursLater = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+    if (selectedDateTime < twoHoursLater) {
+      alert('Bạn cần đặt lịch hẹn trước ít nhất 2 tiếng.');
+      return;
+    }
+
     try {
       setLoading(true);
-      // Kết hợp ngày và giờ
-      const bookingTime = new Date(`${date}T${time}`).toISOString();
-      
+
+      // Gửi thời gian dưới dạng chuỗi ISO hoặc định dạng mà Backend LocalDateTime hiểu (YYYY-MM-DDTHH:mm:ss)
+      // Sử dụng toISOString() nhưng cần cẩn thận vì nó chuyển về UTC. 
+      // Backend của chúng ta dùng LocalDateTime nên tốt nhất là gửi chuỗi gốc "YYYY-MM-DDTHH:mm:ss" 
+      // để khớp với múi giờ đã nhập ở Frontend.
+      const bookingTime = `${date}T${time}:00`;
+
       await bookingService.createBooking({
         postId: parseInt(roomId),
         bookingTime,
-        guestCount: 1, // Mặc định 1 người
+        guestCount: 1,
         note,
         voucherCode: voucherCode || undefined
       });
 
       alert('Yêu cầu đặt lịch của bạn đã được gửi thành công!');
       onClose();
+      // Reload page to see new booking in list if we are on the bookings page
+      if (window.location.pathname.includes('/bookings')) {
+        window.location.reload();
+      }
     } catch (error) {
       alert(getErrorMessage(error));
     } finally {
@@ -51,14 +76,14 @@ export default function BookingModal({ isOpen, onClose, roomId }: BookingModalPr
             <X className="w-6 h-6" />
           </button>
         </div>
-        
+
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
               <Calendar className="w-4 h-4 mr-2 text-blue-600" /> Ngày hẹn
             </label>
-            <input 
-              type="date" 
+            <input
+              type="date"
               required
               value={date}
               onChange={(e) => setDate(e.target.value)}
@@ -70,8 +95,8 @@ export default function BookingModal({ isOpen, onClose, roomId }: BookingModalPr
             <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
               <Clock className="w-4 h-4 mr-2 text-blue-600" /> Giờ hẹn
             </label>
-            <input 
-              type="time" 
+            <input
+              type="time"
               required
               value={time}
               onChange={(e) => setTime(e.target.value)}
@@ -83,8 +108,8 @@ export default function BookingModal({ isOpen, onClose, roomId }: BookingModalPr
             <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
               <Tag className="w-4 h-4 mr-2 text-blue-600" /> Mã giảm giá (Voucher)
             </label>
-            <input 
-              type="text" 
+            <input
+              type="text"
               value={voucherCode}
               onChange={(e) => setVoucherCode(e.target.value)}
               placeholder="Nhập mã giảm giá nếu có"
@@ -96,7 +121,7 @@ export default function BookingModal({ isOpen, onClose, roomId }: BookingModalPr
             <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
               <FileText className="w-4 h-4 mr-2 text-blue-600" /> Ghi chú (Tùy chọn)
             </label>
-            <textarea 
+            <textarea
               rows={3}
               value={note}
               onChange={(e) => setNote(e.target.value)}
@@ -106,14 +131,14 @@ export default function BookingModal({ isOpen, onClose, roomId }: BookingModalPr
           </div>
 
           <div className="pt-4 flex gap-3">
-            <button 
+            <button
               type="button"
               onClick={onClose}
               className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-200 transition-colors"
             >
               Hủy
             </button>
-            <button 
+            <button
               type="submit"
               className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 transition-colors"
             >
