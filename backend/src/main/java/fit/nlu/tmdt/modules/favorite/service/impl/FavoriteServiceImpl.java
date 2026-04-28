@@ -45,11 +45,8 @@ public class FavoriteServiceImpl implements FavoriteService {
     }
 
     @Override
+    @Transactional
     public FavoriteResponse addFavorite(Long userId, Long roomId) {
-        if (favoriteRepository.existsByUserIdAndRoomIdAndDeletedAtIsNull(userId, roomId)) {
-            throw new BusinessException(ErrorCode.FAV_002.getCode(), ErrorCode.FAV_002.getMessage());
-        }
-
         User user = userRepository.findByIdAndDeletedAtIsNull(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_001, "User not found"));
 
@@ -59,20 +56,30 @@ public class FavoriteServiceImpl implements FavoriteService {
 
         Room room = post.getRoom();
 
-        Favorite favorite = Favorite.create(user, room);
-        favorite = favoriteRepository.save(favorite);
+        // Ensure any existing record for this user-room is GONE before inserting new one
+        favoriteRepository.findByUserIdAndRoomId(userId, roomId).ifPresent(fav -> {
+            favoriteRepository.delete(fav);
+            favoriteRepository.flush(); // Force delete to happen NOW
+        });
+
+        // Manually instantiate to ensure parent fields and auditing work correctly
+        Favorite favorite = new Favorite();
+        favorite.setUser(user);
+        favorite.setRoom(room);
+        
+        favorite = favoriteRepository.saveAndFlush(favorite);
 
         return buildFavoriteResponse(favorite, post);
     }
 
     @Override
+    @Transactional
     public void removeFavorite(Long userId, Long roomId) {
         Favorite favorite = favoriteRepository.findByUserIdAndRoomIdAndDeletedAtIsNull(userId, roomId)
                 .orElseThrow(() -> new BusinessException("FAV_003", "Favorite not found"));
 
-        favorite.setDeletedAt(LocalDateTime.now());
-        favoriteRepository.save(favorite);
-        log.info("Removed favorite: userId={}, roomId={}", userId, roomId);
+        favoriteRepository.delete(favorite);
+        log.info("Permanently removed favorite: userId={}, roomId={}", userId, roomId);
     }
 
     @Override

@@ -12,6 +12,7 @@ import { createAvatarPlaceholder, createPlaceholderImage } from '../utils/localI
 import { resolveMediaUrl } from '../utils/mediaUrl';
 import { Check, XCircle } from 'lucide-react';
 import { getErrorMessage } from '@/services/api';
+import favoriteService from '../services/favoriteService';
 
 export default function RoomDetail() {
   const { id } = useParams<{ id: string }>();
@@ -24,6 +25,7 @@ export default function RoomDetail() {
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [isSaved, setIsSaved] = useState(false);
 
   const isAdmin = user?.role === 'ADMIN';
   const isPending = room?.status === 'PENDING';
@@ -35,9 +37,14 @@ export default function RoomDetail() {
         setLoading(true);
         const roomData = await postService.getPostById(id);
         setRoom(roomData);
-        
+
         const reviewData = await reviewService.getReviewsByPost(id);
         setReviews(reviewData?.content || []);
+
+        if (isAuthenticated && roomData.room?.id) {
+          const savedStatus = await favoriteService.isFavorite(roomData.room.id);
+          setIsSaved(savedStatus);
+        }
       } catch (error) {
         console.error('Lỗi khi lấy chi tiết phòng:', error);
       } finally {
@@ -50,7 +57,7 @@ export default function RoomDetail() {
 
   const handleApprove = async () => {
     if (!id || !window.confirm('Bạn có chắc muốn duyệt tin này không?')) return;
-    
+
     setIsActionLoading(true);
     setActionError(null);
     try {
@@ -149,23 +156,43 @@ export default function RoomDetail() {
                 </div>
               )}
             </div>
-            
+
             <div className="p-6">
               <div className="flex justify-between items-start">
                 <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">{room.title}</h1>
                 {!isAdmin && (
                   <div className="flex gap-2">
                     <button
-                      onClick={() => {
+                      onClick={async () => {
                         if (!isAuthenticated) {
                           navigate('/login', { state: { from: `/room/${id}` } });
                           return;
                         }
+                        try {
+                          const roomId = room.room?.id;
+                          if (!roomId) return;
+
+                          if (isSaved) {
+                            await favoriteService.removeFavorite(roomId);
+                            setIsSaved(false);
+                          } else {
+                            await favoriteService.addFavorite(roomId);
+                            setIsSaved(true);
+                          }
+                        } catch (error: any) {
+                          console.error('Lỗi khi cập nhật yêu thích:', error);
+                          const message = error.response?.data?.message || 'Không thể thực hiện quy trình lưu phòng.';
+                          alert(message);
+                        }
                       }}
-                      className="p-2 text-gray-400 hover:text-red-500 bg-gray-50 rounded-full transition-colors"
-                      aria-label="Yêu thích"
+                      className={`p-2 rounded-full transition-colors ${isSaved ? 'bg-red-50' : 'bg-gray-50'
+                        }`}
+                      aria-label={isSaved ? 'Bỏ yêu thích' : 'Yêu thích'}
                     >
-                      <Heart className="w-6 h-6" />
+                      <Heart
+                        className={`w-6 h-6 ${isSaved ? 'text-red-500' : 'text-gray-400 hover:text-red-500'}`}
+                        fill={isSaved ? 'currentColor' : 'none'}
+                      />
                     </button>
                     <button className="p-2 text-gray-400 hover:text-blue-600 bg-gray-50 rounded-full transition-colors">
                       <Share2 className="w-6 h-6" />
@@ -235,7 +262,7 @@ export default function RoomDetail() {
                   {(!amenities || amenities.length === 0) && <p className="text-gray-500 text-sm italic">Không có tiện ích đi kèm</p>}
                 </div>
               </div>
-              
+
               <div className="mt-8">
                 <h2 className="text-xl font-semibold text-gray-800 mb-4">Mô tả chi tiết</h2>
                 <div className="text-gray-600 space-y-4 leading-relaxed whitespace-pre-line">
@@ -251,7 +278,7 @@ export default function RoomDetail() {
                     Đánh giá từ khách hàng ({reviews.length})
                   </h2>
                 </div>
-                
+
                 <div className="space-y-6">
                   {reviews && reviews.length > 0 ? (
                     reviews.map((review) => (
@@ -303,7 +330,7 @@ export default function RoomDetail() {
         <div className="lg:col-span-1">
           <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100 sticky top-24">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Thông tin liên hệ</h3>
-            
+
             <div className="flex items-center mb-6">
               <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 font-bold text-xl mr-4 overflow-hidden">
                 <img src={landlordAvatar} alt="Landlord Avatar" referrerPolicy="no-referrer" />
@@ -327,7 +354,7 @@ export default function RoomDetail() {
                     <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg mb-4">
                       <p className="text-sm text-yellow-800 font-medium">Tin này đang chờ duyệt</p>
                     </div>
-                    
+
                     {actionError && (
                       <div className="bg-red-50 border border-red-200 p-3 rounded-lg text-xs text-red-600 mb-4">
                         {actionError}
@@ -353,13 +380,12 @@ export default function RoomDetail() {
                     </button>
                   </>
                 ) : (
-                  <div className={`p-4 rounded-lg text-center font-bold ${
-                    room.status === 'APPROVED' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                  }`}>
+                  <div className={`p-4 rounded-lg text-center font-bold ${room.status === 'APPROVED' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                    }`}>
                     {room.status === 'APPROVED' ? 'TIN ĐÃ ĐƯỢC DUYỆT' : `TIN ĐÃ BỊ TỪ CHỐI${room.rejectionReason ? `: ${room.rejectionReason}` : ''}`}
                   </div>
                 )}
-                
+
                 <div className="mt-4 pt-4 border-t border-gray-100">
                   <p className="text-xs text-gray-500 text-center uppercase tracking-wider font-semibold">Chế độ kiểm duyệt</p>
                 </div>
@@ -401,7 +427,7 @@ export default function RoomDetail() {
                 </div>
 
                 <div className="mt-6 pt-6 border-t border-gray-100">
-                  <button 
+                  <button
                     onClick={() => setIsReportModalOpen(true)}
                     className="w-full text-red-500 hover:text-red-600 text-sm font-medium transition-colors text-center"
                   >
@@ -414,9 +440,9 @@ export default function RoomDetail() {
         </div>
       </div>
 
-      <ReportModal 
-        isOpen={isReportModalOpen} 
-        onClose={() => setIsReportModalOpen(false)} 
+      <ReportModal
+        isOpen={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
         roomId={room.id.toString()}
       />
 

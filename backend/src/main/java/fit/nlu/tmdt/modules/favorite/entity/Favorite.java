@@ -42,25 +42,10 @@ public class Favorite extends BaseEntity {
     @JoinColumn(name = "room_id", nullable = false)
     private Room room;
 
-    // ==========================================
-    // INFO
-    // ==========================================
-
-    @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt;
-
-    // ==========================================
-    // HELPER METHODS
-    // ==========================================
-
-    /**
-     * Factory method để tạo favorite
-     */
     public static Favorite create(User user, Room room) {
         return Favorite.builder()
                 .user(user)
                 .room(room)
-                .createdAt(LocalDateTime.now())
                 .build();
     }
 

@@ -3,10 +3,16 @@ import type { ApiResponse, PostResponse } from '@/types';
 
 export interface FavoriteResponse {
   id: number;
-  userId: number;
   roomId: number;
-  room: PostResponse; // Backend might send simplified room or full post
-  createdAt: string;
+  roomTitle: string;
+  roomAddress: string;
+  roomImageUrl: string;
+  roomPrice: number;
+  priceType: 'MONTHLY' | 'QUARTERLY' | 'YEARLY';
+  landlordId: number;
+  landlordName: string;
+  landlordAvatar: string;
+  addedAt: string;
 }
 
 export const favoriteService = {
