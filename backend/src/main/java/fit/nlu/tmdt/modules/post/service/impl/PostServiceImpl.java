@@ -63,6 +63,7 @@ public class PostServiceImpl implements PostService {
     private final fit.nlu.tmdt.modules.booking.repository.BookingRepository bookingRepository;
     private final ViewHistoryService viewHistoryService;
     private final NotificationService notificationService;
+    private final fit.nlu.tmdt.modules.audit.service.AuditLogService auditLogService;
 
     @Value("${post.default-duration-days:30}")
     private int defaultDurationDays;
@@ -239,6 +240,11 @@ public class PostServiceImpl implements PostService {
         notificationService.createNotification(Notification.forPost(post.getLandlord(), title, content, post.getId()));
 
         log.info("Post {} force deleted by admin {}", id, adminId);
+
+        // Ghi audit log
+        auditLogService.log(adminId, fit.nlu.tmdt.modules.audit.enums.AuditAction.DELETE, 
+                fit.nlu.tmdt.modules.audit.enums.AuditTarget.POST, id, 
+                "Gỡ bài đăng do vi phạm tiêu chuẩn cộng đồng.", null);
     }
 
     @Override
@@ -355,6 +361,11 @@ public class PostServiceImpl implements PostService {
                 + "' của bạn đã được duyệt và hiện đang hiển thị trên hệ thống.";
         notificationService.createNotification(Notification.forPost(post.getLandlord(), title, content, post.getId()));
 
+        // Ghi audit log
+        auditLogService.log(adminId, fit.nlu.tmdt.modules.audit.enums.AuditAction.APPROVE, 
+                fit.nlu.tmdt.modules.audit.enums.AuditTarget.POST, postId, 
+                "Phê duyệt bài đăng: " + post.getTitle(), null);
+
         log.info("Post approved: {} by admin: {}", postId, adminId);
     }
 
@@ -375,6 +386,11 @@ public class PostServiceImpl implements PostService {
         String title = "Tin đăng bị từ chối";
         String content = "Tin đăng '" + post.getTitle() + "' của bạn đã bị từ chối. Lý do: " + reason;
         notificationService.createNotification(Notification.forPost(post.getLandlord(), title, content, post.getId()));
+
+        // Ghi audit log
+        auditLogService.log(adminId, fit.nlu.tmdt.modules.audit.enums.AuditAction.REJECT, 
+                fit.nlu.tmdt.modules.audit.enums.AuditTarget.POST, postId, 
+                "Từ chối bài đăng: " + post.getTitle() + ". Lý do: " + reason, null);
 
         log.info("Post rejected: {} by admin: {} with reason: {}", postId, adminId, reason);
     }

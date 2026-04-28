@@ -35,6 +35,7 @@ public class BlacklistServiceImpl implements BlacklistService {
     private final BlacklistRepository blacklistRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
+    private final fit.nlu.tmdt.modules.audit.service.AuditLogService auditLogService;
 
     @Override
     @Transactional(readOnly = true)
@@ -77,11 +78,15 @@ public class BlacklistServiceImpl implements BlacklistService {
         blacklist = blacklistRepository.save(blacklist);
         log.info("Added user {} to blacklist by admin {}, reason: {}", userId, adminId, reason);
 
-        // Send Notification
+        // Gửi thông báo cho người dùng
         String title = "Tài khoản của bạn đã bị khóa";
-        String content = String.format("Tài khoản của bạn đã bị đưa vào danh sách đen. Lý do: %s. %s", 
-                reason, blacklist.getIsPermanent() ? "Đây là lệnh khóa vĩnh viễn." : "Thời hạn đến: " + blacklist.getExpiresAt());
+        String content = "Tài khoản của bạn đã bị khóa bởi quản trị viên. Lý do: " + reason;
         notificationService.createNotification(Notification.forSystem(user, title, content));
+
+        // Ghi audit log
+        auditLogService.log(adminId, fit.nlu.tmdt.modules.audit.enums.AuditAction.LOCK, 
+                fit.nlu.tmdt.modules.audit.enums.AuditTarget.USER, userId, 
+                "Khóa tài khoản người dùng: " + user.getFullName() + ". Lý do: " + reason, null);
 
         return buildResponse(blacklist);
     }
@@ -97,6 +102,17 @@ public class BlacklistServiceImpl implements BlacklistService {
 
         unlockUser(blacklist, adminId, reason);
         log.info("Removed user {} from blacklist by admin {}", blacklist.getUser().getId(), adminId);
+
+        // Gửi thông báo
+        User user = blacklist.getUser();
+        String title = "Tài khoản của bạn đã được mở khóa";
+        String content = "Tài khoản của bạn đã được mở khóa bởi quản trị viên. Bạn có thể đăng nhập lại ngay bây giờ.";
+        notificationService.createNotification(Notification.forSystem(user, title, content));
+
+        // Ghi audit log
+        auditLogService.log(adminId, fit.nlu.tmdt.modules.audit.enums.AuditAction.UNLOCK, 
+                fit.nlu.tmdt.modules.audit.enums.AuditTarget.USER, user.getId(), 
+                "Mở khóa tài khoản người dùng: " + user.getFullName(), null);
 
         return buildResponse(blacklist);
     }

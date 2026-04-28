@@ -44,7 +44,7 @@ public interface UserService {
     /**
      * Approve or Reject KYC (Admin)
      */
-    UserResponse verifyUser(Long userId, String status, String adminNote);
+    UserResponse verifyUser(Long userId, String status, String adminNote, Long adminId);
 
     /**
      * Get admin user list with filters
@@ -54,7 +54,7 @@ public interface UserService {
     /**
      * Update user status (Admin)
      */
-    UserResponse updateUserStatus(Long userId, String status);
+    UserResponse updateUserStatus(Long userId, String status, Long adminId);
 
     /**
      * Landlord Profile Response DTO

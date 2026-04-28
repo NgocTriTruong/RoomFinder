@@ -17,6 +17,7 @@ export interface ReportResponse {
   targetType: string;
   type: string;
   reason: string;
+  description?: string | null;
   evidenceUrl?: string | null;
   status: 'PENDING' | 'PROCESSING' | 'RESOLVED' | 'DISMISSED';
   handledBy?: number | null;

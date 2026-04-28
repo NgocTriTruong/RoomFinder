@@ -115,17 +115,18 @@ public class VoucherController {
     @Operation(summary = "Update voucher (Admin)")
     public ResponseEntity<ApiResponse<VoucherResponse>> updateVoucher(
             @PathVariable Long id,
-            @Valid @RequestBody VoucherRequest request) {
-        log.info("Admin: Update voucher id={}", id);
-        return ResponseEntity.ok(ApiResponse.success("Voucher updated", voucherService.updateVoucher(id, request)));
+            @Valid @RequestBody VoucherRequest request,
+            @CurrentUser Long adminId) {
+        log.info("Admin: Update voucher id={} (by admin {})", id, adminId);
+        return ResponseEntity.ok(ApiResponse.success("Voucher updated", voucherService.updateVoucher(id, request, adminId)));
     }
 
     @DeleteMapping("/admin/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Delete voucher (Admin)")
-    public ResponseEntity<ApiResponse<Void>> deleteVoucher(@PathVariable Long id) {
-        log.info("Admin: Delete voucher id={}", id);
-        voucherService.deleteVoucher(id);
+    public ResponseEntity<ApiResponse<Void>> deleteVoucher(@PathVariable Long id, @CurrentUser Long adminId) {
+        log.info("Admin: Delete voucher id={} (by admin {})", id, adminId);
+        voucherService.deleteVoucher(id, adminId);
         return ResponseEntity.ok(ApiResponse.success("Voucher deleted", null));
     }
 }

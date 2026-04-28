@@ -158,17 +158,17 @@ export default function PostModerationPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Duyệt tin đăng</h2>
           <p className="text-gray-600 mt-1">Quản lý và kiểm duyệt các bài đăng từ chủ trọ</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 w-full sm:w-auto">
           <button
             onClick={() => handleFilterChange('pending')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               filter === 'pending'
-                ? 'bg-blue-600 text-white'
+                ? 'bg-blue-600 text-white shadow-md'
                 : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
             }`}
           >
@@ -176,13 +176,13 @@ export default function PostModerationPage() {
           </button>
           <button
             onClick={() => handleFilterChange('all')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               filter === 'all'
-                ? 'bg-blue-600 text-white'
+                ? 'bg-blue-600 text-white shadow-md'
                 : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
             }`}
           >
-            Tất cả bài đăng
+            Tất cả
           </button>
         </div>
       </div>
@@ -205,10 +205,10 @@ export default function PostModerationPage() {
                 <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                   Tin đăng
                 </th>
-                <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden sm:table-cell">
                   Chủ trọ
                 </th>
-                <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">
                   Ngày tạo
                 </th>
                 <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
@@ -238,14 +238,13 @@ export default function PostModerationPage() {
               ) : (
                 posts.map((post) => {
                   const thumbnail = resolveMediaUrl(post.images?.[0]) || createPlaceholderImage(post.title, 100, 100);
-                  const isPending = post.status === 'PENDING';
 
                   return (
                     <tr key={post.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-6 py-4">
                         <div className="flex items-center">
                           <img
-                            className="h-12 w-16 rounded object-cover bg-gray-100"
+                            className="h-12 w-16 rounded object-cover bg-gray-100 flex-shrink-0"
                             src={thumbnail}
                             alt={post.title}
                             referrerPolicy="no-referrer"
@@ -253,34 +252,32 @@ export default function PostModerationPage() {
                               event.currentTarget.src = createPlaceholderImage(post.title, 100, 100);
                             }}
                           />
-                          <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900 max-w-xs truncate" title={post.title}>
+                          <div className="ml-4 min-w-0 flex-1">
+                            <div className="text-sm font-bold text-gray-900 truncate max-w-[120px] sm:max-w-[200px] md:max-w-[300px]" title={post.title}>
                               {post.title}
                             </div>
-                            <div className="text-xs text-gray-500 mt-1">ID: {post.id}</div>
-                            <div className="text-xs text-gray-500 mt-1">{post.room.address}</div>
+                            <div className="sm:hidden text-[10px] text-gray-600 mt-0.5 truncate max-w-[120px]">{post.landlord.fullName}</div>
+                            <div className="text-[10px] text-gray-400 mt-1 font-mono uppercase tracking-wider">ID: {post.id}</div>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-6 py-4 whitespace-nowrap hidden sm:table-cell">
                         <div className="text-sm text-gray-900 font-medium">{post.landlord.fullName}</div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">
                         {formatDate(post.createdAt)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {getStatusBadge(post.status)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div className="flex items-center justify-end space-x-2">
-                          <button
-                            onClick={() => setSelectedPostId(post.id)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-                          >
-                            <Eye className="w-4 h-4" />
-                            Chi tiết
-                          </button>
-                        </div>
+                        <button
+                          onClick={() => setSelectedPostId(post.id)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                        >
+                          <Eye className="w-4 h-4" />
+                          <span className="hidden sm:inline">Chi tiết</span>
+                        </button>
                       </td>
                     </tr>
                   );
@@ -290,13 +287,11 @@ export default function PostModerationPage() {
           </table>
         </div>
 
-        <div className="bg-white px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-          <div className="text-sm text-gray-500">
-            Hiển thị <span className="font-medium">{startItem}</span> đến{' '}
-            <span className="font-medium">{endItem}</span> trong số{' '}
-            <span className="font-medium">{totalElements}</span> kết quả
+        <div className="bg-white px-6 py-5 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="text-sm text-gray-500 font-medium order-2 sm:order-1">
+            Hiển thị <span className="text-gray-900 font-bold">{startItem}</span> - <span className="text-gray-900 font-bold">{endItem}</span> / <span className="text-gray-900 font-bold">{totalElements}</span> bản ghi
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 order-1 sm:order-2 w-full sm:w-auto justify-center">
             <button
               className="p-2 border border-gray-200 rounded-md text-gray-400 disabled:cursor-not-allowed disabled:opacity-50"
               disabled={currentPage <= 0 || isLoading}

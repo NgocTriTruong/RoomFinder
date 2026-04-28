@@ -63,15 +63,15 @@ public interface SubscriptionService {
     /**
      * Create new package (Admin)
      */
-    PackageResponse createPackage(AdminPackageRequest request);
+    PackageResponse createPackage(AdminPackageRequest request, Long adminId);
 
     /**
      * Update existing package (Admin)
      */
-    PackageResponse updatePackage(Long id, AdminPackageRequest request);
+    PackageResponse updatePackage(Long id, AdminPackageRequest request, Long adminId);
 
     /**
      * Delete package (Admin)
      */
-    void deletePackage(Long id);
+    void deletePackage(Long id, Long adminId);
 }

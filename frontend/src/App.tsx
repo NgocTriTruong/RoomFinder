@@ -52,6 +52,7 @@ import BlacklistPage from './pages/admin/BlacklistPage';
 import PackageManagementPage from './pages/admin/PackageManagementPage';
 import VoucherManagementPage from './pages/admin/VoucherManagementPage';
 import TransactionManagementPage from './pages/admin/TransactionManagementPage';
+import AuditLogPage from './pages/admin/AuditLogPage';
 
 function App() {
   return (
@@ -159,6 +160,7 @@ function App() {
             <Route path="packages" element={<PackageManagementPage />} />
             <Route path="vouchers" element={<VoucherManagementPage />} />
             <Route path="transactions" element={<TransactionManagementPage />} />
+            <Route path="audit-logs" element={<AuditLogPage />} />
           </Route>
 
           {/* ============================================ */}

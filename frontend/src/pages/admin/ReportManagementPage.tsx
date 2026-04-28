@@ -95,17 +95,17 @@ export default function ReportManagementPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Báo cáo vi phạm</h2>
-          <p className="text-gray-600 mt-1">Quản lý và xử lý các báo cáo từ người dùng</p>
+          <p className="text-gray-600 mt-1 text-sm">Quản lý và xử lý các báo cáo từ người dùng</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 w-full sm:w-auto">
           <button
             onClick={() => setFilter('pending')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               filter === 'pending'
-                ? 'bg-blue-600 text-white'
+                ? 'bg-blue-600 text-white shadow-md'
                 : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
             }`}
           >
@@ -113,13 +113,13 @@ export default function ReportManagementPage() {
           </button>
           <button
             onClick={() => setFilter('all')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               filter === 'all'
-                ? 'bg-blue-600 text-white'
+                ? 'bg-blue-600 text-white shadow-md'
                 : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
             }`}
           >
-            Tất cả báo cáo
+            Tất cả
           </button>
         </div>
       </div>
@@ -140,9 +140,9 @@ export default function ReportManagementPage() {
             <thead className="bg-gray-50">
               <tr>
                 <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Người báo cáo</th>
-                <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Lý do</th>
-                <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Đối tượng bị báo cáo</th>
-                <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Trạng thái</th>
+                <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden sm:table-cell">Lý do</th>
+                <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Đối tượng</th>
+                <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">Trạng thái</th>
                 <th scope="col" className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Thao tác</th>
               </tr>
             </thead>
@@ -169,11 +169,12 @@ export default function ReportManagementPage() {
                     <tr key={report.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">{report.reporterName}</div>
-                        <div className="text-xs text-gray-500 mt-1">
-                          {report.createdAt ? new Date(report.createdAt).toLocaleString('vi-VN') : 'N/A'}
+                        <div className="sm:hidden text-[10px] text-red-500 font-bold mt-0.5 uppercase">{report.reason}</div>
+                        <div className="text-[10px] text-gray-400 mt-1">
+                          {report.createdAt ? new Date(report.createdAt).toLocaleDateString('vi-VN') : 'N/A'}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-6 py-4 whitespace-nowrap hidden sm:table-cell">
                         <div className="flex items-center text-sm text-red-600 font-medium">
                           <AlertTriangle className="w-4 h-4 mr-1.5" />
                           {report.reason}
@@ -209,7 +210,7 @@ export default function ReportManagementPage() {
                           )}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-6 py-4 whitespace-nowrap hidden md:table-cell">
                         {getStatusBadge(report.status)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -221,7 +222,7 @@ export default function ReportManagementPage() {
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
                         >
                           <Eye className="w-4 h-4" />
-                          Chi tiết
+                          <span className="hidden sm:inline">Chi tiết</span>
                         </button>
                       </td>
                     </tr>
@@ -232,13 +233,13 @@ export default function ReportManagementPage() {
           </table>
         </div>
 
-        <div className="bg-white px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-          <div className="text-sm text-gray-500">
-            Tổng số <span className="font-medium">{reports.length}</span> báo cáo
+        <div className="bg-white px-6 py-5 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="text-sm text-gray-500 font-medium">
+            Tổng số <span className="text-gray-900 font-bold">{reports.length}</span> báo cáo
           </div>
-          <div className="text-sm text-gray-400 flex items-center gap-2">
-            <Clock className="w-4 h-4" />
-            Dữ liệu lấy trực tiếp từ backend
+          <div className="text-[10px] text-gray-400 flex items-center gap-2">
+            <Clock className="w-3.5 h-3.5" />
+            Dữ liệu lấy trực tiếp từ hệ thống
           </div>
         </div>
       </div>
@@ -262,7 +263,7 @@ export default function ReportManagementPage() {
 
             {/* Modal Body */}
             <div className="flex-1 overflow-y-auto p-6 space-y-8">
-              <div className="grid grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <div>
                     <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Người báo cáo</label>
@@ -297,7 +298,7 @@ export default function ReportManagementPage() {
               <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
                 <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Mô tả chi tiết từ người dùng</label>
                 <p className="text-gray-700 mt-2 text-sm leading-relaxed italic">
-                  "{selectedReport.description || 'Không có mô tả chi tiết.'}"
+                  {selectedReport.description ? `"${selectedReport.description}"` : 'Không có mô tả chi tiết.'}
                 </p>
               </div>
 
@@ -357,19 +358,19 @@ export default function ReportManagementPage() {
 
             {/* Modal Footer */}
             {(selectedReport.status === 'PENDING' || selectedReport.status === 'PROCESSING') && (
-              <div className="p-6 bg-gray-50 border-t border-gray-100 flex gap-4">
+              <div className="p-6 bg-gray-50 border-t border-gray-100 flex flex-col sm:flex-row gap-4">
                 <button
                   onClick={() => handleDismiss(selectedReport, handleNote)}
                   disabled={!!actionLoadingId}
-                  className="flex-1 px-6 py-3 bg-white border-2 border-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-100 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="w-full sm:flex-1 px-6 py-3 bg-white border-2 border-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-100 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   <CheckCircle className="w-5 h-5 text-gray-400" />
-                  Bỏ qua báo cáo
+                  Bỏ qua
                 </button>
                 <button
                   onClick={() => handleResolve(selectedReport, handleNote)}
                   disabled={!!actionLoadingId}
-                  className="flex-1 px-6 py-3 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 shadow-lg shadow-red-200 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="w-full sm:flex-1 px-6 py-3 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 shadow-lg shadow-red-200 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   {selectedReport.targetType === 'POST' ? <ShieldBan className="w-5 h-5" /> : <UserX className="w-5 h-5" />}
                   {selectedReport.targetType === 'POST' ? 'Gỡ tin vi phạm' : 'Khóa tài khoản'}

@@ -136,10 +136,11 @@ public class SubscriptionController {
     @Operation(summary = "Create package (Admin)")
     @LogExecutionTime
     public ResponseEntity<ApiResponse<PackageResponse>> createPackage(
-            @Valid @RequestBody AdminPackageRequest request) {
+            @Valid @RequestBody AdminPackageRequest request,
+            @CurrentUser Long adminId) {
 
-        log.info("Admin: Creating new package: {}", request.getName());
-        PackageResponse response = subscriptionService.createPackage(request);
+        log.info("Admin: Creating new package: {} (by admin {})", request.getName(), adminId);
+        PackageResponse response = subscriptionService.createPackage(request, adminId);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.created("Package created successfully", response));
     }
@@ -150,10 +151,11 @@ public class SubscriptionController {
     @LogExecutionTime
     public ResponseEntity<ApiResponse<PackageResponse>> updatePackage(
             @PathVariable Long id,
-            @Valid @RequestBody AdminPackageRequest request) {
+            @Valid @RequestBody AdminPackageRequest request,
+            @CurrentUser Long adminId) {
 
-        log.info("Admin: Updating package id: {}", id);
-        PackageResponse response = subscriptionService.updatePackage(id, request);
+        log.info("Admin: Updating package id: {} (by admin {})", id, adminId);
+        PackageResponse response = subscriptionService.updatePackage(id, request, adminId);
         return ResponseEntity.ok(ApiResponse.success("Package updated successfully", response));
     }
 
@@ -161,10 +163,10 @@ public class SubscriptionController {
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Delete package (Admin)")
     @LogExecutionTime
-    public ResponseEntity<ApiResponse<Void>> deletePackage(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<Void>> deletePackage(@PathVariable Long id, @CurrentUser Long adminId) {
 
-        log.info("Admin: Deleting package id: {}", id);
-        subscriptionService.deletePackage(id);
+        log.info("Admin: Deleting package id: {} (by admin {})", id, adminId);
+        subscriptionService.deletePackage(id, adminId);
         return ResponseEntity.ok(ApiResponse.success("Package deleted successfully", null));
     }
 }

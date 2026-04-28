@@ -42,6 +42,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     private final BoostRepository boostRepository;
     private final UserRepository userRepository;
     private final PostRepository postRepository;
+    private final fit.nlu.tmdt.modules.audit.service.AuditLogService auditLogService;
 
     @Value("${subscription.auto-renew.grace-days:3}")
     private int autoRenewGraceDays;
@@ -285,8 +286,8 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
     @Override
     @Transactional
-    public PackageResponse createPackage(AdminPackageRequest request) {
-        log.info("Creating new package: {}", request.getName());
+    public PackageResponse createPackage(AdminPackageRequest request, Long adminId) {
+        log.info("Creating new package: {} (by admin {})", request.getName(), adminId);
 
         Package pkg = Package.builder()
                 .name(request.getName())
@@ -305,13 +306,19 @@ public class SubscriptionServiceImpl implements SubscriptionService {
                 .build();
 
         pkg = packageRepository.save(pkg);
+
+        // Ghi audit log
+        auditLogService.log(adminId, fit.nlu.tmdt.modules.audit.enums.AuditAction.CREATE, 
+                fit.nlu.tmdt.modules.audit.enums.AuditTarget.PACKAGE, pkg.getId(), 
+                "Tạo mới gói dịch vụ: " + pkg.getName(), null);
+
         return toPackageResponse(pkg);
     }
 
     @Override
     @Transactional
-    public PackageResponse updatePackage(Long id, AdminPackageRequest request) {
-        log.info("Updating package id: {}", id);
+    public PackageResponse updatePackage(Long id, AdminPackageRequest request, Long adminId) {
+        log.info("Updating package id: {} (by admin {})", id, adminId);
 
         Package pkg = packageRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.SUB_003, "Package not found"));
@@ -334,13 +341,19 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         if (request.getIsFeatured() != null) pkg.setIsFeatured(request.getIsFeatured());
 
         pkg = packageRepository.save(pkg);
+
+        // Ghi audit log
+        auditLogService.log(adminId, fit.nlu.tmdt.modules.audit.enums.AuditAction.UPDATE, 
+                fit.nlu.tmdt.modules.audit.enums.AuditTarget.PACKAGE, pkg.getId(), 
+                "Cập nhật gói dịch vụ: " + pkg.getName(), null);
+
         return toPackageResponse(pkg);
     }
 
     @Override
     @Transactional
-    public void deletePackage(Long id) {
-        log.info("Hard deleting package id: {}", id);
+    public void deletePackage(Long id, Long adminId) {
+        log.info("Hard deleting package id: {} (by admin {})", id, adminId);
 
         Package pkg = packageRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.SUB_003, "Package not found"));
@@ -354,6 +367,11 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         }
 
         packageRepository.delete(pkg);
+
+        // Ghi audit log
+        auditLogService.log(adminId, fit.nlu.tmdt.modules.audit.enums.AuditAction.DELETE, 
+                fit.nlu.tmdt.modules.audit.enums.AuditTarget.PACKAGE, id, 
+                "Xóa gói dịch vụ: " + pkg.getName(), null);
     }
 
     // ==================== HELPER METHODS ====================

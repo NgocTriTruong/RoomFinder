@@ -88,6 +88,65 @@ public class PostController {
         return ResponseEntity.ok(ApiResponse.success(posts));
     }
 
+    @GetMapping("/my")
+    @PreAuthorize("hasRole('LANDLORD')")
+    @Operation(summary = "Get my posts")
+    @LogExecutionTime
+    public ResponseEntity<ApiResponse<PageResponse<PostResponse>>> getMyPosts(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @CurrentUser Long landlordId) {
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Page<PostResponse> posts = postService.getMyPosts(landlordId, pageable);
+        return ResponseEntity.ok(ApiResponse.success(PageResponse.of(posts)));
+    }
+
+    @GetMapping("/landlord/dashboard/stats")
+    @PreAuthorize("hasRole('LANDLORD')")
+    @Operation(summary = "Get landlord dashboard stats")
+    @LogExecutionTime
+    public ResponseEntity<ApiResponse<LandlordDashboardStats>> getLandlordDashboardStats(
+            @CurrentUser Long landlordId) {
+
+        log.info("Get landlord dashboard stats for landlord: {}", landlordId);
+        LandlordDashboardStats stats = postService.getLandlordDashboardStats(landlordId);
+        return ResponseEntity.ok(ApiResponse.success(stats));
+    }
+
+    @GetMapping("/pending")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Get pending posts (admin)")
+    @LogExecutionTime
+    public ResponseEntity<ApiResponse<PageResponse<PostResponse>>> getPendingPosts(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").ascending());
+        Page<PostResponse> posts = postService.getPendingPosts(pageable);
+        return ResponseEntity.ok(ApiResponse.success(PageResponse.of(posts)));
+    }
+
+    @GetMapping("/admin")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Get admin posts with optional status filter")
+    @LogExecutionTime
+    public ResponseEntity<ApiResponse<PageResponse<PostResponse>>> getAdminPosts(
+            @ModelAttribute PostSearchParams params,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDirection) {
+
+        Sort sort = sortDirection.equalsIgnoreCase("asc")
+                ? Sort.by(sortBy).ascending()
+                : Sort.by(sortBy).descending();
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        Page<PostResponse> posts = postService.getAdminPosts(params, pageable);
+        return ResponseEntity.ok(ApiResponse.success(PageResponse.of(posts)));
+    }
+
     @GetMapping("/{id}")
     @Operation(summary = "Get post by ID")
     @LogExecutionTime
@@ -141,31 +200,6 @@ public class PostController {
         return ResponseEntity.ok(ApiResponse.success("Post deleted successfully", null));
     }
 
-    @GetMapping("/my")
-    @PreAuthorize("hasRole('LANDLORD')")
-    @Operation(summary = "Get my posts")
-    @LogExecutionTime
-    public ResponseEntity<ApiResponse<PageResponse<PostResponse>>> getMyPosts(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @CurrentUser Long landlordId) {
-
-        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        Page<PostResponse> posts = postService.getMyPosts(landlordId, pageable);
-        return ResponseEntity.ok(ApiResponse.success(PageResponse.of(posts)));
-    }
-
-    @GetMapping("/landlord/dashboard/stats")
-    @PreAuthorize("hasRole('LANDLORD')")
-    @Operation(summary = "Get landlord dashboard stats")
-    @LogExecutionTime
-    public ResponseEntity<ApiResponse<LandlordDashboardStats>> getLandlordDashboardStats(
-            @CurrentUser Long landlordId) {
-
-        log.info("Get landlord dashboard stats for landlord: {}", landlordId);
-        LandlordDashboardStats stats = postService.getLandlordDashboardStats(landlordId);
-        return ResponseEntity.ok(ApiResponse.success(stats));
-    }
 
     @GetMapping("/{id}/stats")
     @PreAuthorize("hasRole('LANDLORD')")
@@ -207,38 +241,6 @@ public class PostController {
         return ResponseEntity.ok(ApiResponse.success("Post extended successfully", result));
     }
 
-    @GetMapping("/pending")
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Get pending posts (admin)")
-    @LogExecutionTime
-    public ResponseEntity<ApiResponse<PageResponse<PostResponse>>> getPendingPosts(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-
-        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").ascending());
-        Page<PostResponse> posts = postService.getPendingPosts(pageable);
-        return ResponseEntity.ok(ApiResponse.success(PageResponse.of(posts)));
-    }
-
-    @GetMapping("/admin")
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Get admin posts with optional status filter")
-    @LogExecutionTime
-    public ResponseEntity<ApiResponse<PageResponse<PostResponse>>> getAdminPosts(
-            @ModelAttribute PostSearchParams params,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "createdAt") String sortBy,
-            @RequestParam(defaultValue = "desc") String sortDirection) {
-
-        Sort sort = sortDirection.equalsIgnoreCase("asc")
-                ? Sort.by(sortBy).ascending()
-                : Sort.by(sortBy).descending();
-        Pageable pageable = PageRequest.of(page, size, sort);
-
-        Page<PostResponse> posts = postService.getAdminPosts(params, pageable);
-        return ResponseEntity.ok(ApiResponse.success(PageResponse.of(posts)));
-    }
 
     @PutMapping("/{id}/approve")
     @PreAuthorize("hasRole('ADMIN')")

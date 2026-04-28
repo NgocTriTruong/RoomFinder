@@ -37,6 +37,7 @@ public class ModerationServiceImpl implements ModerationService {
     private final BlacklistRepository blacklistRepository;
     private final UserRepository userRepository;
     private final fit.nlu.tmdt.modules.post.service.PostService postService;
+    private final fit.nlu.tmdt.modules.audit.service.AuditLogService auditLogService;
 
     @Override
     public ReportResponse createReport(CreateReportRequest request, Long userId) {
@@ -122,6 +123,12 @@ public class ModerationServiceImpl implements ModerationService {
 
         report = reportRepository.save(report);
         log.info("Resolved report: id={}, action={}", reportId, action);
+
+        // Ghi audit log
+        auditLogService.log(adminId, fit.nlu.tmdt.modules.audit.enums.AuditAction.UPDATE, 
+                fit.nlu.tmdt.modules.audit.enums.AuditTarget.REPORT, reportId, 
+                "Giải quyết báo cáo: " + action + ". Ghi chú: " + note, null);
+
         return toResponse(report);
     }
 
@@ -140,6 +147,12 @@ public class ModerationServiceImpl implements ModerationService {
         
         report = reportRepository.save(report);
         log.info("Dismissed report: id={}", reportId);
+
+        // Ghi audit log
+        auditLogService.log(adminId, fit.nlu.tmdt.modules.audit.enums.AuditAction.DELETE, 
+                fit.nlu.tmdt.modules.audit.enums.AuditTarget.REPORT, reportId, 
+                "Bác bỏ báo cáo. Ghi chú: " + note, null);
+
         return toResponse(report);
     }
 

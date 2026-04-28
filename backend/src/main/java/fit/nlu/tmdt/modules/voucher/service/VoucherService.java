@@ -50,12 +50,12 @@ public interface VoucherService {
     /**
      * Update an existing voucher (admin)
      */
-    VoucherResponse updateVoucher(Long id, VoucherRequest request);
+    VoucherResponse updateVoucher(Long id, VoucherRequest request, Long adminId);
 
     /**
      * Delete a voucher (admin)
      */
-    void deleteVoucher(Long id);
+    void deleteVoucher(Long id, Long adminId);
 
     /**
      * Get all vouchers (admin)

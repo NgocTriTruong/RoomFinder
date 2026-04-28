@@ -33,6 +33,7 @@ public class VoucherServiceImpl implements VoucherService {
 
     private final VoucherRepository voucherRepository;
     private final TransactionRepository transactionRepository;
+    private final fit.nlu.tmdt.modules.audit.service.AuditLogService auditLogService;
 
     @Override
     @Transactional(readOnly = true)
@@ -119,12 +120,18 @@ public class VoucherServiceImpl implements VoucherService {
 
         voucher = voucherRepository.save(voucher);
         log.info("Created new voucher: {}", voucher.getCode());
+
+        // Ghi audit log
+        auditLogService.log(adminId, fit.nlu.tmdt.modules.audit.enums.AuditAction.CREATE, 
+                fit.nlu.tmdt.modules.audit.enums.AuditTarget.VOUCHER, voucher.getId(), 
+                "Tạo mới voucher: " + voucher.getCode(), null);
+
         return toResponse(voucher);
     }
 
     @Override
     @Transactional
-    public VoucherResponse updateVoucher(Long id, VoucherRequest request) {
+    public VoucherResponse updateVoucher(Long id, VoucherRequest request, Long adminId) {
         Voucher voucher = voucherRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.VOU_001));
 
@@ -156,17 +163,28 @@ public class VoucherServiceImpl implements VoucherService {
 
         voucher = voucherRepository.save(voucher);
         log.info("Updated voucher: {}", voucher.getCode());
+
+        // Ghi audit log
+        auditLogService.log(adminId, fit.nlu.tmdt.modules.audit.enums.AuditAction.UPDATE, 
+                fit.nlu.tmdt.modules.audit.enums.AuditTarget.VOUCHER, voucher.getId(), 
+                "Cập nhật voucher: " + voucher.getCode(), null);
+
         return toResponse(voucher);
     }
 
     @Override
     @Transactional
-    public void deleteVoucher(Long id) {
+    public void deleteVoucher(Long id, Long adminId) {
         Voucher voucher = voucherRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.VOU_001));
         voucher.softDelete();
         voucherRepository.saveAndFlush(voucher);
         log.info("Deleted voucher: {}", voucher.getCode());
+
+        // Ghi audit log
+        auditLogService.log(adminId, fit.nlu.tmdt.modules.audit.enums.AuditAction.DELETE, 
+                fit.nlu.tmdt.modules.audit.enums.AuditTarget.VOUCHER, voucher.getId(), 
+                "Xóa voucher: " + voucher.getCode(), null);
     }
 
     @Override

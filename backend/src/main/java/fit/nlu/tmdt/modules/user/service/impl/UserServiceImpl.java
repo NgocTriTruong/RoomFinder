@@ -36,6 +36,7 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final PostRepository postRepository;
     private final NotificationService notificationService;
+    private final fit.nlu.tmdt.modules.audit.service.AuditLogService auditLogService;
 
     @Override
     @Transactional
@@ -58,7 +59,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public UserResponse verifyUser(Long userId, String status, String adminNote) {
+    public UserResponse verifyUser(Long userId, String status, String adminNote, Long adminId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_001, "User not found"));
 
@@ -89,6 +90,13 @@ public class UserServiceImpl implements UserService {
         // Gửi thông báo
         notificationService.createNotification(Notification.forSystem(user, title, content));
         
+        // Ghi audit log
+        fit.nlu.tmdt.modules.audit.enums.AuditAction action = "APPROVED".equals(status) 
+                ? fit.nlu.tmdt.modules.audit.enums.AuditAction.APPROVE 
+                : fit.nlu.tmdt.modules.audit.enums.AuditAction.REJECT;
+        auditLogService.log(adminId, action, fit.nlu.tmdt.modules.audit.enums.AuditTarget.KYC, userId, 
+                "Phê duyệt KYC: " + status + ". Ghi chú: " + adminNote, null);
+        
         log.info("KYC {} for user: {}", status, userId);
         return toUserResponse(user);
     }
@@ -103,7 +111,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public UserResponse updateUserStatus(Long userId, String status) {
+    public UserResponse updateUserStatus(Long userId, String status, Long adminId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_001, "User not found"));
 
@@ -124,6 +132,14 @@ public class UserServiceImpl implements UserService {
         }
 
         user = userRepository.save(user);
+
+        // Ghi audit log
+        fit.nlu.tmdt.modules.audit.enums.AuditAction action = userStatus == UserStatus.ACTIVE 
+                ? fit.nlu.tmdt.modules.audit.enums.AuditAction.UNLOCK 
+                : fit.nlu.tmdt.modules.audit.enums.AuditAction.LOCK;
+        auditLogService.log(adminId, action, fit.nlu.tmdt.modules.audit.enums.AuditTarget.USER, userId, 
+                "Cập nhật trạng thái người dùng thành: " + userStatus, null);
+
         log.info("User status updated: {} -> {}", userId, userStatus);
         return toUserResponse(user);
     }

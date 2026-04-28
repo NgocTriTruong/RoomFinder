@@ -13,7 +13,10 @@ import {
   Tag,
   UserX,
   FileSearch,
-  CreditCard
+  CreditCard,
+  History,
+  Menu,
+  X as CloseIcon
 } from 'lucide-react';
 import { createAvatarPlaceholder } from '../../utils/localImage';
 import { useAuth } from '../../contexts/AuthContext';
@@ -22,6 +25,12 @@ export default function AdminLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
+  const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
+
+  // Close sidebar on route change (mobile)
+  React.useEffect(() => {
+    setIsSidebarOpen(false);
+  }, [location.pathname]);
 
   const menuItems = [
     { path: '/admin', icon: <LayoutDashboard className="w-5 h-5" />, label: 'Tổng quan' },
@@ -33,6 +42,7 @@ export default function AdminLayout() {
     { path: '/admin/vouchers', icon: <Tag className="w-5 h-5" />, label: 'Quản lý Voucher' },
     { path: '/admin/reports', icon: <AlertTriangle className="w-5 h-5" />, label: 'Báo cáo vi phạm' },
     { path: '/admin/transactions', icon: <CreditCard className="w-5 h-5" />, label: 'Quản lý Giao dịch' },
+    { path: '/admin/audit-logs', icon: <History className="w-5 h-5" />, label: 'Nhật ký hoạt động' },
   ];
 
   const getBreadcrumb = () => {
@@ -43,16 +53,31 @@ export default function AdminLayout() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-gray-50 flex overflow-x-hidden">
+      {/* Mobile Sidebar Overlay */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-30 lg:hidden backdrop-blur-sm transition-all"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="w-64 bg-gray-900 text-white flex flex-col fixed h-full z-20">
-        <div className="p-6 border-b border-gray-800">
+      <aside className={`w-64 bg-gray-900 text-white flex flex-col fixed h-full z-40 transition-transform duration-300 transform 
+        ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
+        <div className="p-6 border-b border-gray-800 flex items-center justify-between">
           <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/admin')}>
             <div className="bg-blue-600 p-2 rounded-lg">
               <ShieldCheck className="w-6 h-6 text-white" />
             </div>
             <span className="text-xl font-bold tracking-wide">Admin Portal</span>
           </div>
+          <button 
+            className="lg:hidden p-2 hover:bg-gray-800 rounded-lg"
+            onClick={() => setIsSidebarOpen(false)}
+          >
+            <CloseIcon className="w-5 h-5 text-gray-400" />
+          </button>
         </div>
         
         <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
@@ -90,16 +115,25 @@ export default function AdminLayout() {
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col ml-64 min-h-screen">
+      <div className="flex-1 flex flex-col ml-0 lg:ml-64 min-h-screen min-w-0">
         {/* Topbar */}
-        <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-          <div className="flex items-center justify-between px-8 py-4">
+        <header className="bg-white border-b border-gray-200 sticky top-0 z-20">
+          <div className="flex items-center justify-between px-4 sm:px-8 py-4">
             
-            {/* Breadcrumb */}
-            <div className="flex items-center text-sm text-gray-500">
-              <span className="hover:text-blue-600 cursor-pointer" onClick={() => navigate('/admin')}>Admin</span>
-              <ChevronRight className="w-4 h-4 mx-2" />
-              <span className="font-medium text-gray-900">{getBreadcrumb()}</span>
+            <div className="flex items-center gap-4">
+              <button 
+                onClick={() => setIsSidebarOpen(true)}
+                className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <Menu className="w-6 h-6 text-gray-600" />
+              </button>
+
+              {/* Breadcrumb */}
+              <div className="flex items-center text-sm text-gray-500 overflow-hidden">
+                <span className="hover:text-blue-600 cursor-pointer hidden sm:inline" onClick={() => navigate('/admin')}>Admin</span>
+                <ChevronRight className="w-4 h-4 mx-2 hidden sm:inline" />
+                <span className="font-medium text-gray-900 truncate">{getBreadcrumb()}</span>
+              </div>
             </div>
 
             <div className="flex items-center gap-6">
@@ -133,7 +167,7 @@ export default function AdminLayout() {
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 p-8">
+        <main className="flex-1 p-4 sm:p-8 overflow-x-hidden">
           <Outlet />
         </main>
       </div>

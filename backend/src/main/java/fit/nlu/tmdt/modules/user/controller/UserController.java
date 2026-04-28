@@ -147,11 +147,12 @@ public class UserController {
     @LogExecutionTime
     public ResponseEntity<ApiResponse<UserResponse>> updateUserStatus(
             @PathVariable Long id,
-            @RequestBody Map<String, String> body) {
+            @RequestBody Map<String, String> body,
+            @CurrentUser Long adminId) {
 
         String status = body.get("status");
-        log.info("Update user status: {} -> {}", id, status);
-        UserResponse response = userService.updateUserStatus(id, status);
+        log.info("Update user status: {} -> {} (by admin {})", id, status, adminId);
+        UserResponse response = userService.updateUserStatus(id, status, adminId);
         return ResponseEntity.ok(ApiResponse.success("User status updated", response));
     }
 
@@ -173,11 +174,12 @@ public class UserController {
     @LogExecutionTime
     public ResponseEntity<ApiResponse<UserResponse>> verifyUser(
             @PathVariable Long id,
-            @RequestBody Map<String, String> body) {
+            @RequestBody Map<String, String> body,
+            @CurrentUser Long adminId) {
         String status = body.get("status");
         String adminNote = body.get("adminNote");
-        log.info("Verify user {} request: status={}", id, status);
-        UserResponse response = userService.verifyUser(id, status, adminNote);
+        log.info("Verify user {} request: status={} (by admin {})", id, status, adminId);
+        UserResponse response = userService.verifyUser(id, status, adminNote, adminId);
         return ResponseEntity.ok(ApiResponse.success("User verification processed", response));
     }
 }
