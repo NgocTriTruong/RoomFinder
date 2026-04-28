@@ -24,6 +24,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import fit.nlu.tmdt.modules.user.dto.request.KYCRequest;
+import fit.nlu.tmdt.modules.auth.dto.request.RegisterRequest;
 
 import java.util.Map;
 
@@ -154,6 +155,34 @@ public class UserController {
         log.info("Update user status: {} -> {} (by admin {})", id, status, adminId);
         UserResponse response = userService.updateUserStatus(id, status, adminId);
         return ResponseEntity.ok(ApiResponse.success("User status updated", response));
+    }
+
+    @PutMapping("/admin/role/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Update user role (admin)")
+    @LogExecutionTime
+    public ResponseEntity<ApiResponse<UserResponse>> updateUserRole(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> body,
+            @CurrentUser Long adminId) {
+
+        String role = body.get("role");
+        log.info("Update user role: {} -> {} (by admin {})", id, role, adminId);
+        UserResponse response = userService.updateUserRole(id, role, adminId);
+        return ResponseEntity.ok(ApiResponse.success("User role updated", response));
+    }
+
+    @PostMapping("/admin/create")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Create new admin account (admin)")
+    @LogExecutionTime
+    public ResponseEntity<ApiResponse<UserResponse>> createAdmin(
+            @Valid @RequestBody RegisterRequest request,
+            @CurrentUser Long adminId) {
+
+        log.info("Create admin request from admin: {}", adminId);
+        UserResponse response = userService.createAdmin(request, adminId);
+        return ResponseEntity.ok(ApiResponse.success("Admin account created successfully", response));
     }
 
     @PostMapping("/kyc")

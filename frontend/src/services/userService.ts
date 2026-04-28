@@ -74,6 +74,22 @@ export const userService = {
   },
 
   /**
+   * Update user role (admin)
+   */
+  updateUserRole: async (id: number, role: string): Promise<UserResponse> => {
+    const response = await api.put<ApiResponse<UserResponse>>(`/v1/users/admin/role/${id}`, { role });
+    return response.data.data!;
+  },
+
+  /**
+   * Create new admin account (admin)
+   */
+  createAdmin: async (data: any): Promise<UserResponse> => {
+    const response = await api.post<ApiResponse<UserResponse>>('/v1/users/admin/create', data);
+    return response.data.data!;
+  },
+
+  /**
    * Upload avatar
    */
   uploadAvatar: async (file: File): Promise<string> => {

@@ -57,6 +57,16 @@ public interface UserService {
     UserResponse updateUserStatus(Long userId, String status, Long adminId);
 
     /**
+     * Update user role (Admin)
+     */
+    UserResponse updateUserRole(Long userId, String role, Long adminId);
+
+    /**
+     * Create new admin user (Admin)
+     */
+    UserResponse createAdmin(fit.nlu.tmdt.modules.auth.dto.request.RegisterRequest request, Long adminId);
+
+    /**
      * Landlord Profile Response DTO
      */
     record LandlordProfileResponse(

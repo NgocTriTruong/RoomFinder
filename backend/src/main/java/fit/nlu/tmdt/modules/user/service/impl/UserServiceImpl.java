@@ -13,6 +13,11 @@ import fit.nlu.tmdt.modules.notification.entity.Notification;
 import fit.nlu.tmdt.modules.notification.service.NotificationService;
 import fit.nlu.tmdt.modules.user.dto.request.UpdateProfileRequest;
 import fit.nlu.tmdt.modules.user.service.UserService;
+import fit.nlu.tmdt.modules.auth.entity.enums.UserRole;
+import fit.nlu.tmdt.modules.auth.entity.enums.UserStatus;
+import fit.nlu.tmdt.modules.audit.enums.AuditAction;
+import fit.nlu.tmdt.modules.audit.enums.AuditTarget;
+import fit.nlu.tmdt.modules.auth.dto.request.RegisterRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -141,6 +146,62 @@ public class UserServiceImpl implements UserService {
                 "Cập nhật trạng thái người dùng thành: " + userStatus, null);
 
         log.info("User status updated: {} -> {}", userId, userStatus);
+        return toUserResponse(user);
+    }
+
+    @Override
+    @Transactional
+    public UserResponse updateUserRole(Long userId, String role, Long adminId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_001, "User not found"));
+
+        UserRole userRole;
+        try {
+            userRole = UserRole.valueOf(role.trim().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Invalid user role");
+        }
+
+        UserRole oldRole = user.getRole();
+        user.setRole(userRole);
+        user = userRepository.save(user);
+
+        // Ghi audit log
+        auditLogService.log(adminId, AuditAction.UPDATE, 
+                AuditTarget.USER, userId, 
+                "Thay đổi vai trò người dùng: " + oldRole + " -> " + userRole, null);
+
+        log.info("User role updated: {} -> {} (by admin {})", userId, userRole, adminId);
+        return toUserResponse(user);
+    }
+
+    @Override
+    @Transactional
+    public UserResponse createAdmin(RegisterRequest request, Long adminId) {
+        log.info("Admin {} is creating new admin: {}", adminId, request.getEmail());
+
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new BusinessException(ErrorCode.USER_002, "Email already registered");
+        }
+
+        User user = User.builder()
+                .email(request.getEmail())
+                .password(request.getPassword()) 
+                .fullName(request.getFullName())
+                .phone(request.getPhone())
+                .role(UserRole.ADMIN)
+                .status(UserStatus.ACTIVE)
+                .isVerified(true)
+                .provider("LOCAL")
+                .build();
+
+        user = userRepository.save(user);
+
+        // Ghi audit log
+        auditLogService.log(adminId, AuditAction.CREATE, 
+                AuditTarget.USER, user.getId(), 
+                "Tạo tài khoản Admin mới: " + user.getEmail(), null);
+
         return toUserResponse(user);
     }
 

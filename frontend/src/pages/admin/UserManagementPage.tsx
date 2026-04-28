@@ -24,6 +24,20 @@ export default function UserManagementPage() {
   const [blacklistType, setBlacklistType] = useState<'TEMPORARY' | 'PERMANENT'>('TEMPORARY');
   const [blacklistDays, setBlacklistDays] = useState(30);
 
+  // Role Modal State
+  const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
+  const [targetRole, setTargetRole] = useState<'USER' | 'LANDLORD' | 'ADMIN'>('USER');
+
+  // Create Admin Modal State
+  const [isCreateAdminModalOpen, setIsCreateAdminModalOpen] = useState(false);
+  const [adminFormData, setAdminFormData] = useState({
+    fullName: '',
+    email: '',
+    phone: '',
+    password: 'Admin@123',
+    role: 'ADMIN'
+  });
+
   const loadUsers = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -114,6 +128,58 @@ export default function UserManagementPage() {
     }
   };
 
+  const handleRoleChange = (user: UserResponse) => {
+    setSelectedUser(user);
+    setTargetRole(user.role as any);
+    setIsRoleModalOpen(true);
+  };
+
+  const handleConfirmRoleChange = async () => {
+    if (!selectedUser) return;
+    
+    setActionLoadingId(selectedUser.id);
+    setIsRoleModalOpen(false);
+    setError(null);
+
+    try {
+      await userService.updateUserRole(selectedUser.id, targetRole);
+      setIsRoleModalOpen(false);
+      setSelectedUser(null);
+      await loadUsers();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Không thể thay đổi vai trò');
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const handleCreateAdmin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    try {
+      await userService.createAdmin({
+        ...adminFormData,
+        confirmPassword: adminFormData.password,
+        acceptTerms: true
+      });
+      setIsCreateAdminModalOpen(false);
+      setAdminFormData({
+        fullName: '',
+        email: '',
+        phone: '',
+        password: 'Admin@123',
+        role: 'ADMIN'
+      });
+      await loadUsers();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Không thể tạo tài khoản Admin');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const users = usersPage?.content ?? [];
   const totalPages = usersPage?.totalPages ?? 0;
   const currentPage = usersPage?.number ?? 0;
@@ -141,25 +207,46 @@ export default function UserManagementPage() {
     return <span className="px-2.5 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">Không hoạt động</span>;
   };
 
-  const getKycBadge = (verificationStatus?: string) => {
-    if (verificationStatus === 'APPROVED') {
-      return <span className="px-2.5 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">Đã KYC</span>;
+  const getKycBadge = (user: User) => {
+    // Admin mặc định là đã xác thực
+    if (user.role === 'ADMIN') {
+      return <span className="px-2.5 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">Mặc định</span>;
     }
-    if (verificationStatus === 'PENDING') {
-      return <span className="px-2.5 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium">Chờ KYC</span>;
+
+    // Người thuê không bắt buộc KYC
+    if (user.role === 'USER') {
+      return <span className="px-2.5 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-medium">Không yêu cầu</span>;
     }
-    if (verificationStatus === 'REJECTED') {
-      return <span className="px-2.5 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium">Từ chối KYC</span>;
+
+    // Đối với Chủ trọ (LANDLORD)
+    switch (user.verificationStatus) {
+      case 'APPROVED':
+        return <span className="px-2.5 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">Đã KYC</span>;
+      case 'PENDING':
+        return <span className="px-2.5 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">Chờ duyệt</span>;
+      case 'REJECTED':
+        return <span className="px-2.5 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium">Từ chối</span>;
+      default:
+        return <span className="px-2.5 py-1 bg-gray-100 text-gray-500 rounded-full text-xs font-medium">Chưa KYC</span>;
     }
-    return <span className="px-2.5 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-medium">Chưa KYC</span>;
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Quản lý Người dùng</h2>
-          <p className="text-gray-600 mt-1">Quản lý tài khoản Tenant, Landlord và Admin trong hệ thống</p>
+          <h1 className="text-2xl font-bold text-gray-900">Quản lý tài khoản</h1>
+          <p className="text-gray-500 mt-1">Quản lý tài khoản Tenant, Landlord và Admin trong hệ thống</p>
+        </div>
+
+        <div className="flex gap-3">
+          <button
+            onClick={() => setIsCreateAdminModalOpen(true)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold flex items-center gap-2 shadow-sm shadow-blue-100"
+          >
+            <UserCircle2 className="w-4 h-4" />
+            Thêm Admin
+          </button>
         </div>
 
         <div className="flex items-center gap-3 flex-wrap">
@@ -278,13 +365,21 @@ export default function UserManagementPage() {
                       {getRoleBadge(user.role)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {getKycBadge(user.verificationStatus)}
+                      {getKycBadge(user)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {getStatusBadge(user.status)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end space-x-2">
+                        <button
+                          onClick={() => handleRoleChange(user)}
+                          disabled={actionLoadingId === user.id}
+                          className="text-purple-600 hover:text-purple-900 bg-purple-50 hover:bg-purple-100 p-2 rounded-lg transition-colors disabled:opacity-50"
+                          title="Thay đổi vai trò"
+                        >
+                          <ShieldCheck className="w-4 h-4" />
+                        </button>
                         <button
                           onClick={() => handleToggleStatus(user)}
                           disabled={actionLoadingId === user.id || user.role === 'ADMIN'}
@@ -399,6 +494,155 @@ export default function UserManagementPage() {
                   Xác nhận khóa
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Role Change Modal */}
+      {isRoleModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="p-6">
+              <div className="w-12 h-12 bg-purple-50 rounded-full flex items-center justify-center mb-4">
+                <ShieldCheck className="w-6 h-6 text-purple-600" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 mb-2">Thay đổi vai trò người dùng</h3>
+              <p className="text-sm text-gray-600 mb-6">
+                Bạn đang thay đổi vai trò cho tài khoản <strong>{selectedUser?.fullName}</strong>. Hành động này sẽ ảnh hưởng đến quyền truy cập của người dùng.
+              </p>
+              
+              {error && (
+                <div className="mb-4 p-3 bg-red-50 text-red-700 text-sm rounded-lg border border-red-100">
+                  {error}
+                </div>
+              )}
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Chọn vai trò mới</label>
+                  <div className="grid grid-cols-1 gap-2">
+                    {['USER', 'LANDLORD', 'ADMIN'].map((role) => (
+                      <button
+                        key={role}
+                        onClick={() => setTargetRole(role as any)}
+                        className={`px-4 py-3 rounded-xl border text-left transition-all flex items-center justify-between ${
+                          targetRole === role 
+                            ? 'border-purple-600 bg-purple-50 text-purple-700 font-bold' 
+                            : 'border-gray-200 hover:border-purple-200 text-gray-600'
+                        }`}
+                      >
+                        <span>
+                          {role === 'USER' ? 'Người thuê (Tenant)' : 
+                           role === 'LANDLORD' ? 'Chủ trọ (Landlord)' : 'Quản trị viên (Admin)'}
+                        </span>
+                        {targetRole === role && <div className="w-2 h-2 rounded-full bg-purple-600" />}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-8">
+                <button
+                  onClick={() => {
+                    setIsRoleModalOpen(false);
+                    setSelectedUser(null);
+                  }}
+                  className="flex-1 px-4 py-2.5 border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-semibold"
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  onClick={handleConfirmRoleChange}
+                  className="flex-1 px-4 py-2.5 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-colors font-semibold shadow-sm"
+                >
+                  Xác nhận lưu
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create Admin Modal */}
+      {isCreateAdminModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold text-gray-900">Tạo tài khoản Admin</h3>
+                <button 
+                  onClick={() => setIsCreateAdminModalOpen(false)}
+                  className="text-gray-400 hover:text-gray-600 p-1"
+                >
+                  <ChevronLeft className="w-6 h-6 rotate-180" />
+                </button>
+              </div>
+              
+              {error && (
+                <div className="mb-4 p-3 bg-red-50 text-red-700 text-sm rounded-lg border border-red-100">
+                  {error}
+                </div>
+              )}
+              
+              <form onSubmit={handleCreateAdmin} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Họ và tên</label>
+                  <input
+                    required
+                    type="text"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                    placeholder="Nhập tên đầy đủ..."
+                    value={adminFormData.fullName}
+                    onChange={(e) => setAdminFormData({...adminFormData, fullName: e.target.value})}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email (Tên đăng nhập)</label>
+                  <input
+                    required
+                    type="email"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                    placeholder="admin@example.com"
+                    value={adminFormData.email}
+                    onChange={(e) => setAdminFormData({...adminFormData, email: e.target.value})}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Số điện thoại</label>
+                  <input
+                    type="tel"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                    placeholder="0987xxxxxx"
+                    value={adminFormData.phone}
+                    onChange={(e) => setAdminFormData({...adminFormData, phone: e.target.value})}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Mật khẩu ban đầu</label>
+                  <input
+                    required
+                    type="text"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                    value={adminFormData.password}
+                    onChange={(e) => setAdminFormData({...adminFormData, password: e.target.value})}
+                  />
+                </div>
+
+                <div className="pt-4">
+                  <button
+                    type="submit"
+                    className="w-full py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-bold shadow-lg shadow-blue-100 flex items-center justify-center gap-2"
+                  >
+                    <ShieldCheck className="w-5 h-5" />
+                    Xác nhận tạo tài khoản
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         </div>

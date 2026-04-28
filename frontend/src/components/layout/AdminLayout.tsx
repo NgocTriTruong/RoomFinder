@@ -1,11 +1,11 @@
 import React from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  CheckSquare, 
-  Users, 
-  Package, 
-  AlertTriangle, 
+import {
+  LayoutDashboard,
+  CheckSquare,
+  Users,
+  Package,
+  AlertTriangle,
   LogOut,
   Search,
   ChevronRight,
@@ -35,7 +35,7 @@ export default function AdminLayout() {
   const menuItems = [
     { path: '/admin', icon: <LayoutDashboard className="w-5 h-5" />, label: 'Tổng quan' },
     { path: '/admin/moderation', icon: <CheckSquare className="w-5 h-5" />, label: 'Duyệt tin' },
-    { path: '/admin/users', icon: <Users className="w-5 h-5" />, label: 'Quản lý Người dùng' },
+    { path: '/admin/users', icon: <Users className="w-5 h-5" />, label: 'Quản lý tài khoản' },
     { path: '/admin/kyc', icon: <FileSearch className="w-5 h-5" />, label: 'Xét duyệt KYC' },
     { path: '/admin/blacklist', icon: <UserX className="w-5 h-5" />, label: 'Danh sách đen' },
     { path: '/admin/packages', icon: <Package className="w-5 h-5" />, label: 'Quản lý Gói dịch vụ' },
@@ -56,7 +56,7 @@ export default function AdminLayout() {
     <div className="min-h-screen bg-gray-50 flex overflow-x-hidden">
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 z-30 lg:hidden backdrop-blur-sm transition-all"
           onClick={() => setIsSidebarOpen(false)}
         />
@@ -72,14 +72,14 @@ export default function AdminLayout() {
             </div>
             <span className="text-xl font-bold tracking-wide">Admin Portal</span>
           </div>
-          <button 
+          <button
             className="lg:hidden p-2 hover:bg-gray-800 rounded-lg"
             onClick={() => setIsSidebarOpen(false)}
           >
             <CloseIcon className="w-5 h-5 text-gray-400" />
           </button>
         </div>
-        
+
         <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
           {menuItems.map((item) => (
             <NavLink
@@ -87,10 +87,9 @@ export default function AdminLayout() {
               to={item.path}
               end={item.path === '/admin'}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-colors ${
-                  isActive 
-                    ? 'bg-blue-600 text-white' 
-                    : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                `flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-colors ${isActive
+                  ? 'bg-blue-600 text-white'
+                  : 'text-gray-400 hover:bg-gray-800 hover:text-white'
                 }`
               }
             >
@@ -101,7 +100,7 @@ export default function AdminLayout() {
         </nav>
 
         <div className="p-4 border-t border-gray-800">
-          <button 
+          <button
             onClick={async () => {
               await logout();
               navigate('/login', { replace: true });
@@ -119,9 +118,9 @@ export default function AdminLayout() {
         {/* Topbar */}
         <header className="bg-white border-b border-gray-200 sticky top-0 z-20">
           <div className="flex items-center justify-between px-4 sm:px-8 py-4">
-            
+
             <div className="flex items-center gap-4">
-              <button 
+              <button
                 onClick={() => setIsSidebarOpen(true)}
                 className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
               >
@@ -155,9 +154,9 @@ export default function AdminLayout() {
                   <p className="text-sm font-bold text-gray-900">{user?.fullName || 'System Admin'}</p>
                   <p className="text-xs text-gray-500">{user?.email || 'admin@roomfinder.vn'}</p>
                 </div>
-                <img 
-                  src={createAvatarPlaceholder(user?.fullName || 'System Admin', 100)} 
-                  alt="Admin Avatar" 
+                <img
+                  src={createAvatarPlaceholder(user?.fullName || 'System Admin', 100)}
+                  alt="Admin Avatar"
                   className="w-10 h-10 rounded-full object-cover border-2 border-blue-100"
                   referrerPolicy="no-referrer"
                 />

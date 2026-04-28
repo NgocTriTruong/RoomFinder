@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
+import org.springframework.transaction.annotation.Propagation;
 
 import java.util.stream.Collectors;
 
@@ -33,7 +34,7 @@ public class AuditLogServiceImpl implements AuditLogService {
     private final UserRepository userRepository;
 
     @Override
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void log(Long adminId, AuditAction action, AuditTarget target, Long targetId, String description, String metadata) {
         if (adminId == null) {
             log.warn("Cannot log audit action because adminId is null: action={}, target={}", action, target);
