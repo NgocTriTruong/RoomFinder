@@ -95,9 +95,13 @@ export default function ChatWindow({
     return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
   };
 
+  const sortedMessages = [...messages].sort((a, b) =>
+    new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+  );
+
   const getDateDividers = () => {
     const dividers: { date: string; label: string }[] = [];
-    messages.forEach((msg) => {
+    sortedMessages.forEach((msg) => {
       const dateKey = new Date(msg.createdAt).toDateString();
       if (!dividers.find((d) => d.date === dateKey)) {
         dividers.push({ date: dateKey, label: formatDateDivider(msg.createdAt) });
@@ -115,7 +119,7 @@ export default function ChatWindow({
   const isOnline = false;
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full w-full">
       {/* Header */}
       <div className="p-4 border-b border-gray-200 bg-white flex items-center justify-between flex-shrink-0">
         <div className="flex items-center">
@@ -174,7 +178,7 @@ export default function ChatWindow({
                 {label}
               </span>
             </div>
-            {messages
+            {sortedMessages
               .filter((msg) => new Date(msg.createdAt).toDateString() === date)
               .map((msg) => {
                 const isMine = msg.senderId === currentUserId;
@@ -184,11 +188,10 @@ export default function ChatWindow({
                     className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}
                   >
                     <div
-                      className={`max-w-[75%] rounded-2xl px-4 py-2.5 ${
-                        isMine
-                          ? 'bg-blue-600 text-white rounded-tr-sm'
-                          : 'bg-white border border-gray-200 text-gray-800 rounded-tl-sm shadow-sm'
-                      }`}
+                      className={`max-w-[75%] rounded-2xl px-4 py-2.5 ${isMine
+                        ? 'bg-blue-600 text-white rounded-tr-sm'
+                        : 'bg-white border border-gray-200 text-gray-800 rounded-tl-sm shadow-sm'
+                        }`}
                     >
                       {msg.type === 'IMAGE' && msg.attachmentUrl && (
                         <img
@@ -200,9 +203,8 @@ export default function ChatWindow({
                       )}
                       <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
                       <div
-                        className={`flex items-center justify-end gap-1 mt-1 ${
-                          isMine ? 'text-blue-200' : 'text-gray-400'
-                        }`}
+                        className={`flex items-center justify-end gap-1 mt-1 ${isMine ? 'text-blue-200' : 'text-gray-400'
+                          }`}
                       >
                         <span className="text-[10px]">{formatTime(msg.createdAt)}</span>
                         {isMine && msg.isRead && (

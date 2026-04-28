@@ -45,20 +45,26 @@ export const messageService = {
   /**
    * Get all conversations for current user
    */
-  getConversations: async (page: number = 0, size: number = 20): Promise<PaginatedData<ConversationResponse>> => {
-    const response = await api.get<ApiResponse<PaginatedData<ConversationResponse>>>('/v1/messages/conversations', {
+  getConversations: async (): Promise<ConversationResponse[]> => {
+    const response = await api.get<ApiResponse<ConversationResponse[]>>('/v1/messages/conversations');
+    return response.data.data!;
+  },
+
+  /**
+   * Get messages with a user
+   */
+  getMessages: async (otherUserId: number, page: number = 0, size: number = 50): Promise<MessageResponse[]> => {
+    const response = await api.get<ApiResponse<MessageResponse[]>>(`/v1/messages/conversations/${otherUserId}/messages`, {
       params: { page, size },
     });
     return response.data.data!;
   },
 
   /**
-   * Get messages in a conversation
+   * Get or create conversation with user
    */
-  getMessages: async (conversationId: number, page: number = 0, size: number = 50): Promise<PaginatedData<MessageResponse>> => {
-    const response = await api.get<ApiResponse<PaginatedData<MessageResponse>>>(`/v1/messages/conversations/${conversationId}`, {
-      params: { page, size },
-    });
+  getOrCreateConversation: async (otherUserId: number): Promise<ConversationResponse> => {
+    const response = await api.get<ApiResponse<ConversationResponse>>(`/v1/messages/conversations/${otherUserId}`);
     return response.data.data!;
   },
 
@@ -88,8 +94,8 @@ export const messageService = {
    * Get unread conversation count
    */
   getUnreadCount: async (): Promise<number> => {
-    const response = await api.get<ApiResponse<number>>('/v1/messages/unread-count');
-    return response.data.data!;
+    const response = await api.get<ApiResponse<{ count: number }>>('/v1/messages/unread-count');
+    return response.data.data?.count || 0;
   },
 };
 

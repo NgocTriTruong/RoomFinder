@@ -113,7 +113,7 @@ class ChatWebSocketService {
   }
 
   private doSubscribe(channel: string) {
-    if (!this.client) return;
+    if (!this.client || !this.connected || !this.client.connected) return;
 
     this.client.subscribe(channel, (message: IMessage) => {
       try {

@@ -1,6 +1,7 @@
 package fit.nlu.tmdt.modules.message.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -15,7 +16,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class SendMessageRequest {
 
-    @NotBlank(message = "Receiver ID is required")
+    @NotNull(message = "Receiver ID is required")
     private Long receiverId;
 
     @NotBlank(message = "Content is required")

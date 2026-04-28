@@ -88,10 +88,10 @@ export function useChat() {
   const fetchConversations = useCallback(async () => {
     setState((prev) => ({ ...prev, loading: true }));
     try {
-      const data = await messageService.getConversations(0, 50);
+      const data = await messageService.getConversations();
       setState((prev) => ({
         ...prev,
-        conversations: data.content,
+        conversations: data,
         loading: false,
       }));
     } catch (err) {
@@ -101,14 +101,14 @@ export function useChat() {
   }, []);
 
   // ─── Fetch Messages ──────────────────────────────────────────────────────
-  const fetchMessages = useCallback(async (conversationId: number) => {
+  const fetchMessages = useCallback(async (conversationId: number, otherUserId: number) => {
     try {
-      const data = await messageService.getMessages(conversationId, 0, 100);
+      const data = await messageService.getMessages(otherUserId, 0, 100);
       setState((prev) => ({
         ...prev,
         messages: {
           ...prev.messages,
-          [conversationId]: data.content.reverse(),
+          [conversationId]: data.reverse(),
         },
       }));
       // Mark as read
@@ -116,7 +116,7 @@ export function useChat() {
       // Send read receipt via WS
       const conv = state.conversations.find((c) => c.id === conversationId);
       if (conv && currentUserId) {
-        const msgs = data.content;
+        const msgs = data;
         const lastMsg = msgs[msgs.length - 1];
         if (lastMsg) {
           chatWebSocket.sendReadReceipt(conversationId, lastMsg.senderId, lastMsg.id);
@@ -134,7 +134,7 @@ export function useChat() {
       // Ensure messages are loaded
       setState((prev) => {
         if (!prev.messages[conv.id]) {
-          fetchMessages(conv.id);
+          fetchMessages(conv.id, conv.otherUserId);
         }
         return prev;
       });
@@ -160,7 +160,11 @@ export function useChat() {
         },
         conversations: prev.conversations.map((c) =>
           c.id === conversationId
-            ? ({ ...c, lastMessageAt: new Date().toISOString() } as ConversationResponse)
+            ? ({
+              ...c,
+              lastMessage: newMsg,
+              lastMessageAt: newMsg.createdAt
+            } as ConversationResponse)
             : c
         ),
       }));
@@ -226,18 +230,19 @@ export function useChat() {
             conversations: prev.conversations.map((c) =>
               c.id === conversationId
                 ? ({
-                    ...c,
-                    lastMessageAt: msg.timestamp || new Date().toISOString(),
-                    unreadCount: c.unreadCount + (isCurrentUser ? 0 : 1),
-                  } as ConversationResponse)
+                  ...c,
+                  lastMessage: newMsg,
+                  lastMessageAt: msg.timestamp || new Date().toISOString(),
+                  unreadCount: c.unreadCount + (isCurrentUser ? 0 : 1),
+                } as ConversationResponse)
                 : c
             ),
             activeConversation:
               prev.activeConversation?.id === conversationId
                 ? ({
-                    ...prev.activeConversation,
-                    lastMessageAt: msg.timestamp || new Date().toISOString(),
-                  } as ConversationResponse)
+                  ...prev.activeConversation,
+                  lastMessageAt: msg.timestamp || new Date().toISOString(),
+                } as ConversationResponse)
                 : prev.activeConversation,
           };
         });

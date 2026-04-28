@@ -67,9 +67,8 @@ export default function ChatSidebar({
             <div
               key={conv.id}
               onClick={() => onSelectConversation(conv)}
-              className={`flex items-center p-4 border-b border-gray-100 cursor-pointer transition-colors ${
-                activeConversationId === conv.id ? 'bg-blue-50' : 'hover:bg-gray-50'
-              }`}
+              className={`flex items-center p-4 border-b border-gray-100 cursor-pointer transition-colors ${activeConversationId === conv.id ? 'bg-blue-50' : 'hover:bg-gray-50'
+                }`}
             >
               <div className="relative flex-shrink-0">
                 <img
@@ -91,9 +90,8 @@ export default function ChatSidebar({
               <div className="ml-3 flex-1 overflow-hidden">
                 <div className="flex justify-between items-baseline mb-0.5">
                   <h3
-                    className={`text-sm truncate ${
-                      conv.unreadCount > 0 ? 'font-bold text-gray-900' : 'font-medium text-gray-800'
-                    }`}
+                    className={`text-sm truncate ${conv.unreadCount > 0 ? 'font-bold text-gray-900' : 'font-medium text-gray-800'
+                      }`}
                   >
                     {conv.otherUserName}
                   </h3>
@@ -109,9 +107,8 @@ export default function ChatSidebar({
                   </p>
                 )}
                 <p
-                  className={`text-sm truncate ${
-                    conv.unreadCount > 0 ? 'font-semibold text-gray-800' : 'text-gray-500'
-                  }`}
+                  className={`text-sm truncate ${conv.unreadCount > 0 ? 'font-semibold text-gray-800' : 'text-gray-500'
+                    }`}
                 >
                   {getLastMessagePreview(conv)}
                 </p>
