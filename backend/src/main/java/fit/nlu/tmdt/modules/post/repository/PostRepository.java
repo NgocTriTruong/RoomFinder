@@ -29,6 +29,9 @@ public interface PostRepository extends JpaRepository<Post, Long>, JpaSpecificat
 
     Page<Post> findByLandlordIdAndDeletedAtIsNull(Long landlordId, Pageable pageable);
 
+    @Query("SELECT p FROM Post p WHERE p.landlord.id = :landlordId AND p.deletedAt IS NULL ORDER BY p.viewCount DESC")
+    List<Post> findByLandlordIdOrderByViewCountDesc(@Param("landlordId") Long landlordId, Pageable pageable);
+
     Page<Post> findByStatusAndDeletedAtIsNull(PostStatus status, Pageable pageable);
 
     Page<Post> findByLandlordIdAndStatusInAndDeletedAtIsNull(Long landlordId, List<PostStatus> statuses, Pageable pageable);
@@ -62,12 +65,24 @@ public interface PostRepository extends JpaRepository<Post, Long>, JpaSpecificat
     Page<Post> findLatestApproved(Pageable pageable);
 
     // Cập nhật view count
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE Post p SET p.viewCount = p.viewCount + 1 WHERE p.id = :id")
     void incrementViewCount(@Param("id") Long id);
 
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("UPDATE Post p SET p.favoriteCount = p.favoriteCount + 1 WHERE p.id = :id")
+    void incrementFavoriteCount(@Param("id") Long id);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("UPDATE Post p SET p.contactCount = p.contactCount + 1 WHERE p.id = :id")
+    void incrementContactCount(@Param("id") Long id);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("UPDATE Post p SET p.bookingCount = p.bookingCount + 1 WHERE p.id = :id")
+    void incrementBookingCount(@Param("id") Long id);
+
     // Đánh dấu hết hạn
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE Post p SET p.status = 'EXPIRED' WHERE p.expiresAt < :now AND p.status = 'APPROVED' AND p.deletedAt IS NULL")
     int markExpiredPosts(@Param("now") LocalDateTime now);
 
@@ -144,6 +159,9 @@ public interface PostRepository extends JpaRepository<Post, Long>, JpaSpecificat
 
     @Query("SELECT SUM(p.favoriteCount) FROM Post p WHERE p.landlord.id = :landlordId AND p.deletedAt IS NULL")
     Long sumFavoriteCountByLandlordId(@Param("landlordId") Long landlordId);
+
+    @Query("SELECT SUM(p.contactCount) FROM Post p WHERE p.landlord.id = :landlordId AND p.deletedAt IS NULL")
+    Long sumContactCountByLandlordId(@Param("landlordId") Long landlordId);
 
     @Query("SELECT p.landlord.id, p.landlord.fullName, COUNT(p), SUM(p.viewCount) " +
             "FROM Post p WHERE p.createdAt BETWEEN :start AND :end AND p.deletedAt IS NULL " +

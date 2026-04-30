@@ -68,6 +68,11 @@ public interface UserService {
     UserResponse createAdmin(fit.nlu.tmdt.modules.auth.dto.request.RegisterRequest request, Long adminId);
 
     /**
+     * Deactivate user account (Self)
+     */
+    void deactivateAccount(Long userId);
+
+    /**
      * Landlord Profile Response DTO
      */
     record LandlordProfileResponse(

@@ -14,6 +14,7 @@ import fit.nlu.tmdt.modules.auth.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +31,7 @@ public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
     private final JwtTokenProvider jwtTokenProvider;
+    private final PasswordEncoder passwordEncoder;
 
     @Value("${jwt.access-token-expiration:900000}")
     private long accessTokenExpiration;
@@ -44,12 +46,12 @@ public class AuthServiceImpl implements AuthService {
 
         // 1. Validate email chưa tồn tại
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new BusinessException(ErrorCode.USER_002, "Email already registered");
+            throw new BusinessException(ErrorCode.USER_002, "Email này đã được đăng ký trong hệ thống");
         }
 
         // 2. Validate password match
         if (!request.getPassword().equals(request.getConfirmPassword())) {
-            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Passwords do not match");
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Mật khẩu xác nhận không khớp");
         }
 
         // 3. Validate role
@@ -57,13 +59,13 @@ public class AuthServiceImpl implements AuthService {
         try {
             role = UserRole.valueOf(request.getRole().toUpperCase());
         } catch (IllegalArgumentException e) {
-            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Invalid role");
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Vai trò không hợp lệ");
         }
 
         // 4. Create user - auto verified
         User user = User.builder()
                 .email(request.getEmail())
-                .password(request.getPassword())
+                .password(passwordEncoder.encode(request.getPassword()))
                 .fullName(request.getFullName())
                 .phone(request.getPhone())
                 .role(role)
@@ -101,28 +103,54 @@ public class AuthServiceImpl implements AuthService {
 
         // 1. Find user
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new BusinessException(ErrorCode.AUTH_001, "Invalid email or password"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.AUTH_001, "Email hoặc mật khẩu không chính xác"));
 
         // 2. Check if OAuth2 user
         if (!"LOCAL".equals(user.getProvider())) {
-            throw new BusinessException(ErrorCode.AUTH_001, "Please use OAuth login");
+            throw new BusinessException(ErrorCode.AUTH_001, "Tài khoản này đã được đăng ký bằng mạng xã hội. Vui lòng đăng nhập bằng Google hoặc Facebook.");
         }
 
         // 3. Check account lockout
         if (user.isLocked()) {
-            throw new BusinessException(ErrorCode.AUTH_002, "Account is locked. Try again later");
+            throw new BusinessException(ErrorCode.AUTH_002, "Tài khoản của bạn đã bị khóa do đăng nhập sai nhiều lần. Vui lòng thử lại sau.");
         }
 
         // 4. Validate password
-        if (!request.getPassword().equals(user.getPassword())) {
-            user.incrementFailedLoginAttempts();
-            userRepository.save(user);
-            throw new BusinessException(ErrorCode.AUTH_001, "Invalid email or password");
+        String storedPassword = user.getPassword();
+        boolean passwordMatch = false;
+        
+        if (storedPassword != null) {
+            // Thử so khớp theo BCrypt
+            try {
+                if (storedPassword.startsWith("$2a$") || storedPassword.startsWith("$2b$") || storedPassword.startsWith("$2y$")) {
+                    passwordMatch = passwordEncoder.matches(request.getPassword(), storedPassword);
+                } else {
+                    // Nếu không giống định dạng BCrypt, so sánh trực tiếp
+                    log.info("Stored password is plain text, using direct comparison for user: {}", user.getEmail());
+                    passwordMatch = request.getPassword().equals(storedPassword);
+                }
+            } catch (Exception e) {
+                log.warn("BCrypt check failed, using fallback for user: {}", user.getEmail());
+                passwordMatch = request.getPassword().equals(storedPassword);
+            }
         }
 
-        // 5. Check blacklisted
-        if (user.getStatus() == UserStatus.LOCKED) {
-            throw new BusinessException(ErrorCode.AUTH_002, "Account is suspended");
+        if (!passwordMatch) {
+            log.warn("Login failed for user: {}. Password mismatch.", user.getEmail());
+            user.incrementFailedLoginAttempts();
+            userRepository.save(user);
+            throw new BusinessException(ErrorCode.AUTH_001, "Email hoặc mật khẩu không chính xác");
+        }
+
+        // 5. Check account status
+        if (user.getStatus() != UserStatus.ACTIVE) {
+            if (user.getStatus() == UserStatus.LOCKED) {
+                throw new BusinessException(ErrorCode.AUTH_002, "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ hỗ trợ.");
+            } else if (user.getStatus() == UserStatus.INACTIVE) {
+                throw new BusinessException(ErrorCode.AUTH_006, "Tài khoản của bạn đang bị vô hiệu hóa. Vui lòng liên hệ hỗ trợ hoặc sử dụng chức năng kích hoạt lại.");
+            } else {
+                throw new BusinessException(ErrorCode.AUTH_002, "Tài khoản không khả dụng.");
+            }
         }
 
         // 6. Generate tokens
@@ -162,7 +190,7 @@ public class AuthServiceImpl implements AuthService {
 
         // 3. Check user status
         if (user.getStatus() != UserStatus.ACTIVE) {
-            throw new BusinessException(ErrorCode.AUTH_002, "Account is not active");
+            throw new BusinessException(ErrorCode.AUTH_002, "Tài khoản của bạn hiện không khả dụng");
         }
 
         // 4. Generate new tokens
@@ -198,30 +226,105 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public void changePassword(Long userId, ChangePasswordRequest request) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.USER_001, "User not found"));
-
-        // Validate current password
-        if (!request.getCurrentPassword().equals(user.getPassword())) {
-            throw new BusinessException(ErrorCode.AUTH_001, "Current password is incorrect");
+        log.info("Attempting password change for userId: {}", userId);
+        
+        if (userId == null) {
+            log.error("UserId is null in changePassword");
+            throw new BusinessException(ErrorCode.UNAUTHORIZED, "Vui lòng đăng nhập để thực hiện");
         }
 
-        // Validate new password match
-        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
-            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Passwords do not match");
+        try {
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new BusinessException(ErrorCode.USER_001, "Người dùng không tồn tại"));
+
+            log.info("Current user status: {}", user.getStatus());
+            if (user.getStatus() != UserStatus.ACTIVE) {
+                throw new BusinessException(ErrorCode.AUTH_002, "Tài khoản đang bị khóa hoặc chưa kích hoạt");
+            }
+
+            // Validate current password
+            log.debug("Checking current password match for userId: {}", userId);
+            String storedPassword = user.getPassword();
+            boolean currentMatch = false;
+            
+            if (storedPassword != null) {
+                try {
+                    if (storedPassword.startsWith("$2a$") || storedPassword.startsWith("$2b$") || storedPassword.startsWith("$2y$")) {
+                        currentMatch = passwordEncoder.matches(request.getCurrentPassword(), storedPassword);
+                    } else {
+                        currentMatch = request.getCurrentPassword().equals(storedPassword);
+                    }
+                } catch (Exception e) {
+                    log.warn("Fallback to plain text check for password change: {}", userId);
+                    currentMatch = request.getCurrentPassword().equals(storedPassword);
+                }
+            }
+
+            if (!currentMatch) {
+                log.warn("Password mismatch for user: {}", userId);
+                throw new BusinessException(ErrorCode.AUTH_001, "Mật khẩu hiện tại không chính xác");
+            }
+
+            // Validate new password match
+            if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+                throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Mật khẩu xác nhận không khớp");
+            }
+
+            // Check password not same as old
+            if (passwordEncoder.matches(request.getNewPassword(), storedPassword)) {
+                throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Mật khẩu mới phải khác mật khẩu hiện tại");
+            }
+
+            // Sử dụng Query update trực tiếp để đảm bảo tính nhất quán
+            String encodedPassword = passwordEncoder.encode(request.getNewPassword());
+            int updated = userRepository.updatePassword(userId, encodedPassword);
+            
+            if (updated == 0) {
+                log.error("No rows updated when changing password for user: {}", userId);
+                throw new BusinessException(ErrorCode.INTERNAL_ERROR, "Không thể cập nhật mật khẩu");
+            }
+
+            log.info("Password successfully updated via direct query for user: {}", userId);
+        } catch (BusinessException be) {
+            log.warn("Business error during password change for user {}: {}", userId, be.getMessage());
+            throw be;
+        } catch (Exception e) {
+            log.error("CRITICAL: Unexpected error in changePassword for user {}: {}", userId, e.getMessage(), e);
+            throw new BusinessException(ErrorCode.INTERNAL_ERROR, "Lỗi hệ thống khi đổi mật khẩu: " + e.getMessage());
+        }
+    }
+
+    @Override
+    @Transactional
+    public void reactivateAccount(LoginRequest request) {
+        log.info("Attempting account reactivation for email: {}", request.getEmail());
+        
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new BusinessException(ErrorCode.AUTH_001, "Tài khoản không tồn tại"));
+
+        if (user.getStatus() != UserStatus.INACTIVE) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Tài khoản hiện không ở trạng thái vô hiệu hóa");
         }
 
-        // Check password not same as old
-        if (request.getNewPassword().equals(user.getPassword())) {
-            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "New password must be different from current password");
+        // Verify password before reactivation
+        String storedPassword = user.getPassword();
+        boolean passwordMatch = false;
+        try {
+            if (storedPassword.startsWith("$2a$") || storedPassword.startsWith("$2b$") || storedPassword.startsWith("$2y$")) {
+                passwordMatch = passwordEncoder.matches(request.getPassword(), storedPassword);
+            } else {
+                passwordMatch = request.getPassword().equals(storedPassword);
+            }
+        } catch (Exception e) {
+            passwordMatch = request.getPassword().equals(storedPassword);
         }
 
-        user.setPassword(request.getNewPassword());
-        user.setPasswordChangedAt(LocalDateTime.now());
-        user.setRefreshToken(null); // Invalidate all sessions
-        userRepository.save(user);
+        if (!passwordMatch) {
+            throw new BusinessException(ErrorCode.AUTH_001, "Mật khẩu không chính xác");
+        }
 
-        log.info("Password changed for user: {}", userId);
+        userRepository.updateStatus(user.getId(), UserStatus.ACTIVE);
+        log.info("Account reactivated successfully for email: {}", request.getEmail());
     }
 
     @Override

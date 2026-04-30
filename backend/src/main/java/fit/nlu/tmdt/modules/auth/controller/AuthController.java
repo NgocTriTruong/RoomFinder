@@ -1,5 +1,6 @@
 package fit.nlu.tmdt.modules.auth.controller;
 
+import fit.nlu.tmdt.common.annotations.CurrentUser;
 import fit.nlu.tmdt.common.annotations.LogExecutionTime;
 import fit.nlu.tmdt.common.utils.ApiResponse;
 import fit.nlu.tmdt.modules.auth.dto.request.*;
@@ -55,7 +56,8 @@ public class AuthController {
 
     @PostMapping("/logout")
     @Operation(summary = "Logout current user")
-    public ResponseEntity<ApiResponse<Void>> logout(@RequestAttribute(name = "userId", required = false) Long userId) {
+    public ResponseEntity<ApiResponse<Void>> logout(
+            @CurrentUser Long userId) {
         if (userId != null) {
             authService.logout(userId);
         }
@@ -65,11 +67,19 @@ public class AuthController {
     @PostMapping("/change-password")
     @Operation(summary = "Change password")
     public ResponseEntity<ApiResponse<Void>> changePassword(
-            @RequestAttribute(name = "userId", required = false) Long userId,
+            @CurrentUser Long userId,
             @Valid @RequestBody ChangePasswordRequest request) {
         log.info("Change password request for user: {}", userId);
         authService.changePassword(userId, request);
         return ResponseEntity.ok(ApiResponse.success("Password changed successfully", null));
+    }
+
+    @PostMapping("/reactivate")
+    @Operation(summary = "Reactivate deactivated account")
+    public ResponseEntity<ApiResponse<Void>> reactivate(@Valid @RequestBody LoginRequest request) {
+        log.info("Reactivate account request for email: {}", request.getEmail());
+        authService.reactivateAccount(request);
+        return ResponseEntity.ok(ApiResponse.success("Account reactivated successfully. You can now login.", null));
     }
 
         // OAuth2 is disabled by user request

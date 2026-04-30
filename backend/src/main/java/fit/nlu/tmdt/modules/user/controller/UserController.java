@@ -224,4 +224,13 @@ public class UserController {
         UserResponse response = userService.verifyUser(id, status, adminNote, adminId);
         return ResponseEntity.ok(ApiResponse.success("User verification processed", response));
     }
+
+    @PostMapping("/deactivate")
+    @Operation(summary = "Deactivate current user account")
+    @LogExecutionTime
+    public ResponseEntity<ApiResponse<Void>> deactivateAccount(@CurrentUser Long userId) {
+        log.info("Deactivate account request for user: {}", userId);
+        userService.deactivateAccount(userId);
+        return ResponseEntity.ok(ApiResponse.success("Account deactivated successfully", null));
+    }
 }

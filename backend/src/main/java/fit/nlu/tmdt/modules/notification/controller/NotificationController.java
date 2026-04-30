@@ -9,6 +9,9 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -31,11 +34,13 @@ public class NotificationController {
     @Operation(summary = "Get user's notifications")
     @LogExecutionTime
     public ResponseEntity<ApiResponse<List<NotificationResponse>>> getNotifications(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
             @CurrentUser Long userId) {
 
-        log.info("Get notifications for user: {}", userId);
-        List<NotificationResponse> notifications = notificationService.getUserNotifications(userId);
-        return ResponseEntity.ok(ApiResponse.success(notifications));
+        log.info("Get notifications for user: {}, page: {}, size: {}", userId, page, size);
+        Page<NotificationResponse> notifications = notificationService.getUserNotifications(userId, PageRequest.of(page, size));
+        return ResponseEntity.ok(ApiResponse.success(notifications.getContent()));
     }
 
     @PutMapping("/{id}/read")
@@ -64,10 +69,10 @@ public class NotificationController {
     @GetMapping("/unread-count")
     @Operation(summary = "Get unread notification count")
     @LogExecutionTime
-    public ResponseEntity<ApiResponse<Map<String, Long>>> getUnreadCount(
+    public ResponseEntity<ApiResponse<Long>> getUnreadCount(
             @CurrentUser Long userId) {
 
         long count = notificationService.getUnreadCount(userId);
-        return ResponseEntity.ok(ApiResponse.success(Map.of("count", count)));
+        return ResponseEntity.ok(ApiResponse.success(count));
     }
 }

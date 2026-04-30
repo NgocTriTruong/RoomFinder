@@ -51,7 +51,7 @@ export default function ReportModal({ isOpen, onClose, roomId }: ReportModalProp
         targetType: 'POST',
         reason,
         description,
-        evidenceUrl: finalEvidenceUrl
+        evidenceUrls: finalEvidenceUrl ? [finalEvidenceUrl] : undefined
       });
 
       alert('Báo cáo của bạn đã được gửi thành công! Chúng tôi sẽ xem xét trong thời gian sớm nhất.');

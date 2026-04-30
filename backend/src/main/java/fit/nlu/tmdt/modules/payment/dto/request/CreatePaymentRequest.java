@@ -28,9 +28,11 @@ public class CreatePaymentRequest {
 
     private Long packageId;
 
-    private Long postId;
+    private Long subscriptionId;
 
     private Long boostId;
+
+    private Long postId;
 
     private String voucherCode;
 

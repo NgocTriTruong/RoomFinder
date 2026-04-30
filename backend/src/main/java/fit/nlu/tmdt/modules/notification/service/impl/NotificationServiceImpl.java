@@ -8,6 +8,9 @@ import fit.nlu.tmdt.modules.notification.repository.NotificationRepository;
 import fit.nlu.tmdt.modules.notification.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +28,7 @@ import java.util.stream.Collectors;
 public class NotificationServiceImpl implements NotificationService {
 
     private final NotificationRepository notificationRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @Override
     @Transactional(readOnly = true)
@@ -33,6 +37,13 @@ public class NotificationServiceImpl implements NotificationService {
         return notifications.stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<NotificationResponse> getUserNotifications(Long userId, Pageable pageable) {
+        Page<Notification> notifications = notificationRepository.findByUserIdAndDeletedAtIsNullOrderByCreatedAtDesc(userId, pageable);
+        return notifications.map(this::toResponse);
     }
 
     @Override
@@ -84,6 +95,34 @@ public class NotificationServiceImpl implements NotificationService {
     public void createNotification(Notification notification) {
         notificationRepository.save(notification);
         log.info("Created notification: type={}, userId={}", notification.getType(), notification.getUser().getId());
+        
+        // Push real-time notification
+        try {
+            pushNotification(notification);
+        } catch (Exception e) {
+            log.error("Failed to push real-time notification: {}", e.getMessage());
+        }
+    }
+
+    @Override
+    public void pushNotification(Notification notification) {
+        if (notification == null || notification.getUser() == null) return;
+        
+        NotificationResponse response = toResponse(notification);
+        String destination = "/queue/notifications";
+        
+        // Send to /user/{username}/queue/notifications
+        // Note: Spring Security's Principal username is used by messagingTemplate.convertAndSendToUser
+        // In our case, we should ensure the user is identifiable by their email or username
+        String username = notification.getUser().getEmail(); // Or whatever is used as Principal
+        
+        messagingTemplate.convertAndSendToUser(
+                username,
+                destination,
+                response
+        );
+        
+        log.info("Pushed real-time notification to user: {} at destination: {}", username, destination);
     }
 
     @Override

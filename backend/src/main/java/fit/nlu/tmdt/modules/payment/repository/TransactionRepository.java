@@ -35,4 +35,19 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     // ==================== STATISTICS QUERIES ====================
 
     List<Transaction> findByCreatedAtBetween(LocalDateTime start, LocalDateTime end);
+
+    @Query("SELECT t FROM Transaction t WHERE t.user.id = :userId AND t.status = :status AND t.deletedAt IS NULL")
+    List<Transaction> findByUserIdAndStatus(@Param("userId") Long userId, @Param("status") PaymentStatus status);
+
+    @Query("SELECT SUM(t.amount) FROM Transaction t WHERE t.user.id = :userId AND t.status = :status AND t.deletedAt IS NULL")
+    Double sumTotalAmount(@Param("userId") Long userId, @Param("status") PaymentStatus status);
+
+    @Query(value = "SELECT CAST(created_at AS DATE) as date, SUM(amount) as total " +
+                   "FROM transactions " +
+                   "WHERE user_id = :userId AND status = 'SUCCESS' AND deleted_at IS NULL " +
+                   "AND created_at >= :start AND created_at <= :end " +
+                   "GROUP BY CAST(created_at AS DATE)", nativeQuery = true)
+    List<Object[]> getDailyServiceCostNative(@Param("userId") Long userId, 
+                                            @Param("start") LocalDateTime start, 
+                                            @Param("end") LocalDateTime end);
 }

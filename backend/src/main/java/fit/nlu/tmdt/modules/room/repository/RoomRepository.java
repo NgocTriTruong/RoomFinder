@@ -23,4 +23,8 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
     List<Room> findAllByLandlordId(@Param("landlordId") Long landlordId);
 
     boolean existsByIdAndDeletedAtIsNull(Long id);
+
+    @org.springframework.data.jpa.repository.Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("UPDATE Room r SET r.viewCount = r.viewCount + 1 WHERE r.id = :id")
+    void incrementViewCount(@Param("id") Long id);
 }

@@ -37,6 +37,14 @@ export const bookingService = {
   },
 
   /**
+   * Get all landlord's bookings
+   */
+  getAllLandlordBookings: async (): Promise<BookingResponse[]> => {
+    const response = await api.get<ApiResponse<BookingResponse[]>>('/v1/bookings/landlord');
+    return response.data.data!;
+  },
+
+  /**
    * Confirm booking (landlord)
    */
   confirmBooking: async (id: number | string): Promise<void> => {
@@ -69,6 +77,14 @@ export const bookingService = {
    */
   getBookingById: async (id: number | string): Promise<BookingResponse> => {
     const response = await api.get<ApiResponse<BookingResponse>>(`/v1/bookings/${id}`);
+    return response.data.data!;
+  },
+
+  /**
+   * Update booking details
+   */
+  updateBooking: async (id: number | string, data: { bookingTime?: string; note?: string }): Promise<BookingResponse> => {
+    const response = await api.patch<ApiResponse<BookingResponse>>(`/v1/bookings/${id}`, data);
     return response.data.data!;
   },
 };

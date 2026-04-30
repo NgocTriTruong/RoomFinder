@@ -9,5 +9,6 @@ public enum BookingStatus {
     CONFIRMED,    // Đã xác nhận
     COMPLETED,    // Hoàn thành
     CANCELLED,    // Đã hủy
+    REJECTED,     // Đã từ chối
     NO_SHOW       // Không đến
 }

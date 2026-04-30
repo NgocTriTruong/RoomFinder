@@ -17,11 +17,14 @@ import {
 } from 'lucide-react';
 import { createAvatarPlaceholder } from '@/utils/localImage';
 import { useAuth } from '@/contexts/AuthContext';
+import NotificationDropdown from './NotificationDropdown';
+import subscriptionService from '@/services/subscriptionService';
 
 export default function LandlordLayout() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [isProfileOpen, setIsProfileOpen] = React.useState(false);
+  const [subscription, setSubscription] = React.useState<any>(null);
   const profileRef = React.useRef<HTMLDivElement>(null);
 
   // Click outside listener for profile dropdown
@@ -34,6 +37,20 @@ export default function LandlordLayout() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  React.useEffect(() => {
+    const fetchSubscription = async () => {
+      try {
+        const data = await subscriptionService.getCurrentSubscription();
+        setSubscription(data);
+      } catch (error) {
+        console.error('Failed to fetch subscription:', error);
+      }
+    };
+    if (user) {
+      fetchSubscription();
+    }
+  }, [user]);
 
   const handleLogout = async () => {
     await logout();
@@ -107,15 +124,19 @@ export default function LandlordLayout() {
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
                 </span>
-                Số tin miễn phí còn lại: 2
+                {subscription ? (
+                  <>
+                    <span className="font-bold mr-1">{subscription.packageName}:</span> 
+                    Còn {subscription.remainingPosts} tin
+                  </>
+                ) : (
+                  `Số tin miễn phí còn lại: 0`
+                )}
               </div>
             </div>
 
             <div className="flex items-center gap-4">
-              <button className="p-2 text-gray-400 hover:text-gray-600 relative">
-                <Bell className="w-6 h-6" />
-                <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
-              </button>
+              <NotificationDropdown />
               {/* Landlord Profile Dropdown */}
               <div className="relative" ref={profileRef}>
                 <button 

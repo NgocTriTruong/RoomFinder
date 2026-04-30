@@ -201,10 +201,17 @@ export default function AdminLayout() {
                       Thông tin cá nhân
                     </button>
                     <button 
-                      onClick={() => navigate('/admin/settings')}
+                      onClick={() => navigate('/admin/account-settings')}
                       className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors"
                     >
                       <Settings className="w-4 h-4" />
+                      Cài đặt tài khoản
+                    </button>
+                    <button 
+                      onClick={() => navigate('/admin/settings')}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors"
+                    >
+                      <LayoutDashboard className="w-4 h-4" />
                       Thiết lập hệ thống
                     </button>
                     <div className="h-px bg-gray-50 my-1 mx-2"></div>

@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Home, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { getErrorMessage } from '@/services/api';
+import { authService } from '@/services/authService';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -99,8 +100,27 @@ export default function Login() {
 
         {/* Error Message */}
         {(error || authError) && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-            {error || authError}
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm flex flex-col gap-2">
+            <span>{error || authError}</span>
+            {(error?.includes('vô hiệu hóa') || authError?.includes('vô hiệu hóa')) && (
+              <button
+                onClick={async () => {
+                  try {
+                    setIsSubmitting(true);
+                    await authService.reactivate({ email, password });
+                    setError('Tài khoản đã được kích hoạt lại. Vui lòng đăng nhập.');
+                    // Tự động điền lại mật khẩu nếu cần, hoặc để người dùng bấm Đăng nhập
+                  } catch (err) {
+                    setError(getErrorMessage(err));
+                  } finally {
+                    setIsSubmitting(false);
+                  }
+                }}
+                className="text-blue-600 font-bold hover:underline text-left"
+              >
+                Kích hoạt lại ngay
+              </button>
+            )}
           </div>
         )}
 

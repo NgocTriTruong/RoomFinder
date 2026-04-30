@@ -12,11 +12,12 @@ import org.springframework.http.HttpStatus;
 public enum ErrorCode {
 
     // Authentication (AUTH_xxx)
-    AUTH_001("AUTH_001", "Invalid credentials", HttpStatus.UNAUTHORIZED),
-    AUTH_002("AUTH_002", "Account is locked", HttpStatus.FORBIDDEN),
-    AUTH_003("AUTH_003", "Email not verified", HttpStatus.FORBIDDEN),
-    AUTH_004("AUTH_004", "Token expired", HttpStatus.UNAUTHORIZED),
-    AUTH_005("AUTH_005", "Invalid refresh token", HttpStatus.UNAUTHORIZED),
+    AUTH_001("AUTH_001", "Email hoặc mật khẩu không chính xác", HttpStatus.UNAUTHORIZED),
+    AUTH_002("AUTH_002", "Tài khoản đang bị khóa", HttpStatus.FORBIDDEN),
+    AUTH_003("AUTH_003", "Email chưa được xác thực", HttpStatus.FORBIDDEN),
+    AUTH_004("AUTH_004", "Phiên làm việc hết hạn", HttpStatus.UNAUTHORIZED),
+    AUTH_005("AUTH_005", "Token làm mới không hợp lệ", HttpStatus.UNAUTHORIZED),
+    AUTH_006("AUTH_006", "Tài khoản đang bị vô hiệu hóa", HttpStatus.FORBIDDEN),
     // User (USER_xxx)
     USER_001("USER_001", "User not found", HttpStatus.NOT_FOUND),
     USER_002("USER_002", "Email already exists", HttpStatus.CONFLICT),

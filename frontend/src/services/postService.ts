@@ -147,6 +147,13 @@ export const postService = {
     const response = await api.get<ApiResponse<LandlordDashboardStats>>('/v1/posts/landlord/dashboard/stats');
     return response.data.data!;
   },
+
+  /**
+   * Record post contact (when user clicks contact buttons)
+   */
+  recordContact: async (id: number | string): Promise<void> => {
+    await api.post(`/v1/posts/${id}/contact`);
+  },
 };
 
 export default postService;

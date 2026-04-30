@@ -5,6 +5,7 @@ import fit.nlu.tmdt.common.utils.ErrorCode;
 import fit.nlu.tmdt.modules.auth.entity.User;
 import fit.nlu.tmdt.modules.auth.repository.UserRepository;
 import fit.nlu.tmdt.modules.booking.dto.request.CreateBookingRequest;
+import fit.nlu.tmdt.modules.booking.dto.request.UpdateBookingRequest;
 import fit.nlu.tmdt.modules.booking.dto.response.BookingResponse;
 import fit.nlu.tmdt.modules.booking.dto.response.TimeSlotResponse;
 import fit.nlu.tmdt.modules.booking.entity.Booking;
@@ -13,6 +14,8 @@ import fit.nlu.tmdt.modules.booking.repository.BookingRepository;
 import fit.nlu.tmdt.modules.booking.service.BookingService;
 import fit.nlu.tmdt.modules.post.entity.Post;
 import fit.nlu.tmdt.modules.post.repository.PostRepository;
+import fit.nlu.tmdt.modules.notification.entity.Notification;
+import fit.nlu.tmdt.modules.notification.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.Hibernate;
@@ -23,7 +26,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -38,6 +44,7 @@ public class BookingServiceImpl implements BookingService {
     private final BookingRepository bookingRepository;
     private final PostRepository postRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     @Value("${booking.min-advance-hours:2}")
     private int minAdvanceHours;
@@ -81,7 +88,7 @@ public class BookingServiceImpl implements BookingService {
 
         // 5. Check slot not taken
         boolean slotTaken = bookingRepository.existsByPostIdAndBookingTimeAndStatusNotIn(
-                request.getPostId(), bookingTime, List.of(BookingStatus.CANCELLED));
+                request.getPostId(), bookingTime, Arrays.asList(BookingStatus.CANCELLED, BookingStatus.REJECTED));
 
         if (slotTaken) {
             throw new BusinessException(ErrorCode.BOOK_002, "This time slot is already booked");
@@ -110,6 +117,12 @@ public class BookingServiceImpl implements BookingService {
 
         log.info("Booking created: {} with code: {}", booking.getId(), booking.getConfirmationCode());
 
+        // Notify landlord
+        String notiTitle = "Yêu cầu đặt lịch mới";
+        String notiContent = "Bạn có yêu cầu đặt lịch xem phòng mới từ " + user.getFullName() + 
+                " cho bài đăng: " + post.getTitle();
+        notificationService.createNotification(Notification.forBooking(post.getLandlord(), notiTitle, notiContent, booking.getId()));
+
         return toBookingResponse(booking);
     }
 
@@ -122,7 +135,11 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public List<BookingResponse> getLandlordBookings(Long landlordId) {
-        return bookingRepository.findByLandlordIdAndDeletedAtIsNull(landlordId).stream()
+        log.info(">>> Service: Fetching bookings for landlord ID: {}", landlordId);
+        List<Booking> bookings = bookingRepository.findByLandlordIdAndDeletedAtIsNull(landlordId);
+        log.info(">>> Service: Found {} raw bookings for landlord {}", bookings.size(), landlordId);
+        
+        return bookings.stream()
                 .map(this::toBookingResponse)
                 .collect(Collectors.toList());
     }
@@ -158,6 +175,12 @@ public class BookingServiceImpl implements BookingService {
         bookingRepository.save(booking);
 
         log.info("Booking confirmed: {}", bookingId);
+
+        // Notify user
+        String notiTitle = "Lịch hẹn đã được xác nhận";
+        String notiContent = "Lịch hẹn xem phòng của bạn cho bài đăng '" + booking.getPost().getTitle() + 
+                "' đã được chủ trọ xác nhận. Mã xác nhận: " + booking.getConfirmationCode();
+        notificationService.createNotification(Notification.forBooking(booking.getUser(), notiTitle, notiContent, bookingId));
     }
 
     @Override
@@ -183,10 +206,22 @@ public class BookingServiceImpl implements BookingService {
             throw new BusinessException(ErrorCode.BOOK_006, "Cannot cancel this booking");
         }
 
-        booking.cancel(reason, userId);
+        if (isLandlord && booking.isPending()) {
+            booking.reject(reason, userId);
+        } else {
+            booking.cancel(reason, userId);
+        }
         bookingRepository.save(booking);
 
         log.info("Booking cancelled: {} by user: {}", bookingId, userId);
+
+        // Notify other party
+        User otherParty = isUser ? booking.getLandlord() : booking.getUser();
+        String cancellerName = isUser ? booking.getUser().getFullName() : "Chủ trọ";
+        String notiTitle = "Lịch hẹn đã bị hủy";
+        String notiContent = "Lịch hẹn cho bài đăng '" + booking.getPost().getTitle() + 
+                "' đã bị hủy bởi " + cancellerName + ". Lý do: " + reason;
+        notificationService.createNotification(Notification.forBooking(otherParty, notiTitle, notiContent, bookingId));
     }
 
     @Override
@@ -276,42 +311,112 @@ public class BookingServiceImpl implements BookingService {
     // ==================== HELPER ====================
 
     private BookingResponse toBookingResponse(Booking booking) {
-        Post post = booking.getPost();
-        User user = booking.getUser();
-        User landlord = booking.getLandlord();
+        try {
+            Post post = booking.getPost();
+            User user = booking.getUser();
+            User landlord = booking.getLandlord();
 
-        Hibernate.initialize(post.getRoom());
+            if (post != null && post.getRoom() != null) {
+                Hibernate.initialize(post.getRoom());
+            }
 
-        return BookingResponse.builder()
-                .id(booking.getId())
-                .bookingTime(booking.getBookingTime())
-                .endTime(booking.getEndTime())
-                .status(booking.getStatus().name())
-                .note(booking.getNote())
-                .landlordNote(booking.getLandlordNote())
-                .confirmationCode(booking.getConfirmationCode())
-                .post(BookingResponse.PostSummary.builder()
-                        .id(post.getId())
-                        .title(post.getTitle())
-                        .thumbnailUrl(post.getRoom() != null ? post.getRoom().getThumbnailUrl() : null)
-                        .address(post.getRoom() != null ? post.getRoom().getAddress() : null)
-                        .build())
-                .user(BookingResponse.UserSummary.builder()
-                        .id(user.getId())
-                        .fullName(user.getFullName())
-                        .phone(user.getPhone())
-                        .avatar(user.getAvatarUrl())
-                        .build())
-                .landlord(BookingResponse.UserSummary.builder()
-                        .id(landlord.getId())
-                        .fullName(landlord.getFullName())
-                        .phone(landlord.getPhone())
-                        .avatar(landlord.getAvatarUrl())
-                        .build())
-                .createdAt(booking.getCreatedAt())
-                .confirmedAt(booking.getConfirmedAt())
-                .cancelledAt(booking.getCancelledAt())
-                .completedAt(booking.getCompletedAt())
-                .build();
+            String displayNote = booking.getLandlordNote();
+            if (booking.isCancelled() && booking.getCancellationReason() != null) {
+                displayNote = booking.getCancellationReason();
+            } else if (booking.getStatus() == BookingStatus.NO_SHOW && booking.getNoShowReason() != null) {
+                displayNote = booking.getNoShowReason();
+            } else if (booking.isCompleted() && booking.getCompletionNote() != null) {
+                displayNote = booking.getCompletionNote();
+            }
+
+            return BookingResponse.builder()
+                    .id(booking.getId())
+                    .bookingTime(booking.getBookingTime())
+                    .endTime(booking.getEndTime())
+                    .status(booking.getStatus().name())
+                    .note(booking.getNote())
+                    .landlordNote(displayNote)
+                    .confirmationCode(booking.getConfirmationCode())
+                    .post(post != null ? BookingResponse.PostSummary.builder()
+                            .id(post.getId())
+                            .title(post.getTitle())
+                            .thumbnailUrl(post.getRoom() != null ? post.getRoom().getThumbnailUrl() : null)
+                            .address(post.getRoom() != null ? post.getRoom().getAddress() : null)
+                            .build() : null)
+                    .user(user != null ? BookingResponse.UserSummary.builder()
+                            .id(user.getId())
+                            .fullName(user.getFullName())
+                            .phone(user.getPhone())
+                            .avatar(user.getAvatarUrl())
+                            .build() : null)
+                    .landlord(landlord != null ? BookingResponse.UserSummary.builder()
+                            .id(landlord.getId())
+                            .fullName(landlord.getFullName())
+                            .phone(landlord.getPhone())
+                            .avatar(landlord.getAvatarUrl())
+                            .build() : null)
+                    .createdAt(booking.getCreatedAt())
+                    .confirmedAt(booking.getConfirmedAt())
+                    .cancelledAt(booking.getCancelledAt())
+                    .completedAt(booking.getCompletedAt())
+                    .build();
+        } catch (Exception e) {
+            log.error("Error mapping booking response for ID {}: {}", booking.getId(), e.getMessage());
+            return BookingResponse.builder().id(booking.getId()).status(booking.getStatus().name()).build();
+        }
+    }
+
+    @Override
+    @Transactional
+    public BookingResponse updateBooking(Long bookingId, UpdateBookingRequest request, Long userId) {
+        log.info("Updating booking ID: {} by user: {}", bookingId, userId);
+        
+        try {
+            Booking booking = bookingRepository.findByIdAndDeletedAtIsNull(bookingId)
+                    .orElseThrow(() -> new BusinessException(ErrorCode.BOOK_001, "Booking not found"));
+
+            // Check if user is either the guest or the landlord
+            if (!booking.getUser().getId().equals(userId) && !booking.getLandlord().getId().equals(userId)) {
+                throw new BusinessException(ErrorCode.BOOK_003, "You do not have permission to update this booking");
+            }
+
+            // Only allowed to update PENDING or CONFIRMED bookings
+            if (booking.getStatus() != BookingStatus.PENDING && booking.getStatus() != BookingStatus.CONFIRMED) {
+                throw new BusinessException(ErrorCode.BOOK_003, "Cannot update booking with status: " + booking.getStatus());
+            }
+
+            if (request.getBookingTime() != null) {
+                log.info("New booking time: {}", request.getBookingTime());
+                // Check if new time is in the future
+                if (request.getBookingTime().isBefore(LocalDateTime.now().plusHours(minAdvanceHours))) {
+                    throw new BusinessException(ErrorCode.BOOK_004, "New booking time must be at least " + minAdvanceHours + " hours in advance");
+                }
+                
+                // Check slot availability (if time changed)
+                if (!request.getBookingTime().equals(booking.getBookingTime())) {
+                    log.info("Time changed from {} to {}. Checking availability...", booking.getBookingTime(), request.getBookingTime());
+                    boolean slotTaken = bookingRepository.existsByPostIdAndBookingTimeAndStatusNotIn(
+                            booking.getPost().getId(), request.getBookingTime(), Arrays.asList(BookingStatus.CANCELLED, BookingStatus.REJECTED));
+                    
+                    if (slotTaken) {
+                        throw new BusinessException(ErrorCode.BOOK_002, "This time slot is already booked");
+                    }
+                    booking.setBookingTime(request.getBookingTime());
+                }
+            }
+
+            if (request.getNote() != null) {
+                booking.setNote(request.getNote());
+            }
+
+            Booking updatedBooking = bookingRepository.save(booking);
+            log.info("Booking {} updated successfully", bookingId);
+            return toBookingResponse(updatedBooking);
+        } catch (BusinessException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Error updating booking {}: {}", bookingId, e.getMessage(), e);
+            throw new BusinessException(ErrorCode.BOOK_001, "Lỗi khi cập nhật lịch hẹn: " + e.getMessage());
+        }
     }
 }

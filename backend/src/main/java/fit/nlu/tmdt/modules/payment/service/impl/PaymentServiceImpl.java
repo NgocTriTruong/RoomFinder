@@ -23,7 +23,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 @Transactional(readOnly = true)
 public class PaymentServiceImpl implements PaymentService {
@@ -32,6 +31,20 @@ public class PaymentServiceImpl implements PaymentService {
     private final PaymentRepository paymentRepository;
     private final UserRepository userRepository;
     private final VNPayGateway vnPayGateway;
+    private final fit.nlu.tmdt.modules.subscription.service.SubscriptionService subscriptionService;
+
+    public PaymentServiceImpl(
+            TransactionRepository transactionRepository,
+            PaymentRepository paymentRepository,
+            UserRepository userRepository,
+            VNPayGateway vnPayGateway,
+            @org.springframework.context.annotation.Lazy fit.nlu.tmdt.modules.subscription.service.SubscriptionService subscriptionService) {
+        this.transactionRepository = transactionRepository;
+        this.paymentRepository = paymentRepository;
+        this.userRepository = userRepository;
+        this.vnPayGateway = vnPayGateway;
+        this.subscriptionService = subscriptionService;
+    }
 
     @Override
     @Transactional
@@ -57,8 +70,9 @@ public class PaymentServiceImpl implements PaymentService {
                 .voucherCode(request.getVoucherCode())
                 .paymentMethod(request.getPaymentMethod())
                 .packageId(request.getPackageId())
-                .postId(request.getPostId())
+                .subscriptionId(request.getSubscriptionId())
                 .boostId(request.getBoostId())
+                .postId(request.getPostId())
                 .expiresAt(Transaction.calculateExpiry())
                 .build();
 
@@ -225,6 +239,19 @@ public class PaymentServiceImpl implements PaymentService {
             transaction.markSuccess(params.get("vnp_TransactionNo"));
             transaction.setGatewayResponseCode(params.get("vnp_ResponseCode"));
             transaction.setGatewayResponseMessage("Payment successful");
+
+            // Trigger activation
+            try {
+                if ("PACKAGE_PURCHASE".equals(transaction.getOrderType()) && transaction.getSubscriptionId() != null) {
+                    subscriptionService.processSuccessfulPayment(transaction.getSubscriptionId(), transaction.getId());
+                } else if ("BOOST_PURCHASE".equals(transaction.getOrderType()) && transaction.getBoostId() != null) {
+                    subscriptionService.processSuccessfulBoost(transaction.getBoostId(), transaction.getId());
+                }
+            } catch (Exception e) {
+                log.error("Error activating service after payment: {}", e.getMessage());
+                // Note: Transaction is still marked SUCCESS, but service activation failed. 
+                // In a production system, this should be queued for retry or handled as a support case.
+            }
         } else {
             String responseCode = params.getOrDefault("vnp_ResponseCode", "99");
             transaction.markFailed("VNPay response code: " + responseCode);

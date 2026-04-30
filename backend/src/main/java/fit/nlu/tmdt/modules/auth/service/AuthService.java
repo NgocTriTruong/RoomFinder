@@ -33,6 +33,8 @@ public interface AuthService {
      * Đổi mật khẩu
      */
     void changePassword(Long userId, ChangePasswordRequest request);
+    
+    void reactivateAccount(LoginRequest request);
 
     /**
      * OAuth2 Login (Google/Facebook)

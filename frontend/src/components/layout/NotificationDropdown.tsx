@@ -1,32 +1,31 @@
-import React, { useEffect, useState } from 'react';
-import { Bell, Check, Trash2, Loader2 } from 'lucide-react';
-import notificationService, { NotificationResponse } from '../../services/notificationService';
+import React, { useState, useRef, useEffect } from 'react';
+import { Bell, Check, Loader2 } from 'lucide-react';
+import notificationService from '../../services/notificationService';
+import { useNotifications } from '../../hooks/useNotifications';
 
 export default function NotificationDropdown() {
-  const [notifications, setNotifications] = useState<NotificationResponse[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const { 
+    notifications, 
+    unreadCount, 
+    isLoading, 
+    isLoadingMore, 
+    hasMore, 
+    setNotifications, 
+    setUnreadCount,
+    loadMore 
+  } = useNotifications();
   const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const fetchNotifications = async () => {
-    try {
-      setLoading(true);
-      const data = await notificationService.getNotifications(0, 10);
-      setNotifications(data.content);
-      const count = await notificationService.getUnreadCount();
-      setUnreadCount(count);
-    } catch (error) {
-      console.error('Lỗi khi lấy thông báo:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Close when clicking outside
   useEffect(() => {
-    fetchNotifications();
-    // Refresh notifications every 1 minute
-    const interval = setInterval(fetchNotifications, 60000);
-    return () => clearInterval(interval);
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const handleMarkAsRead = async (id: number) => {
@@ -50,26 +49,23 @@ export default function NotificationDropdown() {
   };
 
   return (
-    <div className="relative">
+    <div className="relative" ref={dropdownRef}>
+      {/* ... Bell Button ... */}
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 text-gray-500 hover:text-blue-600 transition-colors"
+        className="relative p-2 text-gray-500 hover:text-blue-600 transition-colors bg-gray-50 rounded-full"
       >
         <Bell className="w-6 h-6" />
         {unreadCount > 0 && (
-          <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full">
+          <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[20px] h-5 px-1 text-[10px] font-bold text-white bg-red-500 rounded-full border-2 border-white shadow-sm">
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
       </button>
 
       {isOpen && (
-        <>
-          <div 
-            className="fixed inset-0 z-10" 
-            onClick={() => setIsOpen(false)}
-          ></div>
-          <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-gray-100 z-20 overflow-hidden">
+        <div className="absolute right-0 mt-3 w-80 bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+            {/* Header */}
             <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
               <h3 className="font-bold text-gray-900">Thông báo</h3>
               {unreadCount > 0 && (
@@ -83,8 +79,9 @@ export default function NotificationDropdown() {
               )}
             </div>
 
+            {/* List */}
             <div className="max-h-96 overflow-y-auto">
-              {loading && notifications.length === 0 ? (
+              {isLoading && notifications.length === 0 ? (
                 <div className="p-10 flex justify-center">
                   <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
                 </div>
@@ -100,12 +97,18 @@ export default function NotificationDropdown() {
                         <span className="font-semibold text-sm text-gray-900 line-clamp-1">{n.title}</span>
                         {!n.isRead && <span className="w-2 h-2 bg-blue-600 rounded-full mt-1.5 flex-shrink-0"></span>}
                       </div>
-                      <p className="text-gray-600 text-xs mb-2 line-clamp-2">{n.message}</p>
+                      <p className="text-gray-600 text-xs mb-2 line-clamp-2">{n.content}</p>
                       <span className="text-[10px] text-gray-400">
                         {new Date(n.createdAt).toLocaleString('vi-VN')}
                       </span>
                     </div>
                   ))}
+                  
+                  {isLoadingMore && (
+                    <div className="p-4 flex justify-center bg-gray-50/50">
+                      <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="p-10 text-center text-gray-500 italic text-sm">
@@ -114,13 +117,19 @@ export default function NotificationDropdown() {
               )}
             </div>
 
-            <div className="p-3 border-t border-gray-100 text-center bg-gray-50">
-              <button className="text-xs text-gray-500 hover:text-gray-700 font-medium">
-                Xem tất cả thông báo
-              </button>
-            </div>
+            {/* Footer */}
+            {hasMore && notifications.length > 0 && (
+              <div className="p-3 border-t border-gray-100 text-center bg-gray-50">
+                <button 
+                  onClick={loadMore}
+                  disabled={isLoadingMore}
+                  className="text-xs text-blue-600 hover:text-blue-700 font-bold disabled:opacity-50"
+                >
+                  {isLoadingMore ? 'Đang tải...' : 'Xem thêm thông báo cũ'}
+                </button>
+              </div>
+            )}
           </div>
-        </>
       )}
     </div>
   );

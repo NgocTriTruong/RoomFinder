@@ -58,7 +58,7 @@ export const authService = {
     newPassword: string;
     confirmPassword: string;
   }): Promise<void> => {
-    await api.put('/v1/auth/change-password', data);
+    await api.post('/v1/auth/change-password', data);
   },
 
   /**
@@ -109,6 +109,13 @@ export const authService = {
       params: { code },
     });
     return response.data.data!;
+  },
+
+  /**
+   * Reactivate deactivated account
+   */
+  reactivate: async (credentials: LoginRequest): Promise<void> => {
+    await api.post('/v1/auth/reactivate', credentials);
   },
 };
 

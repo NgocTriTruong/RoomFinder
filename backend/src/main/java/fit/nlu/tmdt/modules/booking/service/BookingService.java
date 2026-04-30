@@ -1,6 +1,7 @@
 package fit.nlu.tmdt.modules.booking.service;
 
 import fit.nlu.tmdt.modules.booking.dto.request.CreateBookingRequest;
+import fit.nlu.tmdt.modules.booking.dto.request.UpdateBookingRequest;
 import fit.nlu.tmdt.modules.booking.dto.response.BookingResponse;
 import fit.nlu.tmdt.modules.booking.dto.response.TimeSlotResponse;
 
@@ -61,4 +62,9 @@ public interface BookingService {
      * Get calendar view for landlord
      */
     List<BookingResponse> getLandlordCalendar(Long landlordId, LocalDate startDate, LocalDate endDate);
+
+    /**
+     * Update booking details (user or landlord)
+     */
+    BookingResponse updateBooking(Long bookingId, UpdateBookingRequest request, Long userId);
 }

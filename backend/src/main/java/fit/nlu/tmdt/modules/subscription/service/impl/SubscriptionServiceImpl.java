@@ -43,6 +43,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     private final UserRepository userRepository;
     private final PostRepository postRepository;
     private final fit.nlu.tmdt.modules.audit.service.AuditLogService auditLogService;
+    private final fit.nlu.tmdt.modules.payment.service.PaymentService paymentService;
 
     @Value("${subscription.auto-renew.grace-days:3}")
     private int autoRenewGraceDays;
@@ -140,21 +141,28 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
         subscription = subscriptionRepository.save(subscription);
 
-        // 6. Generate payment info (simulated)
-        String paymentCode = "PAY-" + System.currentTimeMillis();
-        LocalDateTime paymentExpiry = now.plusMinutes(paymentExpiryMinutes);
+        // 6. Generate real payment info
+        fit.nlu.tmdt.modules.payment.dto.request.CreatePaymentRequest paymentRequest = 
+            fit.nlu.tmdt.modules.payment.dto.request.CreatePaymentRequest.builder()
+                .amount(finalPrice)
+                .orderType("PACKAGE_PURCHASE")
+                .paymentMethod(request.getPaymentMethod() != null ? request.getPaymentMethod() : "VNPAY")
+                .orderDescription("Mua goi dich vu: " + pkg.getName())
+                .packageId(pkg.getId())
+                .subscriptionId(subscription.getId())
+                .build();
+
+        fit.nlu.tmdt.modules.payment.dto.response.PaymentResponse paymentResponse = paymentService.createOrder(userId, paymentRequest);
 
         Map<String, Object> paymentData = new HashMap<>();
         paymentData.put("subscriptionId", subscription.getId());
-        paymentData.put("packageId", pkg.getId());
+        paymentData.put("transactionId", paymentResponse.getId());
+        paymentData.put("orderId", paymentResponse.getOrderId());
         paymentData.put("packageName", pkg.getName());
-        paymentData.put("originalPrice", pkg.getPrice());
         paymentData.put("finalPrice", finalPrice);
-        paymentData.put("paymentCode", paymentCode);
-        paymentData.put("expiresAt", paymentExpiry);
-        paymentData.put("redirectUrl", "/v1/payments/" + paymentCode);
+        paymentData.put("paymentUrl", paymentResponse.getPaymentUrl());
 
-        log.info("Purchase initiated: subscription={}, paymentCode={}", subscription.getId(), paymentCode);
+        log.info("Purchase initiated: subscription={}, transaction={}", subscription.getId(), paymentResponse.getId());
 
         return paymentData;
     }
@@ -208,27 +216,35 @@ public class SubscriptionServiceImpl implements SubscriptionService {
             throw new BusinessException(ErrorCode.SUB_004, "Package is not available");
         }
 
-        // 5. Create boost
+        // 5. Create boost (initially inactive)
         Boost boost = Boost.create(user, post, pkg.getBoostDays(), pkg.getPrice());
+        boost.setIsActive(false); // Only active after payment
         boost.setPackageId(pkg.getId());
         boost = boostRepository.save(boost);
 
-        // 6. Generate payment info
-        String paymentCode = "BOOST-" + System.currentTimeMillis();
-        LocalDateTime paymentExpiry = LocalDateTime.now().plusMinutes(paymentExpiryMinutes);
+        // 6. Generate real payment info
+        fit.nlu.tmdt.modules.payment.dto.request.CreatePaymentRequest paymentRequest = 
+            fit.nlu.tmdt.modules.payment.dto.request.CreatePaymentRequest.builder()
+                .amount(pkg.getPrice())
+                .orderType("BOOST_PURCHASE")
+                .paymentMethod("VNPAY")
+                .orderDescription("Day tin: " + post.getTitle())
+                .packageId(pkg.getId())
+                .postId(postId)
+                .boostId(boost.getId())
+                .build();
+
+        fit.nlu.tmdt.modules.payment.dto.response.PaymentResponse paymentResponse = paymentService.createOrder(userId, paymentRequest);
 
         Map<String, Object> boostData = new HashMap<>();
         boostData.put("boostId", boost.getId());
-        boostData.put("postId", postId);
-        boostData.put("packageId", pkg.getId());
+        boostData.put("transactionId", paymentResponse.getId());
+        boostData.put("orderId", paymentResponse.getOrderId());
         boostData.put("packageName", pkg.getName());
-        boostData.put("days", boost.getDays());
         boostData.put("price", boost.getPrice());
-        boostData.put("paymentCode", paymentCode);
-        boostData.put("expiresAt", paymentExpiry);
-        boostData.put("redirectUrl", "/v1/payments/" + paymentCode);
+        boostData.put("paymentUrl", paymentResponse.getPaymentUrl());
 
-        log.info("Boost initiated: boost={}, post={}", boost.getId(), postId);
+        log.info("Boost initiated: boost={}, transaction={}", boost.getId(), paymentResponse.getId());
 
         return boostData;
     }
@@ -265,9 +281,35 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         // Activate subscription
         subscription.setIsActive(true);
         subscription.setTransactionId(transactionId);
+        subscription.setStartDate(LocalDateTime.now());
+        subscription.setExpiresAt(LocalDateTime.now().plusDays(subscription.getPkg().getDurationDays()));
         subscriptionRepository.save(subscription);
 
         log.info("Subscription activated: {}", subscriptionId);
+    }
+
+    @Override
+    @Transactional
+    public void processSuccessfulBoost(Long boostId, Long transactionId) {
+        log.info("Processing successful boost: boost={}, transaction={}", boostId, transactionId);
+
+        Boost boost = boostRepository.findById(boostId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.SUB_001, "Boost record not found"));
+
+        // Activate boost
+        boost.setIsActive(true);
+        boost.setTransactionId(transactionId);
+        boost.setStartTime(LocalDateTime.now());
+        boost.setExpiresAt(LocalDateTime.now().plusDays(boost.getDays()));
+        boostRepository.save(boost);
+
+        // Update post boosted status
+        Post post = boost.getPost();
+        post.setIsBoosted(true);
+        post.setBoostedUntil(boost.getExpiresAt());
+        postRepository.save(post);
+
+        log.info("Boost activated: {} for post: {}", boostId, post.getId());
     }
 
     @Override
@@ -429,5 +471,41 @@ public class SubscriptionServiceImpl implements SubscriptionService {
                 .validTo(pkg.getValidTo())
                 .maxPurchasePerUser(pkg.getMaxPurchasePerUser())
                 .build();
+    }
+
+    /**
+     * Cleanup expired subscriptions and boosts every day at 1:00 AM
+     */
+    @org.springframework.scheduling.annotation.Scheduled(cron = "0 0 1 * * *")
+    @Transactional
+    public void cleanupExpiredServices() {
+        LocalDateTime now = LocalDateTime.now();
+        log.info("Starting cleanup of expired services at {}", now);
+
+        // 1. Deactivate expired subscriptions
+        List<Subscription> expiringSubs = subscriptionRepository.findExpiringSubscriptions(now.minusDays(1), now);
+        for (Subscription sub : expiringSubs) {
+            sub.setIsActive(false);
+            log.info("Deactivated expired subscription: {}", sub.getId());
+        }
+        subscriptionRepository.saveAll(expiringSubs);
+
+        // 2. Deactivate expired boosts
+        List<Boost> expiredBoosts = boostRepository.findExpiredBoosts(now);
+        for (Boost boost : expiredBoosts) {
+            boost.setIsActive(false);
+            
+            // Also update the post status
+            Post post = boost.getPost();
+            if (post != null) {
+                post.setIsBoosted(false);
+                postRepository.save(post);
+            }
+            
+            log.info("Deactivated expired boost: {} for post: {}", boost.getId(), boost.getPost().getId());
+        }
+        boostRepository.saveAll(expiredBoosts);
+
+        log.info("Cleanup of expired services completed");
     }
 }

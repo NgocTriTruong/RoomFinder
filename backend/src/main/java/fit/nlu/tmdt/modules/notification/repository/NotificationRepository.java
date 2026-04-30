@@ -1,6 +1,8 @@
 package fit.nlu.tmdt.modules.notification.repository;
 
 import fit.nlu.tmdt.modules.notification.entity.Notification;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -17,6 +19,8 @@ import java.util.Optional;
 public interface NotificationRepository extends JpaRepository<Notification, Long> {
 
     List<Notification> findByUserIdAndDeletedAtIsNullOrderByCreatedAtDesc(Long userId);
+
+    Page<Notification> findByUserIdAndDeletedAtIsNullOrderByCreatedAtDesc(Long userId, Pageable pageable);
 
     Optional<Notification> findByIdAndDeletedAtIsNull(Long id);
 

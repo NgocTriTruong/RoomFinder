@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Check, X, Loader2, AlertCircle } from 'lucide-react';
-import { subscriptionService } from '../../services/subscriptionService';
-import type { PackageResponse } from '../../services/subscriptionService';
-import { transactionService } from '../../services/transactionService';
-import { getErrorMessage } from '../../services/api';
+import { Check, X, Loader2, AlertCircle, CreditCard } from 'lucide-react';
+import { subscriptionService } from '@/services/subscriptionService';
+import type { PackageResponse } from '@/services/subscriptionService';
+import { getErrorMessage } from '@/services/api';
 
 export default function SubscriptionPackagesPage() {
   const [packages, setPackages] = useState<PackageResponse[]>([]);
+  const [currentSubscription, setCurrentSubscription] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedPackage, setSelectedPackage] = useState<PackageResponse | null>(null);
@@ -23,8 +23,12 @@ export default function SubscriptionPackagesPage() {
     setLoading(true);
     setError(null);
     try {
-      const data = await subscriptionService.getAvailablePackages();
-      setPackages(data);
+      const [packagesData, currentSubData] = await Promise.all([
+        subscriptionService.getAvailablePackages(),
+        subscriptionService.getCurrentSubscription()
+      ]);
+      setPackages(packagesData);
+      setCurrentSubscription(currentSubData);
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
@@ -46,10 +50,9 @@ export default function SubscriptionPackagesPage() {
     setProcessing(true);
     
     try {
-      const result = await transactionService.createSubscriptionPayment(
+      const result = await subscriptionService.purchasePackage(
         selectedPackage.id,
-        paymentMethod,
-        selectedPackage.price
+        paymentMethod
       );
       
       if (result.paymentUrl) {
@@ -73,7 +76,13 @@ export default function SubscriptionPackagesPage() {
   };
 
   const getFeaturesFromPackage = (pkg: PackageResponse): string[] => {
-    const features = [...(pkg.features || [])];
+    // If admin provided specific features, use them exclusively
+    if (pkg.features && pkg.features.length > 0) {
+      return pkg.features;
+    }
+
+    // Fallback logic if no features are defined by admin
+    const features = [];
     if ((pkg.maxPosts ?? 0) > 0) {
       features.push(pkg.maxPosts! >= 999 ? 'Đăng tin không giới hạn' : `Đăng tối đa ${pkg.maxPosts} tin`);
     }
@@ -83,11 +92,16 @@ export default function SubscriptionPackagesPage() {
     if (pkg.durationDays > 0) {
       features.push(`Hiệu lực ${pkg.durationDays} ngày`);
     }
+    
+    // Add type specific feature if relevant
     if (pkg.type === 'SUB') {
       features.push('Hỗ trợ ưu tiên');
     }
-    return Array.from(new Set(features));
+    
+    return features;
   };
+
+  const sortedPackages = [...packages].sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
 
   if (loading) {
     return (
@@ -123,20 +137,58 @@ export default function SubscriptionPackagesPage() {
         </p>
       </div>
 
+      {currentSubscription && (
+        <div className="max-w-6xl mx-auto mt-4">
+          <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl shadow-lg overflow-hidden text-white">
+            <div className="p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className="flex items-center gap-6">
+                <div className="bg-white/20 p-4 rounded-2xl backdrop-blur-sm">
+                  <CreditCard className="w-8 h-8 text-white" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-3">
+                    <h3 className="text-xl font-bold">Gói hiện tại: {currentSubscription.packageName}</h3>
+                    <span className="bg-green-400 text-green-900 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">Đang hoạt động</span>
+                  </div>
+                  <p className="text-blue-100 mt-1">
+                    Hết hạn vào: {new Date(currentSubscription.expiresAt).toLocaleDateString('vi-VN')}
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex gap-8 border-l border-white/20 pl-8 hidden md:flex">
+                <div className="text-center">
+                  <p className="text-blue-100 text-sm mb-1 uppercase tracking-wider font-semibold">Tin đã dùng</p>
+                  <p className="text-2xl font-bold">{currentSubscription.usedPosts}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-blue-100 text-sm mb-1 uppercase tracking-wider font-semibold">Tin còn lại</p>
+                  <p className="text-2xl font-bold">{currentSubscription.remainingPosts}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-blue-100 text-sm mb-1 uppercase tracking-wider font-semibold">Ngày còn lại</p>
+                  <p className="text-2xl font-bold">{currentSubscription.remainingDays} ngày</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {packages.length === 0 ? (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
           <p className="text-gray-500">Hiện không có gói dịch vụ nào.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto mt-8">
-          {packages.map((pkg, index) => (
+          {sortedPackages.map((pkg) => (
             <div 
               key={pkg.id} 
               className={`relative flex flex-col bg-white rounded-2xl shadow-sm border ${
-                index === 1 ? 'border-blue-500 shadow-md transform md:-translate-y-4' : 'border-gray-200'
+                pkg.isFeatured ? 'border-blue-500 shadow-md transform md:-translate-y-4' : 'border-gray-200'
               }`}
             >
-              {index === 1 && (
+              {pkg.isFeatured && (
                 <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
                   <span className="bg-blue-500 text-white text-xs font-bold uppercase tracking-wider py-1 px-3 rounded-full">
                     Phổ biến nhất
@@ -163,16 +215,20 @@ export default function SubscriptionPackagesPage() {
               <div className="p-8 pt-0 mt-auto">
                 <button
                   onClick={() => handleBuy(pkg)}
-                  disabled={!pkg.isActive}
+                  disabled={!pkg.isActive || (currentSubscription && currentSubscription.packageId === pkg.id)}
                   className={`w-full py-3 px-4 rounded-lg font-bold transition-colors ${
-                    !pkg.isActive
+                    !pkg.isActive || (currentSubscription && currentSubscription.packageId === pkg.id)
                       ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                      : index === 1
+                      : pkg.isFeatured
                       ? 'bg-blue-600 text-white hover:bg-blue-700'
                       : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
                   }`}
                 >
-                  {pkg.isActive ? 'Mua gói ngay' : 'Không khả dụng'}
+                  {!pkg.isActive 
+                    ? 'Không khả dụng' 
+                    : (currentSubscription && currentSubscription.packageId === pkg.id)
+                    ? 'Đang sử dụng'
+                    : 'Mua gói ngay'}
                 </button>
               </div>
             </div>

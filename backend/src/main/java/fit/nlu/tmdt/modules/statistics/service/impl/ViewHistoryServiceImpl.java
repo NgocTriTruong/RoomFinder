@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
@@ -28,9 +29,10 @@ public class ViewHistoryServiceImpl implements ViewHistoryService {
     private final UserRepository userRepository;
 
     @Override
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void recordView(Post post) {
         if (post == null || post.getLandlord() == null) {
+            log.warn(">>> recordView: Post or Landlord is null");
             return;
         }
         
@@ -38,16 +40,17 @@ public class ViewHistoryServiceImpl implements ViewHistoryService {
             ViewHistory viewHistory = getOrCreateToday(post);
             viewHistory.incrementView();
             viewHistoryRepository.save(viewHistory);
-            log.debug("Recorded view for post {}", post.getId());
+            log.info(">>> recordView: Success for post {} on {}", post.getId(), LocalDate.now());
         } catch (Exception e) {
-            log.warn("Failed to record view for post {}: {}", post.getId(), e.getMessage());
+            log.error(">>> recordView: Failed for post {}: {}", post.getId(), e.getMessage());
         }
     }
 
     @Override
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void recordContact(Post post) {
         if (post == null || post.getLandlord() == null) {
+            log.warn(">>> recordContact: Post or Landlord is null");
             return;
         }
         
@@ -55,17 +58,20 @@ public class ViewHistoryServiceImpl implements ViewHistoryService {
             ViewHistory viewHistory = getOrCreateToday(post);
             viewHistory.incrementContact();
             viewHistoryRepository.save(viewHistory);
-            log.debug("Recorded contact for post {}", post.getId());
+            log.info(">>> recordContact: Success for post {} on {}", post.getId(), LocalDate.now());
         } catch (Exception e) {
-            log.warn("Failed to record contact for post {}: {}", post.getId(), e.getMessage());
+            log.error(">>> recordContact: Failed for post {}: {}", post.getId(), e.getMessage());
         }
     }
 
     @Override
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public ViewHistory getOrCreateToday(Post post) {
         LocalDate today = LocalDate.now();
         User landlord = post.getLandlord();
+
+        log.debug(">>> getOrCreateToday: Checking history for post {}, landlord {}, date {}", 
+            post.getId(), landlord.getId(), today);
 
         Optional<ViewHistory> existing = viewHistoryRepository.findByPostIdAndLandlordIdAndViewDate(
                 post.getId(), landlord.getId(), today);
@@ -74,6 +80,7 @@ public class ViewHistoryServiceImpl implements ViewHistoryService {
             return existing.get();
         }
 
+        log.info(">>> getOrCreateToday: Creating new history record for post {}", post.getId());
         ViewHistory viewHistory = ViewHistory.create(landlord, post, today);
         return viewHistoryRepository.save(viewHistory);
     }

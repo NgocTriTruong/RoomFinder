@@ -26,6 +26,9 @@ import fit.nlu.tmdt.modules.subscription.repository.SubscriptionRepository;
 import fit.nlu.tmdt.modules.statistics.service.ViewHistoryService;
 import fit.nlu.tmdt.modules.notification.entity.Notification;
 import fit.nlu.tmdt.modules.notification.service.NotificationService;
+import fit.nlu.tmdt.modules.payment.repository.TransactionRepository;
+import fit.nlu.tmdt.modules.payment.entity.enums.PaymentStatus;
+import fit.nlu.tmdt.modules.payment.entity.Transaction;
 import org.hibernate.Hibernate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -63,6 +66,7 @@ public class PostServiceImpl implements PostService {
     private final fit.nlu.tmdt.modules.booking.repository.BookingRepository bookingRepository;
     private final ViewHistoryService viewHistoryService;
     private final NotificationService notificationService;
+    private final TransactionRepository transactionRepository;
     private final fit.nlu.tmdt.modules.audit.service.AuditLogService auditLogService;
 
     @Value("${post.default-duration-days:30}")
@@ -261,6 +265,7 @@ public class PostServiceImpl implements PostService {
         long totalBookings = bookingRepository.countByLandlordId(landlordId);
         long pendingBookings = bookingRepository.countByLandlordIdAndStatus(landlordId,
                 fit.nlu.tmdt.modules.booking.entity.enums.BookingStatus.PENDING);
+        Long totalContacts = postRepository.sumContactCountByLandlordId(landlordId);
 
         // Get daily stats from ViewHistory table (last 7 days)
         LocalDateTime now = LocalDateTime.now();
@@ -268,27 +273,66 @@ public class PostServiceImpl implements PostService {
         LocalDate endDate = now.toLocalDate();
         List<Object[]> dailyStats = viewHistoryService.getDailyStats(landlordId, startDate, endDate);
 
-        // Build a map for quick lookup
-        Map<LocalDate, Long> viewsMap = new HashMap<>();
-        Map<LocalDate, Long> contactsMap = new HashMap<>();
+        // Build a map for quick lookup using String keys
+        Map<String, Long> viewsMap = new HashMap<>();
+        Map<String, Long> contactsMap = new HashMap<>();
         for (Object[] row : dailyStats) {
-            LocalDate date = (LocalDate) row[0];
+            String dateStr = row[0].toString();
             Long views = row[1] != null ? ((Number) row[1]).longValue() : 0L;
             Long contacts = row[2] != null ? ((Number) row[2]).longValue() : 0L;
-            viewsMap.put(date, views);
-            contactsMap.put(date, contacts);
+            viewsMap.put(dateStr, views);
+            contactsMap.put(dateStr, contacts);
         }
 
-        // Fill in the last 7 days
+        // Get daily service cost using Native Query
+        List<Object[]> dailyCosts = transactionRepository.getDailyServiceCostNative(landlordId, startDate.atStartOfDay(), endDate.atTime(23, 59, 59));
+        Map<String, Double> costMap = new HashMap<>();
+        for (Object[] row : dailyCosts) {
+            if (row[0] != null) {
+                String dateStr = row[0].toString();
+                // SQL date might be yyyy-MM-dd, handle potential differences
+                if (dateStr.length() > 10) dateStr = dateStr.substring(0, 10);
+                Double amount = row[1] != null ? ((Number) row[1]).doubleValue() : 0.0;
+                costMap.put(dateStr, amount);
+            }
+        }
+
+        // Fill in the last 7 days (ordered)
         List<LandlordDashboardStats.DailyActivity> recentActivity = new ArrayList<>();
         for (int i = 6; i >= 0; i--) {
             LocalDate date = now.minusDays(i).toLocalDate();
+            String dateKey = date.toString();
             recentActivity.add(LandlordDashboardStats.DailyActivity.builder()
-                    .date(date.toString())
-                    .views(viewsMap.getOrDefault(date, 0L))
-                    .contacts(contactsMap.getOrDefault(date, 0L))
+                    .date(dateKey)
+                    .views(viewsMap.getOrDefault(dateKey, 0L))
+                    .contacts(contactsMap.getOrDefault(dateKey, 0L))
+                    .serviceCost(costMap.getOrDefault(dateKey, 0.0))
                     .build());
         }
+
+        String debugInfo = String.format("Native SQL: Costs found for %d days. Views found for %d days. Range: %s to %s", 
+                dailyCosts.size(), dailyStats.size(), startDate, endDate);
+
+        // Get total service cost
+        Double totalServiceCost = transactionRepository.sumTotalAmount(landlordId, PaymentStatus.SUCCESS);
+        if (totalServiceCost == null) totalServiceCost = 0.0;
+
+        // Calculate conversion rate (Bookings / Views)
+        double conversionRate = totalViews != null && totalViews > 0 
+                ? (double) totalBookings / totalViews * 100 
+                : 0.0;
+
+        // Get top performing posts (by views)
+        List<Post> topPostsEntity = postRepository.findByLandlordIdOrderByViewCountDesc(landlordId, PageRequest.of(0, 5));
+        List<LandlordDashboardStats.PostSummary> topPosts = topPostsEntity.stream()
+                .map(p -> LandlordDashboardStats.PostSummary.builder()
+                        .id(p.getId())
+                        .title(p.getTitle())
+                        .views(p.getViewCount())
+                        .bookings(p.getBookingCount())
+                        .contacts(p.getContactCount() != null ? p.getContactCount() : 0)
+                        .build())
+                .collect(Collectors.toList());
 
         return LandlordDashboardStats.builder()
                 .totalPosts(totalPosts)
@@ -296,7 +340,12 @@ public class PostServiceImpl implements PostService {
                 .totalViews(totalViews != null ? totalViews : 0)
                 .totalBookings(totalBookings)
                 .pendingBookings(pendingBookings)
+                .totalContacts(totalContacts != null ? totalContacts : 0)
+                .totalServiceCost(totalServiceCost)
+                .conversionRate(conversionRate)
+                .topPosts(topPosts)
                 .recentActivity(recentActivity)
+                .debugInfo(debugInfo)
                 .build();
     }
 
@@ -321,22 +370,6 @@ public class PostServiceImpl implements PostService {
     @Override
     public boolean isOwner(Long postId, Long userId) {
         return postRepository.isOwner(postId, userId);
-    }
-
-    @Override
-    @Async
-    public void incrementViewCountAsync(Long postId) {
-        postRepository.incrementViewCount(postId);
-        // Also record in ViewHistory for dashboard stats
-        postRepository.findByIdActive(postId).ifPresent(viewHistoryService::recordView);
-    }
-
-    @Override
-    public void recordContact(Long postId) {
-        Post post = postRepository.findByIdActive(postId).orElse(null);
-        if (post != null) {
-            viewHistoryService.recordContact(post);
-        }
     }
 
     @Override
@@ -571,5 +604,41 @@ public class PostServiceImpl implements PostService {
                 .icon(amenity.getIcon())
                 .category(amenity.getCategory())
                 .build();
+    }
+
+    @Override
+    @Transactional
+    @Async
+    public void incrementViewCountAsync(Long postId) {
+        log.info(">>> ASYNC: Incrementing view count for post ID: {}", postId);
+        postRepository.findById(postId).ifPresentOrElse(post -> {
+            // Use native queries for reliability
+            postRepository.incrementViewCount(postId);
+            if (post.getRoom() != null) {
+                roomRepository.incrementViewCount(post.getRoom().getId());
+                log.info(">>> ASYNC: Incremented Room ID: {}", post.getRoom().getId());
+            }
+            // Record daily activity
+            try {
+                viewHistoryService.recordView(post);
+                log.info(">>> ASYNC: View history service called for post: {}", postId);
+            } catch (Exception e) {
+                log.error(">>> ASYNC ERROR: Failed to record view history for post {}: {}", postId, e.getMessage());
+            }
+            log.info(">>> ASYNC: Finished processing view increment for post: {}", postId);
+        }, () -> log.error(">>> ASYNC ERROR: Post not found for ID: {}", postId));
+    }
+
+    @Override
+    @Transactional
+    public void recordContact(Long postId) {
+        log.info(">>> Recording contact for post ID: {}", postId);
+        postRepository.findById(postId).ifPresentOrElse(post -> {
+            // Use native query for reliability
+            postRepository.incrementContactCount(postId);
+            // Record daily activity
+            viewHistoryService.recordContact(post);
+            log.info(">>> Success recording contact for post: {}", postId);
+        }, () -> log.error(">>> ERROR: Post not found for recording contact, ID: {}", postId));
     }
 }

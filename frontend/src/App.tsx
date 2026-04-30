@@ -42,6 +42,7 @@ import ChatUI from './pages/tenant/ChatUI';
 import Profile from './pages/tenant/Profile';
 import LandlordChatPage from './pages/landlord/LandlordChatPage';
 import ProfilePage from './pages/shared/ProfilePage';
+import AccountSettingsPage from './pages/shared/AccountSettingsPage';
 
 // Admin Pages
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -111,6 +112,7 @@ function App() {
             }
           >
             <Route index element={<LandlordDashboard />} />
+            <Route path="room-preview/:id" element={<RoomDetail />} />
             <Route path="posts" element={<PostManagementPage />} />
             <Route path="posts/create" element={<PostCreationForm />} />
             <Route path="posts/edit/:id" element={<PostCreationForm />} />
@@ -123,7 +125,7 @@ function App() {
             <Route path="transactions" element={<TransactionHistoryPage />} />
             <Route path="verification" element={<VerificationPage />} />
             <Route path="profile" element={<ProfilePage />} />
-            <Route path="settings" element={<ProfilePage />} />
+            <Route path="settings" element={<AccountSettingsPage />} />
           </Route>
 
           {/* ============================================ */}
@@ -141,7 +143,7 @@ function App() {
             <Route path="saved" element={<SavedRoomsPage />} />
             <Route path="bookings" element={<TenantBookingPage />} />
             <Route path="messages" element={<ChatUI />} />
-            <Route path="settings" element={<Profile />} />
+            <Route path="settings" element={<AccountSettingsPage />} />
           </Route>
 
           {/* ============================================ */}
@@ -166,6 +168,7 @@ function App() {
             <Route path="transactions" element={<TransactionManagementPage />} />
             <Route path="audit-logs" element={<AuditLogPage />} />
             <Route path="profile" element={<ProfilePage />} />
+            <Route path="account-settings" element={<AccountSettingsPage />} />
             <Route path="settings" element={<SystemSettingsPage />} />
           </Route>
 

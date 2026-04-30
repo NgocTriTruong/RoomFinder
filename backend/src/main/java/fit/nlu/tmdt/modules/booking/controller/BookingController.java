@@ -4,6 +4,7 @@ import fit.nlu.tmdt.common.annotations.CurrentUser;
 import fit.nlu.tmdt.common.annotations.LogExecutionTime;
 import fit.nlu.tmdt.common.utils.ApiResponse;
 import fit.nlu.tmdt.modules.booking.dto.request.CreateBookingRequest;
+import fit.nlu.tmdt.modules.booking.dto.request.UpdateBookingRequest;
 import fit.nlu.tmdt.modules.booking.dto.response.BookingResponse;
 import fit.nlu.tmdt.modules.booking.dto.response.TimeSlotResponse;
 import fit.nlu.tmdt.modules.booking.service.BookingService;
@@ -15,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -53,6 +55,18 @@ public class BookingController {
             @CurrentUser Long userId) {
 
         List<BookingResponse> bookings = bookingService.getUserBookings(userId);
+        return ResponseEntity.ok(ApiResponse.success(bookings));
+    }
+    
+    @GetMapping("/landlord")
+    @Operation(summary = "Get landlord bookings")
+    @LogExecutionTime
+    public ResponseEntity<ApiResponse<List<BookingResponse>>> getLandlordBookings(
+            @CurrentUser Long landlordId) {
+            
+        log.info(">>> Landlord {} fetching all bookings", landlordId);
+        List<BookingResponse> bookings = bookingService.getLandlordBookings(landlordId);
+        log.info(">>> Found {} bookings for landlord {}", bookings.size(), landlordId);
         return ResponseEntity.ok(ApiResponse.success(bookings));
     }
 
@@ -142,5 +156,17 @@ public class BookingController {
 
         List<BookingResponse> bookings = bookingService.getLandlordCalendar(landlordId, startDate, endDate);
         return ResponseEntity.ok(ApiResponse.success(bookings));
+    }
+
+    @PatchMapping("/{id}")
+    @Operation(summary = "Update booking details")
+    @LogExecutionTime
+    public ResponseEntity<ApiResponse<BookingResponse>> updateBooking(
+            @PathVariable Long id,
+            @RequestBody @jakarta.validation.Valid UpdateBookingRequest request,
+            @CurrentUser Long userId) {
+
+        BookingResponse response = bookingService.updateBooking(id, request, userId);
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 }

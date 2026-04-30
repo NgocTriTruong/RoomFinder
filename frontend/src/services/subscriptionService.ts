@@ -43,6 +43,17 @@ export const subscriptionService = {
   },
 
   /**
+   * Purchase a package
+   */
+  purchasePackage: async (packageId: number, paymentMethod: string = 'VNPAY'): Promise<any> => {
+    const response = await api.post<ApiResponse<any>>('/v1/subscriptions/purchase', {
+      packageId,
+      paymentMethod,
+    });
+    return response.data.data;
+  },
+
+  /**
    * Get current subscription
    */
   getCurrentSubscription: async (): Promise<any> => {

@@ -217,7 +217,7 @@ export default function UserManagementPage() {
     return <span className="px-2.5 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">Không hoạt động</span>;
   };
 
-  const getKycBadge = (user: User) => {
+  const getKycBadge = (user: UserResponse) => {
     // Admin mặc định là đã xác thực
     if (user.role === 'ADMIN') {
       return <span className="px-2.5 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">Mặc định</span>;

@@ -56,6 +56,11 @@ public interface SubscriptionService {
     void processSuccessfulPayment(Long subscriptionId, Long transactionId);
 
     /**
+     * Process successful boost payment
+     */
+    void processSuccessfulBoost(Long boostId, Long transactionId);
+
+    /**
      * Cancel subscription
      */
     void cancelSubscription(Long userId, String reason);

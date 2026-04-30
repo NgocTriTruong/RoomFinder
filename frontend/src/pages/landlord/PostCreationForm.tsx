@@ -31,6 +31,12 @@ const createFallbackRoomImage = (label: string) => {
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 };
 
+const getYoutubeId = (url: string) => {
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+  const match = url.match(regExp);
+  return (match && match[2].length === 11) ? match[2] : null;
+};
+
 export default function PostCreationForm() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
@@ -647,10 +653,23 @@ export default function PostCreationForm() {
               name="videoUrl"
               value={formData.videoUrl || ''}
               onChange={handleInputChange}
-              placeholder="https://youtube.com/..."
+              placeholder="https://www.youtube.com/watch?v=..."
               className="w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2"
             />
-            <p className="text-xs text-gray-500 mt-1">Dán link video giới thiệu phòng trọ (YouTube, Vimeo...)</p>
+            {formData.videoUrl && getYoutubeId(formData.videoUrl) && (
+              <div className="mt-4 aspect-video rounded-lg overflow-hidden border border-gray-200">
+                <iframe
+                  width="100%"
+                  height="100%"
+                  src={`https://www.youtube.com/embed/${getYoutubeId(formData.videoUrl)}`}
+                  title="YouTube video player"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                ></iframe>
+              </div>
+            )}
+            <p className="text-xs text-gray-500 mt-1">Hỗ trợ link YouTube để hiển thị xem trước video trực tiếp.</p>
           </div>
         </div>
 

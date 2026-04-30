@@ -258,17 +258,6 @@ export default function ProfilePage() {
             </div>
           </form>
 
-          {/* Change Password Section Placeholder */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-            <h3 className="font-bold text-gray-900 mb-2">Bảo mật tài khoản</h3>
-            <p className="text-sm text-gray-500 mb-6">Bạn nên thay đổi mật khẩu định kỳ để bảo vệ tài khoản tốt hơn.</p>
-            <button 
-              className="px-6 py-2 border-2 border-blue-600 text-blue-600 rounded-xl font-bold hover:bg-blue-50 transition-all"
-              onClick={() => alert('Chức năng đổi mật khẩu đang được phát triển')}
-            >
-              Đổi mật khẩu
-            </button>
-          </div>
         </div>
       </div>
     </div>

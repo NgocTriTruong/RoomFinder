@@ -7,6 +7,7 @@ import {
   type ReactNode,
 } from 'react';
 import { authService, authStorage } from '@/services/authService';
+import { getErrorMessage } from '@/services/api';
 import type { UserResponse, LoginRequest, RegisterRequest } from '@/types';
 
 // ============================================
@@ -109,9 +110,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       console.log('Login successful:', response.user.fullName);
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : 'Login failed. Please try again.';
-      setError(errorMessage);
+      setError(getErrorMessage(err));
       throw err;
     } finally {
       setIsLoading(false);

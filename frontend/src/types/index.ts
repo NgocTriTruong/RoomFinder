@@ -250,6 +250,7 @@ export interface BookingResponse {
   endTime: string;
   guestCount: number;
   note: string | null;
+  landlordNote: string | null;
   status: BookingStatus;
   totalPrice: number;
   post: {
@@ -272,6 +273,10 @@ export interface BookingResponse {
   };
   createdAt: string;
   updatedAt: string;
+  confirmedAt: string | null;
+  cancelledAt: string | null;
+  completedAt: string | null;
+  confirmationCode: string | null;
 }
 
 export type BookingStatus = 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED' | 'REJECTED';
@@ -346,9 +351,20 @@ export interface LandlordDashboardStats {
   totalViews: number;
   totalBookings: number;
   pendingBookings: number;
+  totalContacts: number;
+  totalServiceCost: number;
+  conversionRate: number;
+  topPosts: {
+    id: number;
+    title: string;
+    views: number;
+    bookings: number;
+    contacts: number;
+  }[];
   recentActivity: {
     date: string;
     views: number;
     contacts: number;
+    serviceCost: number;
   }[];
 }

@@ -591,18 +591,28 @@ export default function RoomForm() {
           </div>
 
           <div className="mt-6 border-t pt-4">
-            <p className="text-sm font-medium text-gray-700 mb-2">Bản đồ chọn vị trí (Nhấp vào bản đồ để thả ghim)</p>
-            <LeafletMap 
-              center={{ 
-                lat: formData.latitude && formData.latitude !== 0 ? formData.latitude : 21.0285, 
-                lng: formData.longitude && formData.longitude !== 0 ? formData.longitude : 105.8542 
-              }}
-              marker={(formData.latitude && formData.longitude && formData.latitude !== 0) ? { lat: formData.latitude, lng: formData.longitude } : undefined}
-              height="350px"
-              zoom={13}
-              onLocationSelect={(lat, lng) => setFormData(prev => ({ ...prev, latitude: lat, longitude: lng }))}
-            />
-            <p className="text-xs text-gray-500 mt-2">Dữ liệu bản đồ được cung cấp miễn phí bởi OpenStreetMap (Nominatim API).</p>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-medium text-gray-700">Bản đồ chọn vị trí (Nhấp vào bản đồ để thả ghim)</p>
+              {formData.latitude !== 0 && (
+                <span className="text-xs text-green-600 font-medium flex items-center animate-bounce">
+                  <Check className="w-3 h-3 mr-1" />
+                  Đã chọn vị trí
+                </span>
+              )}
+            </div>
+            <div className="rounded-xl overflow-hidden border border-gray-200 shadow-inner">
+              <LeafletMap 
+                center={{ 
+                  lat: formData.latitude && formData.latitude !== 0 ? formData.latitude : 10.8231, 
+                  lng: formData.longitude && formData.longitude !== 0 ? formData.longitude : 106.6297 
+                }}
+                marker={(formData.latitude && formData.longitude && formData.latitude !== 0) ? { lat: formData.latitude, lng: formData.longitude } : undefined}
+                height="350px"
+                zoom={13}
+                onLocationSelect={(lat, lng) => setFormData(prev => ({ ...prev, latitude: lat, longitude: lng }))}
+              />
+            </div>
+            <p className="text-xs text-gray-500 mt-2">Dữ liệu bản đồ được cung cấp miễn phí bởi OpenStreetMap.</p>
           </div>
         </div>
 

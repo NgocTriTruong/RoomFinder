@@ -1,6 +1,8 @@
 package fit.nlu.tmdt.modules.notification.service;
 
 import fit.nlu.tmdt.modules.notification.dto.response.NotificationResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
@@ -13,6 +15,8 @@ public interface NotificationService {
      * Get user's notifications
      */
     List<NotificationResponse> getUserNotifications(Long userId);
+
+    Page<NotificationResponse> getUserNotifications(Long userId, Pageable pageable);
 
     /**
      * Get unread notifications
@@ -48,4 +52,9 @@ public interface NotificationService {
      * Delete old notifications
      */
     int cleanupOldNotifications(Long userId, int daysOld);
+
+    /**
+     * Push real-time notification via WebSocket
+     */
+    void pushNotification(fit.nlu.tmdt.modules.notification.entity.Notification notification);
 }

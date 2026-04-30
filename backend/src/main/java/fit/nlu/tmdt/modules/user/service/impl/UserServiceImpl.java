@@ -17,6 +17,7 @@ import fit.nlu.tmdt.modules.auth.entity.enums.UserRole;
 import fit.nlu.tmdt.modules.auth.entity.enums.UserStatus;
 import fit.nlu.tmdt.modules.audit.enums.AuditAction;
 import fit.nlu.tmdt.modules.audit.enums.AuditTarget;
+import fit.nlu.tmdt.modules.audit.service.AuditLogService;
 import fit.nlu.tmdt.modules.auth.dto.request.RegisterRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,16 +42,16 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final PostRepository postRepository;
     private final NotificationService notificationService;
-    private final fit.nlu.tmdt.modules.audit.service.AuditLogService auditLogService;
+    private final AuditLogService auditLogService;
 
     @Override
     @Transactional
     public UserResponse submitKYC(Long userId, fit.nlu.tmdt.modules.user.dto.request.KYCRequest request) {
         if (userId == null) {
-            throw new BusinessException(ErrorCode.AUTH_001, "User ID cannot be null");
+            throw new BusinessException(ErrorCode.AUTH_001, "Mã người dùng không được để trống");
         }
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.USER_001, "User not found"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_001, "Không tìm thấy người dùng"));
 
         user.setFrontIdCardUrl(request.getFrontIdCardUrl());
         user.setBackIdCardUrl(request.getBackIdCardUrl());
@@ -66,7 +67,7 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public UserResponse verifyUser(Long userId, String status, String adminNote, Long adminId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.USER_001, "User not found"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_001, "Không tìm thấy người dùng"));
 
         user.setAdminNote(adminNote);
         
@@ -209,6 +210,11 @@ public class UserServiceImpl implements UserService {
     public UserResponse getCurrentProfile(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_001, "User not found"));
+        
+        if (user.getStatus() != UserStatus.ACTIVE) {
+            throw new BusinessException(ErrorCode.AUTH_002, "Tài khoản đang bị khóa hoặc chưa được kích hoạt");
+        }
+        
         return toUserResponse(user);
     }
 
@@ -216,6 +222,11 @@ public class UserServiceImpl implements UserService {
     public UserResponse getUserProfile(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_001, "User not found"));
+
+        if (user.getStatus() != UserStatus.ACTIVE) {
+            throw new BusinessException(ErrorCode.AUTH_002, "Tài khoản đang bị khóa hoặc chưa được kích hoạt");
+        }
+
         return toUserResponse(user);
     }
 
@@ -231,6 +242,10 @@ public class UserServiceImpl implements UserService {
         log.info("Starting updateProfile for user ID: {} (By admin: {})", userId, adminId);
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_001, "User not found"));
+
+        if (user.getStatus() != UserStatus.ACTIVE && adminId == null) {
+            throw new BusinessException(ErrorCode.AUTH_002, "Tài khoản đang bị khóa hoặc chưa được kích hoạt");
+        }
 
         try {
             // Update fields
@@ -329,6 +344,45 @@ public class UserServiceImpl implements UserService {
                 (int) activePosts,
                 user.getIsVerified()
         );
+    }
+
+    @Override
+    @Transactional
+    public void deactivateAccount(Long userId) {
+        log.info("Request to deactivate account for user ID: {}", userId);
+        
+        if (userId == null) {
+            log.error("UserId is null in deactivateAccount");
+            throw new BusinessException(ErrorCode.AUTH_001, "Vui lòng đăng nhập để thực hiện");
+        }
+
+        try {
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new BusinessException(ErrorCode.USER_001, "Người dùng không tồn tại"));
+
+            log.info("Deactivating user: {} (Current status: {})", user.getEmail(), user.getStatus());
+            
+            // Sử dụng Query update trực tiếp để đảm bảo tính nhất quán
+            int updated = userRepository.updateStatus(userId, UserStatus.INACTIVE);
+            
+            if (updated == 0) {
+                log.error("No rows updated when deactivating account for user: {}", userId);
+                throw new BusinessException(ErrorCode.INTERNAL_ERROR, "Không thể vô hiệu hóa tài khoản");
+            }
+
+            log.info("Account successfully deactivated via direct query for user: {}", userId);
+
+            // Ghi audit log
+            auditLogService.log(userId, AuditAction.UPDATE, 
+                    AuditTarget.USER, userId, 
+                    "Người dùng tự vô hiệu hóa tài khoản", null);
+        } catch (BusinessException be) {
+            log.warn("Business error during account deactivation for user {}: {}", userId, be.getMessage());
+            throw be;
+        } catch (Exception e) {
+            log.error("CRITICAL: Error deactivating account for user {}: {}", userId, e.getMessage(), e);
+            throw new BusinessException(ErrorCode.INTERNAL_ERROR, "Lỗi khi vô hiệu hóa tài khoản: " + e.getMessage());
+        }
     }
 
     private UserResponse toUserResponse(User user) {

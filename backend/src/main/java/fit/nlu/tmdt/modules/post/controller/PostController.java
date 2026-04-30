@@ -269,4 +269,15 @@ public class PostController {
         postService.rejectPost(id, reason, adminId);
         return ResponseEntity.ok(ApiResponse.success("Post rejected", null));
     }
+
+    @PostMapping("/{id}/contact")
+    @Operation(summary = "Record post contact (when user clicks contact buttons)")
+    @LogExecutionTime
+    public ResponseEntity<ApiResponse<Void>> recordContact(
+            @PathVariable Long id) {
+
+        log.info("Record contact for post: {}", id);
+        postService.recordContact(id);
+        return ResponseEntity.ok(ApiResponse.success("Contact recorded", null));
+    }
 }

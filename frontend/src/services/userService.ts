@@ -116,6 +116,20 @@ export const userService = {
     const response = await api.get<ApiResponse<UserResponse>>(`/v1/users/${id}/public`);
     return response.data.data!;
   },
+
+  /**
+   * Thay đổi mật khẩu
+   */
+  changePassword: async (data: any): Promise<void> => {
+    await api.post('/v1/auth/change-password', data);
+  },
+
+  /**
+   * Vô hiệu hóa tài khoản cá nhân
+   */
+  deactivateAccount: async (): Promise<void> => {
+    await api.post('/v1/users/deactivate');
+  },
 };
 
 export default userService;

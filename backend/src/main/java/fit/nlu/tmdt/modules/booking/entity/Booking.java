@@ -205,6 +205,17 @@ public class Booking extends BaseEntity {
     }
 
     /**
+     * Từ chối booking (landlord)
+     */
+    public void reject(String reason, Long landlordId) {
+        this.status = BookingStatus.REJECTED;
+        this.statusChangedAt = LocalDateTime.now();
+        this.statusChangedBy = landlordId;
+        this.cancellationReason = reason;
+        this.cancelledAt = LocalDateTime.now();
+    }
+
+    /**
      * Hoàn thành booking
      */
     public void complete(String note) {
