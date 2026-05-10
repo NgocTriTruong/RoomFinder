@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import RoomCard from '../components/ui/RoomCard';
 import postService from '../services/postService';
 import type { PostResponse } from '../types';
+import { useAuth } from '../contexts/AuthContext';
+import universityService, { UniversityResponse } from '../services/universityService';
 import { createPlaceholderImage } from '../utils/localImage';
 
 const CATEGORIES = [
@@ -12,14 +14,6 @@ const CATEGORIES = [
   { icon: Warehouse, label: 'Nhà nguyên căn', value: 'house' },
 ];
 
-const POPULAR_LOCATIONS = [
-  { name: 'Quận 1', count: 1250 },
-  { name: 'Quận 3', count: 890 },
-  { name: 'Quận 5', count: 756 },
-  { name: 'Bình Thạnh', count: 623 },
-  { name: 'Tân Bình', count: 534 },
-  { name: 'Gò Vấp', count: 412 },
-];
 
 const QUICK_FILTERS = [
   { icon: Wifi, label: 'Wifi miễn phí' },
@@ -37,16 +31,47 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [mostViewedRooms, setMostViewedRooms] = useState<PostResponse[]>([]);
+  
+  // University personalization
+  const { user } = useAuth();
+  const [userUniversity, setUserUniversity] = useState<UniversityResponse | null>(null);
+  const [universityRooms, setUniversityRooms] = useState<PostResponse[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const featured = await postService.getFeaturedPosts(8);
-        setVipRooms(featured);
+        
+        // Parallel data fetching
+        const [featured, publicPosts, topViewed] = await Promise.all([
+          postService.getFeaturedPosts(8),
+          postService.getPublicPosts({ page: 0, size: 8 }),
+          postService.getPublicPosts({ page: 0, size: 8, sortBy: 'viewCount', sortDirection: 'desc' })
+        ]);
 
-        const publicPosts = await postService.getPublicPosts({ page: 0, size: 8 });
+        setVipRooms(featured);
         setSuggestedRooms(publicPosts.content);
+        setMostViewedRooms(topViewed.content);
+
+        // Fetch university data if user is a student
+        if (user?.universityId) {
+          try {
+            const uni = await universityService.getById(user.universityId);
+            setUserUniversity(uni);
+            
+            const nearby = await postService.getPublicPosts({
+              page: 0,
+              size: 4,
+              latitude: uni.latitude,
+              longitude: uni.longitude,
+              radiusKm: 5
+            });
+            setUniversityRooms(nearby.content);
+          } catch (err) {
+            console.error('Lỗi khi lấy dữ liệu trường học:', err);
+          }
+        }
       } catch (error) {
         console.error('Lỗi khi lấy dữ liệu trang chủ:', error);
       } finally {
@@ -55,7 +80,7 @@ export default function Home() {
     };
 
     fetchData();
-  }, []);
+  }, [user?.universityId]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -208,6 +233,69 @@ export default function Home() {
         </div>
       </section>
 
+      {/* University Suggestions (Only for students) */}
+      {userUniversity && universityRooms.length > 0 && (
+        <section className="py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
+          <div className="flex justify-between items-center mb-6 bg-blue-50 p-6 rounded-2xl border border-blue-100">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="px-2 py-0.5 bg-blue-600 text-white text-xs font-semibold rounded-full">Dành cho bạn</span>
+                <h2 className="text-2xl md:text-3xl font-bold text-gray-900">Phòng gần trường {userUniversity.abbreviation || userUniversity.name}</h2>
+              </div>
+              <p className="text-gray-600">Những phòng trọ nằm trong bán kính 5km quanh trường của bạn</p>
+            </div>
+            <button 
+              onClick={() => navigate(`/search?nearbyUniversityId=${userUniversity.id}`)} 
+              className="hidden md:flex bg-white text-blue-600 px-4 py-2 rounded-lg border border-blue-200 hover:bg-blue-50 font-medium items-center gap-1 transition-colors"
+            >
+              Xem thêm
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {universityRooms.map((room) => (
+              <RoomCard key={room.id} room={room} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Suggested Rooms Section */}
+      <section className="py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+               <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-full">Gần bạn</span>
+               <h2 className="text-2xl md:text-3xl font-bold text-gray-900">Gợi ý cho bạn</h2>
+            </div>
+            <p className="text-gray-500">Các phòng trọ được đề xuất tối ưu theo vị trí và trường học của bạn</p>
+          </div>
+          <button 
+            onClick={() => navigate('/search')} 
+            className="text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
+          >
+            Xem tất cả
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+
+        {suggestedRooms.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {suggestedRooms.map((room) => (
+              <RoomCard key={room.id} room={room} />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12 bg-white rounded-2xl">
+            <p className="text-gray-500">Chưa có phòng nào được đăng</p>
+          </div>
+        )}
+      </section>
+
       {/* VIP Rooms Section */}
       <section className="py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
         <div className="flex justify-between items-center mb-6">
@@ -241,58 +329,56 @@ export default function Home() {
           </div>
         )}
       </section>
+      
 
-      {/* Popular Locations */}
-      <section className="py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
-        <div className="mb-6">
-          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Địa điểm phổ biến</h2>
-          <p className="text-gray-500">Khám phá các khu vực được quan tâm nhiều nhất</p>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          {POPULAR_LOCATIONS.map((location) => (
-            <button
-              key={location.name}
-              onClick={() => navigate(`/search?location=${encodeURIComponent(location.name)}`)}
-              className="group p-4 bg-white rounded-xl border border-gray-100 hover:border-blue-500 hover:shadow-lg transition-all text-left"
-            >
-              <MapPin className="w-6 h-6 text-blue-600 mb-2 group-hover:scale-110 transition-transform" />
-              <div className="font-semibold text-gray-900">{location.name}</div>
-              <div className="text-sm text-gray-500">{location.count.toLocaleString()} phòng</div>
-            </button>
-          ))}
-        </div>
-      </section>
-
-      {/* Suggested Rooms Section */}
+      {/* Most Viewed Rooms Section */}
       <section className="py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
         <div className="flex justify-between items-center mb-6">
           <div>
-            <h2 className="text-2xl md:text-3xl font-bold text-gray-900">Gợi ý cho bạn</h2>
-            <p className="text-gray-500 mt-1">Dựa trên xu hướng và tìm kiếm phổ biến</p>
+            <div className="flex items-center gap-2 mb-1">
+              <div className="p-1.5 bg-red-100 rounded-lg">
+                <svg className="w-4 h-4 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M12.395 2.553a1 1 0 00-1.45-.385c-.345.23-.614.558-.822.88-.214.33-.403.713-.57 1.116-.334.804-.614 1.768-.84 2.734a31.365 31.365 0 00-.613 3.58 2.64 2.64 0 01-.945-1.067c-.328-.68-.398-1.534-.398-2.664A1 1 0 005.5 6.32c-.524.558-1.012 1.325-1.34 2.204-.33.887-.46 1.82-.46 2.636 0 2.91 2.027 5.45 4.587 6.583a1 1 0 00.723.004c2.56-1.133 4.587-3.673 4.587-6.583 0-.816-.13-1.749-.46-2.636-.328-.879-.816-1.646-1.34-2.204a1 1 0 00-1.69.814c.003.45-.017.906-.07 1.357a9.32 9.32 0 01-.39 1.748 23.485 23.485 0 01-.412-2.012 31.088 31.088 0 00-.397-2.092c-.12-.546-.223-1.024-.306-1.413a8.612 8.612 0 01-.107-.564c-.03-.19-.05-.362-.063-.517.563.38.87.81 1.168 1.249.296.436.599.88 1.175 1.142a1 1 0 001.443-1.033c-.055-.405-.056-.886-.052-1.452.006-.888.04-2.02.42-3.04.194-.523.44-1.046.776-1.475.337-.429.719-.74 1.066-.972a1 1 0 00.384-1.45zm-9.013 11.816c.005-.007.01-.013.015-.019l.007-.012c.002-.003.004-.006.006-.009.006-.01.01-.018.013-.025.006-.01.008-.013.008-.013.008-.012.014-.022.02-.032.006-.01.01-.016.013-.022a.633.633 0 00.014-.022c.017-.028.03-.048.043-.07a13.6 13.6 0 00.39-1.747c.053-.45.073-.908.07-1.357a1 1 0 011.69-.814c.524.558 1.012 1.325 1.34 2.204.33.887.46 1.82.46 2.636 0 2.91-2.027 5.45-4.587 6.583a1 1 0 01-.723.004c-2.56-1.133-4.587-3.673-4.587-6.583 0-.816.13-1.749.46-2.636.328-.879.816-1.646 1.34-2.204a1 1 0 011.689.814c-.003.45.017.906.07 1.357a9.32 9.32 0 00.39 1.748c.013.021.026.042.043.07l.014.022c.003.006.007.012.013.022.006.01.012.02.02.032 0 0 .002.004.008.013.003.007.007.015.013.025.002.003.004.006.006.009l.007.012c.005.006.01.012.015.019z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <h2 className="text-2xl md:text-3xl font-bold text-gray-900">Phòng xem nhiều nhất</h2>
+            </div>
+            <p className="text-gray-500">Những bài viết đang thu hút sự quan tâm lớn từ cộng đồng</p>
           </div>
           <button 
-            onClick={() => navigate('/search')} 
-            className="text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
+            onClick={() => navigate('/search?sortBy=viewCount&sortDirection=desc')} 
+            className="text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1 transition-transform hover:translate-x-1"
           >
-            Xem tất cả
+            Xem tất cả 
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </button>
         </div>
 
-        {suggestedRooms.length > 0 ? (
+        {mostViewedRooms.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {suggestedRooms.map((room) => (
-              <RoomCard key={room.id} room={room} />
+            {mostViewedRooms.map((room) => (
+              <div key={room.id} className="relative group">
+                <RoomCard room={room} />
+                <div className="absolute top-3 right-3 bg-black/70 backdrop-blur-md text-white px-2 py-1 rounded-lg text-xs font-bold flex items-center gap-1 z-10 shadow-sm">
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                  {room.viewCount?.toLocaleString() || 0}
+                </div>
+              </div>
             ))}
           </div>
         ) : (
-          <div className="text-center py-12 bg-white rounded-2xl">
-            <p className="text-gray-500">Chưa có phòng nào được đăng</p>
+          <div className="text-center py-12 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+            <p className="text-gray-500">Đang tải dữ liệu xu hướng...</p>
           </div>
         )}
       </section>
+
+
 
       {/* CTA Section */}
       <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-blue-600 to-indigo-700">
@@ -318,43 +404,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-gray-900 text-gray-400 py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            <div>
-              <h3 className="text-white font-semibold mb-4">TMDT Thuê Trọ</h3>
-              <p className="text-sm">Nền tảng kết nối người thuê trọ với chủ nhà uy tín</p>
-            </div>
-            <div>
-              <h4 className="text-white font-semibold mb-4">Hỗ trợ</h4>
-              <ul className="space-y-2 text-sm">
-                <li><a href="#" className="hover:text-white transition-colors">Trung tâm trợ giúp</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">An toàn</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Điều khoản</a></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-white font-semibold mb-4">Chủ nhà</h4>
-              <ul className="space-y-2 text-sm">
-                <li><a href="#" className="hover:text-white transition-colors">Đăng tin</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Quản lý phòng</a></li>
-                <li><a href="#" className="hover:text-white transition-colors"> Gói dịch vụ</a></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-white font-semibold mb-4">Liên hệ</h4>
-              <ul className="space-y-2 text-sm">
-                <li>Email: support@tmdt.vn</li>
-                <li>Hotline: 1900 1234</li>
-              </ul>
-            </div>
-          </div>
-          <div className="mt-8 pt-8 border-t border-gray-800 text-center text-sm">
-            <p>&copy; 2026 TMDT Thuê Trọ. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

@@ -18,6 +18,8 @@ import fit.nlu.tmdt.modules.review.repository.ReviewRepository;
 import fit.nlu.tmdt.modules.review.service.ReviewService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import fit.nlu.tmdt.modules.notification.entity.Notification;
+import fit.nlu.tmdt.modules.notification.service.NotificationService;
 import org.hibernate.Hibernate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -41,8 +43,10 @@ public class ReviewServiceImpl implements ReviewService {
     private final BookingRepository bookingRepository;
     private final PostRepository postRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     @Override
+    @Transactional
     public ReviewResponse createReview(CreateReviewRequest request, Long userId) {
         if (reviewRepository.existsByBookingIdAndDeletedAtIsNull(request.getBookingId())) {
             throw new BusinessException(ErrorCode.REV_003);
@@ -73,6 +77,7 @@ public class ReviewServiceImpl implements ReviewService {
                 .user(user)
                 .post(post)
                 .landlord(post.getLandlord())
+                .booking(booking)
                 .rating(request.getRating())
                 .comment(request.getComment())
                 .images(request.getImages() != null ? request.getImages() : new ArrayList<>())
@@ -84,10 +89,31 @@ public class ReviewServiceImpl implements ReviewService {
 
         review = reviewRepository.save(review);
         log.info("Created review: id={}, userId={}, postId={}", review.getId(), userId, request.getPostId());
+
+        // Send notification to landlord
+        try {
+            Notification notif = Notification.builder()
+                    .user(post.getLandlord())
+                    .type("REVIEW")
+                    .title("Đánh giá mới cho bài viết")
+                    .content(String.format("Người dùng %s vừa đánh giá %d sao cho bài viết: %s", user.getFullName(), request.getRating(), post.getTitle()))
+                    .icon("fa-star")
+                    .color("warning")
+                    .actionType("VIEW_POST")
+                    .actionId(post.getId())
+                    .referenceType("REVIEW")
+                    .referenceId(review.getId())
+                    .build();
+            notificationService.createNotification(notif);
+        } catch (Exception e) {
+            log.error("Failed to send review notification: {}", e.getMessage());
+        }
+
         return toResponse(review);
     }
 
     @Override
+    @Transactional
     public ReviewResponse updateReview(Long reviewId, UpdateReviewRequest request, Long userId) {
         Review review = reviewRepository.findByIdAndDeletedAtIsNull(reviewId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.REV_001));
@@ -116,6 +142,7 @@ public class ReviewServiceImpl implements ReviewService {
     }
 
     @Override
+    @Transactional
     public void deleteReview(Long reviewId, Long userId) {
         Review review = reviewRepository.findByIdAndDeletedAtIsNull(reviewId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.REV_001));
@@ -181,6 +208,7 @@ public class ReviewServiceImpl implements ReviewService {
     }
 
     @Override
+    @Transactional
     public ReviewResponse landlordRespond(Long reviewId, String response, Long landlordId) {
         Review review = reviewRepository.findByIdAndDeletedAtIsNull(reviewId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.REV_001));
@@ -226,6 +254,7 @@ public class ReviewServiceImpl implements ReviewService {
     }
 
     @Override
+    @Transactional
     public void markAsHelpful(Long reviewId, Long userId) {
         Review review = reviewRepository.findByIdAndDeletedAtIsNull(reviewId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.REV_001));
@@ -235,6 +264,7 @@ public class ReviewServiceImpl implements ReviewService {
     }
 
     @Override
+    @Transactional
     public void reportReview(Long reviewId, String reason, Long reporterId) {
         Review review = reviewRepository.findByIdAndDeletedAtIsNull(reviewId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.REV_001));

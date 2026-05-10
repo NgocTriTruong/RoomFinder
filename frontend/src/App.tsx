@@ -5,7 +5,7 @@
 
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
-import { ProtectedRoute, GuestRoute, LandlordRoute, AdminRoute } from './components/ProtectedRoute';
+import { ProtectedRoute, GuestRoute, LandlordRoute, AdminRoute, TenantOrPublicRoute } from './components/ProtectedRoute';
 
 // Layouts
 import MainLayout from './components/layout/MainLayout';
@@ -65,7 +65,11 @@ function App() {
           {/* ============================================ */}
           {/* PUBLIC ROUTES - Accessible by everyone */}
           {/* ============================================ */}
-          <Route path="/" element={<MainLayout />}>
+          <Route path="/" element={
+            <TenantOrPublicRoute>
+              <MainLayout />
+            </TenantOrPublicRoute>
+          }>
             <Route index element={<Home />} />
             <Route path="search" element={<Search />} />
             <Route path="room/:id" element={<RoomDetail />} />

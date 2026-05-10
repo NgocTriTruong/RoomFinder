@@ -18,6 +18,8 @@ import fit.nlu.tmdt.modules.notification.entity.Notification;
 import fit.nlu.tmdt.modules.notification.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import fit.nlu.tmdt.modules.notification.entity.Notification;
+import fit.nlu.tmdt.modules.notification.service.NotificationService;
 import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -117,11 +119,15 @@ public class BookingServiceImpl implements BookingService {
 
         log.info("Booking created: {} with code: {}", booking.getId(), booking.getConfirmationCode());
 
-        // Notify landlord
-        String notiTitle = "Yêu cầu đặt lịch mới";
-        String notiContent = "Bạn có yêu cầu đặt lịch xem phòng mới từ " + user.getFullName() + 
-                " cho bài đăng: " + post.getTitle();
-        notificationService.createNotification(Notification.forBooking(post.getLandlord(), notiTitle, notiContent, booking.getId()));
+        // 9. Send notification to landlord
+        try {
+            String title = "Lịch hẹn xem phòng mới";
+            String content = String.format("Người dùng %s đã đặt lịch xem phòng %s vào %s", 
+                user.getFullName(), post.getTitle(), bookingTime.toString());
+            notificationService.createNotification(Notification.forBooking(post.getLandlord(), title, content, booking.getId()));
+        } catch (Exception e) {
+            log.error("Failed to send notification for new booking: {}", e.getMessage());
+        }
 
         return toBookingResponse(booking);
     }
@@ -176,11 +182,15 @@ public class BookingServiceImpl implements BookingService {
 
         log.info("Booking confirmed: {}", bookingId);
 
-        // Notify user
-        String notiTitle = "Lịch hẹn đã được xác nhận";
-        String notiContent = "Lịch hẹn xem phòng của bạn cho bài đăng '" + booking.getPost().getTitle() + 
-                "' đã được chủ trọ xác nhận. Mã xác nhận: " + booking.getConfirmationCode();
-        notificationService.createNotification(Notification.forBooking(booking.getUser(), notiTitle, notiContent, bookingId));
+        // Send notification to user (tenant)
+        try {
+            String title = "Lịch hẹn đã được xác nhận";
+            String content = "Lịch hẹn xem phòng của bạn cho bài đăng '" + booking.getPost().getTitle() + 
+                    "' đã được chủ trọ xác nhận. Mã xác nhận: " + booking.getConfirmationCode();
+            notificationService.createNotification(Notification.forBooking(booking.getUser(), title, content, bookingId));
+        } catch (Exception e) {
+            log.error("Failed to send confirmation notification: {}", e.getMessage());
+        }
     }
 
     @Override
@@ -215,13 +225,17 @@ public class BookingServiceImpl implements BookingService {
 
         log.info("Booking cancelled: {} by user: {}", bookingId, userId);
 
-        // Notify other party
-        User otherParty = isUser ? booking.getLandlord() : booking.getUser();
-        String cancellerName = isUser ? booking.getUser().getFullName() : "Chủ trọ";
-        String notiTitle = "Lịch hẹn đã bị hủy";
-        String notiContent = "Lịch hẹn cho bài đăng '" + booking.getPost().getTitle() + 
-                "' đã bị hủy bởi " + cancellerName + ". Lý do: " + reason;
-        notificationService.createNotification(Notification.forBooking(otherParty, notiTitle, notiContent, bookingId));
+        // Send notification to the other party
+        try {
+            User otherParty = isUser ? booking.getLandlord() : booking.getUser();
+            String cancellerName = isUser ? booking.getUser().getFullName() : "Chủ trọ";
+            String title = "Lịch hẹn đã bị hủy";
+            String content = "Lịch hẹn cho bài đăng '" + booking.getPost().getTitle() + 
+                    "' đã bị hủy bởi " + cancellerName + ". Lý do: " + reason;
+            notificationService.createNotification(Notification.forBooking(otherParty, title, content, bookingId));
+        } catch (Exception e) {
+            log.error("Failed to send cancellation notification: {}", e.getMessage());
+        }
     }
 
     @Override
@@ -242,6 +256,15 @@ public class BookingServiceImpl implements BookingService {
         bookingRepository.save(booking);
 
         log.info("Booking completed: {}", bookingId);
+
+        // Send notification to user (tenant) that they can now review
+        try {
+            String title = "Hãy chia sẻ trải nghiệm của bạn!";
+            String content = String.format("Lịch hẹn xem phòng cho %s đã hoàn tất. Hãy để lại đánh giá để giúp cộng đồng nhé!", booking.getPost().getTitle());
+            notificationService.createNotification(Notification.forBooking(booking.getUser(), title, content, bookingId));
+        } catch (Exception e) {
+            log.error("Failed to send review prompt notification: {}", e.getMessage());
+        }
     }
 
     @Override
@@ -258,6 +281,15 @@ public class BookingServiceImpl implements BookingService {
         bookingRepository.save(booking);
 
         log.info("Booking marked as no-show: {}", bookingId);
+
+        // Send notification to user
+        try {
+            String title = "Thông báo vắng mặt";
+            String content = String.format("Chủ trọ đã đánh dấu bạn vắng mặt tại buổi hẹn cho bài viết: %s", booking.getPost().getTitle());
+            notificationService.createNotification(Notification.forBooking(booking.getUser(), title, content, bookingId));
+        } catch (Exception e) {
+            log.error("Failed to send no-show notification: {}", e.getMessage());
+        }
     }
 
     @Override

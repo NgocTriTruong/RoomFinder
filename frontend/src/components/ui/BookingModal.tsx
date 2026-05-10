@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Calendar, Clock, FileText, Loader2, Tag } from 'lucide-react';
+import { X, Calendar, Clock, FileText, Loader2 } from 'lucide-react';
 import bookingService from '../../services/bookingService';
 import { getErrorMessage } from '../../services/api';
 
@@ -13,7 +13,6 @@ export default function BookingModal({ isOpen, onClose, roomId }: BookingModalPr
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [note, setNote] = useState('');
-  const [voucherCode, setVoucherCode] = useState('');
   const [loading, setLoading] = useState(false);
 
   if (!isOpen) return null;
@@ -50,8 +49,7 @@ export default function BookingModal({ isOpen, onClose, roomId }: BookingModalPr
         postId: parseInt(roomId),
         bookingTime,
         guestCount: 1,
-        note,
-        voucherCode: voucherCode || undefined
+        note
       });
 
       alert('Yêu cầu đặt lịch của bạn đã được gửi thành công!');
@@ -104,18 +102,6 @@ export default function BookingModal({ isOpen, onClose, roomId }: BookingModalPr
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
-              <Tag className="w-4 h-4 mr-2 text-blue-600" /> Mã giảm giá (Voucher)
-            </label>
-            <input
-              type="text"
-              value={voucherCode}
-              onChange={(e) => setVoucherCode(e.target.value)}
-              placeholder="Nhập mã giảm giá nếu có"
-              className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2.5 border uppercase"
-            />
-          </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">

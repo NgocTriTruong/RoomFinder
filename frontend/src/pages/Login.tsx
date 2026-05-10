@@ -8,7 +8,7 @@ import { authService } from '@/services/authService';
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, login, isAuthenticated, isLoading: authLoading, error: authError, clearError } = useAuth();
+  const { user, login, isAuthenticated, isInitializing, error: authError, clearError } = useAuth();
 
   // Form state
   const [email, setEmail] = useState('');
@@ -20,7 +20,7 @@ export default function Login() {
 
   // Redirect if already authenticated
   useEffect(() => {
-    if (isAuthenticated && !authLoading && user) {
+    if (isAuthenticated && !isInitializing && user) {
       const from = (location.state as { from?: Location })?.from?.pathname;
       if (from) {
         navigate(from, { replace: true });
@@ -35,7 +35,7 @@ export default function Login() {
         }
       }
     }
-  }, [isAuthenticated, authLoading, user, navigate, location]);
+  }, [isAuthenticated, isInitializing, user, navigate, location]);
 
   // Clear error when email changes
   useEffect(() => {
@@ -72,8 +72,8 @@ export default function Login() {
     }
   };
 
-  // Show loading while checking auth
-  if (authLoading) {
+  // Show loading ONLY during initial authentication check
+  if (isInitializing) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <Loader2 className="w-8 h-8 animate-spin text-primary-600" />

@@ -57,6 +57,8 @@ export interface UserResponse {
   dateOfBirth: string | null;
   address: string | null;
   bio: string | null;
+  universityId: number | null;
+  universityName?: string | null;
   landlordRating: number | null;
   totalReviews: number | null;
   adminNote?: string;
@@ -70,6 +72,7 @@ export interface AuthResponse {
   tokenType: string;
   expiresIn: number;
   refreshExpiresIn: number;
+  requiresVerification?: boolean;
   user: UserResponse;
 }
 

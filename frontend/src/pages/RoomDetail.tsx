@@ -3,9 +3,11 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { MapPin, Maximize, Tag, Phone, Heart, Share2, ArrowLeft, Calendar, Star, Loader2, MessageSquare } from 'lucide-react';
 import ReportModal from '../components/ui/ReportModal';
 import BookingModal from '../components/ui/BookingModal';
+import ReviewModal from '../components/ui/ReviewModal';
 import LeafletMap from '@/components/map/LeafletMap';
 import postService from '../services/postService';
 import reviewService from '../services/reviewService';
+import { bookingService } from '../services/bookingService';
 import { useAuth } from '../contexts/AuthContext';
 import { PostResponse, ReviewResponse } from '../types';
 import { createAvatarPlaceholder, createPlaceholderImage } from '../utils/localImage';
@@ -26,6 +28,11 @@ export default function RoomDetail() {
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [isSaved, setIsSaved] = useState(false);
+  
+  // State for reviews from within product detail
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [userCompletedBooking, setUserCompletedBooking] = useState<any | null>(null);
+  const [hasUserReviewed, setHasUserReviewed] = useState(false);
 
   const isAdmin = user?.role === 'ADMIN';
   const isLandlordPreview = window.location.pathname.includes('/landlord/room-preview');
@@ -40,11 +47,33 @@ export default function RoomDetail() {
         setRoom(roomData);
 
         const reviewData = await reviewService.getReviewsByPost(id);
-        setReviews(reviewData?.content || []);
+        setReviews(reviewData || []);
 
         if (isAuthenticated && roomData.room?.id) {
           const savedStatus = await favoriteService.isFavorite(roomData.room.id);
           setIsSaved(savedStatus);
+        }
+        
+        // Logic to detect if user can write a review directly from here
+        if (isAuthenticated && user?.id && id) {
+          // 1. Check if already reviewed
+          const alreadyReviewed = (reviewData || []).some((r: any) => r.userId === user.id);
+          setHasUserReviewed(alreadyReviewed);
+          
+          if (!alreadyReviewed) {
+             // 2. Check for completed bookings
+             try {
+               const myBookings = await bookingService.getTenantBookings();
+               const match = myBookings.find((b: any) => 
+                 b.post.id.toString() === id.toString() && b.status === 'COMPLETED'
+               );
+               if (match) {
+                 setUserCompletedBooking(match);
+               }
+             } catch (err) {
+               console.error("Failed check bookings", err);
+             }
+          }
         }
       } catch (error) {
         console.error('Lỗi khi lấy chi tiết phòng:', error);
@@ -54,7 +83,7 @@ export default function RoomDetail() {
     };
 
     fetchData();
-  }, [id]);
+  }, [id, isAuthenticated, user?.id]);
 
   const handleApprove = async () => {
     if (!id || !window.confirm('Bạn có chắc muốn duyệt tin này không?')) return;
@@ -283,6 +312,16 @@ export default function RoomDetail() {
                     <Star className="w-6 h-6 mr-2 text-yellow-400 fill-yellow-400" />
                     Đánh giá từ khách hàng ({reviews.length})
                   </h2>
+                  
+                  {/* Render Review button right here if user qualified and hasn't reviewed yet */}
+                  {!hasUserReviewed && userCompletedBooking && (
+                    <button 
+                      onClick={() => setIsReviewModalOpen(true)}
+                      className="flex items-center gap-2 bg-amber-50 text-amber-700 hover:bg-amber-100 px-4 py-2 rounded-lg font-bold text-sm transition-colors border border-amber-200"
+                    >
+                      <Star className="w-4 h-4 fill-current" /> Viết đánh giá ngay
+                    </button>
+                  )}
                 </div>
 
                 <div className="space-y-6">
@@ -321,9 +360,21 @@ export default function RoomDetail() {
                       </div>
                     ))
                   ) : (
-                    <div className="text-center py-8 bg-gray-50 rounded-lg">
-                      <MessageSquare className="w-12 h-12 text-gray-300 mx-auto mb-2" />
-                      <p className="text-gray-500 italic">Chưa có đánh giá nào cho phòng này.</p>
+                    <div className="text-center py-10 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                      <MessageSquare className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                      <p className="text-gray-700 font-medium mb-1">Chưa có đánh giá nào cho phòng này</p>
+                      <p className="text-sm text-gray-500 mb-4">
+                        Bạn cần đặt lịch và **hoàn thành việc xem phòng** để có thể viết đánh giá.
+                        Điều này giúp đảm bảo mọi nhận xét đều là người thật việc thật!
+                      </p>
+                      {userCompletedBooking && !hasUserReviewed && (
+                         <button 
+                            onClick={() => setIsReviewModalOpen(true)}
+                            className="bg-amber-500 hover:bg-amber-600 text-white font-bold px-6 py-2.5 rounded-lg inline-flex items-center gap-2 shadow-sm transition-colors"
+                         >
+                            <Star className="w-5 h-5" /> Viết đánh giá ngay
+                         </button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -475,6 +526,22 @@ export default function RoomDetail() {
         onClose={() => setIsBookingModalOpen(false)}
         roomId={room.id.toString()}
       />
+      
+      {room && userCompletedBooking && (
+        <ReviewModal
+          isOpen={isReviewModalOpen}
+          onClose={() => setIsReviewModalOpen(false)}
+          booking={{
+            id: userCompletedBooking.id.toString(),
+            postId: room.id,
+            roomTitle: room.title
+          }}
+          onSuccess={() => {
+             // Refresh the data after review
+             window.location.reload();
+          }}
+        />
+      )}
     </div>
   );
 }

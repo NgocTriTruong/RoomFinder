@@ -1,8 +1,23 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { Filter, SlidersHorizontal, Loader2, Search as SearchIcon } from 'lucide-react';
 import RoomCard from '../components/ui/RoomCard';
 import postService, { PostSearchParams } from '../services/postService';
 import { PostResponse } from '../types';
+import universityService, { UniversityResponse } from '../services/universityService';
+
+// Custom debounce hook
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+  return debouncedValue;
+}
 
 export default function Search() {
   const [posts, setPosts] = useState<PostResponse[]>([]);
@@ -17,12 +32,37 @@ export default function Search() {
   const [sortDirection, setSortDirection] = useState('desc');
   const [page, setPage] = useState(0);
 
-  const fetchPosts = useCallback(async () => {
+  // University filter
+  const [universities, setUniversities] = useState<UniversityResponse[]>([]);
+  const [selectedUniversityId, setSelectedUniversityId] = useState<number | ''>('');
+  const [radiusKm, setRadiusKm] = useState(5);
+  const [uniKeyword, setUniKeyword] = useState('');
+
+  // Debounced values
+  const debouncedKeyword = useDebounce(keyword, 500);
+  const debouncedUniKeyword = useDebounce(uniKeyword, 300);
+  
+  // Track if it's the first load
+  const isFirstLoad = useRef(true);
+
+  useEffect(() => {
+    const fetchUniversities = async () => {
+      try {
+        const data = await universityService.getAll(undefined, debouncedUniKeyword, district);
+        setUniversities(data);
+      } catch (error) {
+        console.error('Lỗi khi lấy danh sách trường ĐH:', error);
+      }
+    };
+    fetchUniversities();
+  }, [debouncedUniKeyword, district]);
+
+  const fetchPosts = useCallback(async (isInitial = false) => {
     try {
-      setLoading(true);
+      if (isInitial) setLoading(true);
       
       const params: PostSearchParams & { page: number; size: number; sortBy: string; sortDirection: string } = {
-        keyword,
+        keyword: debouncedKeyword,
         page,
         size: 9,
         sortBy,
@@ -46,18 +86,34 @@ export default function Search() {
         params.location = district;
       }
 
+      // Geo search if university is selected
+      if (selectedUniversityId) {
+        const uni = universities.find(u => u.id === Number(selectedUniversityId));
+        if (uni) {
+          params.latitude = uni.latitude;
+          params.longitude = uni.longitude;
+          params.radiusKm = radiusKm;
+          params.nearbyUniversityId = uni.id;
+        }
+      }
+
       const response = await postService.getPublicPosts(params);
       setPosts(response.content);
       setTotalElements(response.totalElements);
     } catch (error) {
       console.error('Lỗi khi tìm kiếm:', error);
     } finally {
-      setLoading(false);
+      if (isInitial) setLoading(false);
     }
-  }, [keyword, priceRange, district, sortBy, sortDirection, page]);
+  }, [debouncedKeyword, priceRange, district, sortBy, sortDirection, page, selectedUniversityId, radiusKm, universities]);
 
   useEffect(() => {
-    fetchPosts();
+    if (isFirstLoad.current) {
+      fetchPosts(true);
+      isFirstLoad.current = false;
+    } else {
+      fetchPosts(false);
+    }
   }, [fetchPosts]);
 
   const handleApplyFilters = () => {
@@ -141,6 +197,54 @@ export default function Search() {
                 <option value="Quận Gò Vấp">Gò Vấp</option>
               </select>
             </div>
+
+            {/* University Filter */}
+            <div className="mb-6">
+              <h3 className="text-sm font-medium text-gray-900 mb-3">Gần trường Đại học</h3>
+              <input
+                type="text"
+                placeholder="Tìm tên trường..."
+                className="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border mb-2"
+                value={uniKeyword}
+                onChange={(e) => setUniKeyword(e.target.value)}
+              />
+              <select 
+                className="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+                value={selectedUniversityId}
+                onChange={(e) => setSelectedUniversityId(e.target.value ? Number(e.target.value) : '')}
+              >
+                <option value="">Chọn trường đại học</option>
+                {universities.map(uni => (
+                  <option key={uni.id} value={uni.id}>
+                    {uni.abbreviation ? `[${uni.abbreviation}] ` : ''}{uni.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Radius Filter (Only show if university is selected) */}
+            {selectedUniversityId && (
+              <div className="mb-6">
+                <h3 className="text-sm font-medium text-gray-900 mb-3 flex justify-between">
+                  <span>Bán kính</span>
+                  <span className="text-blue-600 font-bold">{radiusKm} km</span>
+                </h3>
+                <input
+                  type="range"
+                  min="1"
+                  max="20"
+                  step="1"
+                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                  value={radiusKm}
+                  onChange={(e) => setRadiusKm(Number(e.target.value))}
+                />
+                <div className="flex justify-between text-[10px] text-gray-400 mt-1">
+                  <span>1km</span>
+                  <span>10km</span>
+                  <span>20km</span>
+                </div>
+              </div>
+            )}
 
             <button 
               onClick={handleApplyFilters}

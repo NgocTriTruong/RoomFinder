@@ -57,13 +57,10 @@ api.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
-    // Log error in development
+    // Log detailed error for debugging
     if (import.meta.env.DEV) {
-      console.error(`❌ ${error.config?.method?.toUpperCase()} ${error.config?.url}`, {
-        status: error.response?.status,
-        data: error.response?.data,
-        message: error.message,
-      });
+      const errorData = error.response?.data as any;
+      console.error(`❌ ${error.config?.method?.toUpperCase()} ${error.config?.url} | Status: ${error.response?.status} | Message: ${errorData?.message || error.message}`);
     }
 
     // Handle 401 Unauthorized - Token expired

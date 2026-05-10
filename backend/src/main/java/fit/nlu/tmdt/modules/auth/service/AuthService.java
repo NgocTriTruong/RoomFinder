@@ -40,4 +40,14 @@ public interface AuthService {
      * OAuth2 Login (Google/Facebook)
      */
     AuthResponse oauth2Login(String provider, String providerId, String email, String fullName);
+
+    /**
+     * Xác thực OTP
+     */
+    AuthResponse verifyOtp(VerifyOtpRequest request);
+
+    /**
+     * Gửi lại mã OTP
+     */
+    void resendOtp(String email);
 }

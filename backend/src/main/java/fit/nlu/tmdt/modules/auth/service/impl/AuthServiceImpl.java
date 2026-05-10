@@ -11,6 +11,9 @@ import fit.nlu.tmdt.modules.auth.entity.enums.UserRole;
 import fit.nlu.tmdt.modules.auth.entity.enums.UserStatus;
 import fit.nlu.tmdt.modules.auth.repository.UserRepository;
 import fit.nlu.tmdt.modules.auth.service.AuthService;
+import fit.nlu.tmdt.modules.auth.service.EmailService;
+import fit.nlu.tmdt.modules.university.repository.UniversityRepository;
+import fit.nlu.tmdt.modules.university.entity.University;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -30,6 +33,8 @@ import java.time.LocalDateTime;
 public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
+    private final UniversityRepository universityRepository;
+    private final EmailService emailService;
     private final JwtTokenProvider jwtTokenProvider;
     private final PasswordEncoder passwordEncoder;
 
@@ -62,36 +67,54 @@ public class AuthServiceImpl implements AuthService {
             throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Vai trò không hợp lệ");
         }
 
-        // 4. Create user - auto verified
+        // 4. Validate Student Email if Role is USER
+        Long universityId = null;
+        if (role == UserRole.USER) {
+            String email = request.getEmail();
+            String domain = email.substring(email.lastIndexOf("@") + 1);
+            
+            // Check if domain matches any university or sub-domain
+            var universities = universityRepository.findAll();
+            var university = universities.stream()
+                    .filter(u -> u.getEmailDomain() != null && !u.getEmailDomain().isEmpty() 
+                               && domain.endsWith(u.getEmailDomain()))
+                    .findFirst();
+            
+            if (university.isEmpty()) {
+                throw new BusinessException(ErrorCode.VALIDATION_ERROR, 
+                    "Bạn phải sử dụng email sinh viên để đăng ký tài khoản người thuê trọ.");
+            }
+            universityId = university.get().getId();
+        }
+
+        // 5. Generate OTP
+        String otp = String.format("%06d", new java.util.Random().nextInt(1000000));
+        LocalDateTime expiry = LocalDateTime.now().plusMinutes(10);
+
+        // 6. Create user - PENDING until OTP verified
         User user = User.builder()
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .fullName(request.getFullName())
                 .phone(request.getPhone())
                 .role(role)
-                .status(UserStatus.ACTIVE)
-                .isVerified(true)
+                .status(UserStatus.PENDING)
+                .isVerified(false)
+                .universityId(universityId)
+                .otpCode(otp)
+                .otpExpiry(expiry)
                 .provider("LOCAL")
                 .build();
 
         user = userRepository.save(user);
 
-        // 5. Generate tokens for auto-login
-        String accessToken = jwtTokenProvider.generateAccessToken(user.getId(), user.getEmail(), user.getRole().name());
-        String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId());
+        // 7. Send OTP Email
+        emailService.sendOtpEmail(user.getEmail(), otp);
 
-        // 6. Save refresh token
-        user.setRefreshToken(refreshToken);
-        userRepository.save(user);
-
-        log.info("User registered and logged in successfully with ID: {}", user.getId());
+        log.info("User registered. OTP sent to: {}", user.getEmail());
 
         return AuthResponse.builder()
-                .accessToken(accessToken)
-                .refreshToken(refreshToken)
-                .tokenType("Bearer")
-                .expiresIn(accessTokenExpiration / 1000)
-                .refreshExpiresIn(refreshTokenExpiration / 1000)
+                .requiresVerification(true)
                 .user(toUserResponse(user))
                 .build();
     }
@@ -148,6 +171,8 @@ public class AuthServiceImpl implements AuthService {
                 throw new BusinessException(ErrorCode.AUTH_002, "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ hỗ trợ.");
             } else if (user.getStatus() == UserStatus.INACTIVE) {
                 throw new BusinessException(ErrorCode.AUTH_006, "Tài khoản của bạn đang bị vô hiệu hóa. Vui lòng liên hệ hỗ trợ hoặc sử dụng chức năng kích hoạt lại.");
+            } else if (user.getStatus() == UserStatus.PENDING) {
+                throw new BusinessException(ErrorCode.AUTH_001, "Tài khoản đang chờ xác thực. Vui lòng xác thực OTP.");
             } else {
                 throw new BusinessException(ErrorCode.AUTH_002, "Tài khoản không khả dụng.");
             }
@@ -391,10 +416,78 @@ public class AuthServiceImpl implements AuthService {
                 .dateOfBirth(user.getDateOfBirth())
                 .address(user.getAddress())
                 .bio(user.getBio())
+                .universityId(user.getUniversityId())
                 .landlordRating(user.getLandlordRating())
                 .totalReviews(user.getTotalReviews())
                 .lastLoginAt(user.getLastLoginAt())
                 .createdAt(user.getCreatedAt())
                 .build();
+    }
+
+    @Override
+    @Transactional
+    public AuthResponse verifyOtp(VerifyOtpRequest request) {
+        log.info("Verifying OTP for email: {}", request.getEmail());
+        
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_001, "User not found"));
+        
+        if (user.getStatus() == UserStatus.ACTIVE) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Account đã được xác thực");
+        }
+        
+        if (user.getOtpCode() == null || !user.getOtpCode().equals(request.getOtpCode())) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Mã OTP không chính xác");
+        }
+        
+        if (user.getOtpExpiry().isBefore(LocalDateTime.now())) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Mã OTP đã hết hạn");
+        }
+        
+        // Mark as verified
+        user.setStatus(UserStatus.ACTIVE);
+        user.setIsVerified(true);
+        user.setVerifiedAt(LocalDateTime.now());
+        user.setOtpCode(null);
+        user.setOtpExpiry(null);
+        
+        userRepository.save(user);
+        
+        // Auto login
+        String accessToken = jwtTokenProvider.generateAccessToken(user.getId(), user.getEmail(), user.getRole().name());
+        String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId());
+        user.setRefreshToken(refreshToken);
+        userRepository.save(user);
+        
+        log.info("OTP verified successfully for user: {}", user.getId());
+        
+        return AuthResponse.builder()
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .tokenType("Bearer")
+                .expiresIn(accessTokenExpiration / 1000)
+                .refreshExpiresIn(refreshTokenExpiration / 1000)
+                .user(toUserResponse(user))
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public void resendOtp(String email) {
+        log.info("Resending OTP to email: {}", email);
+        
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_001, "User not found"));
+        
+        if (user.getStatus() == UserStatus.ACTIVE) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Account đã được xác thực");
+        }
+        
+        String otp = String.format("%06d", new java.util.Random().nextInt(1000000));
+        user.setOtpCode(otp);
+        user.setOtpExpiry(LocalDateTime.now().plusMinutes(10));
+        
+        userRepository.save(user);
+        emailService.sendOtpEmail(user.getEmail(), otp);
     }
 }

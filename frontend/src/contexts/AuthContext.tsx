@@ -8,7 +8,7 @@ import {
 } from 'react';
 import { authService, authStorage } from '@/services/authService';
 import { getErrorMessage } from '@/services/api';
-import type { UserResponse, LoginRequest, RegisterRequest } from '@/types';
+import type { UserResponse, LoginRequest, RegisterRequest, AuthResponse } from '@/types';
 
 // ============================================
 // Types
@@ -18,12 +18,15 @@ interface AuthContextType {
   user: UserResponse | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  isInitializing: boolean;
   error: string | null;
   login: (credentials: LoginRequest) => Promise<void>;
-  register: (data: RegisterRequest) => Promise<void>;
+  register: (data: RegisterRequest) => Promise<AuthResponse>;
   logout: () => Promise<void>;
   clearError: () => void;
   refreshUser: () => Promise<void>;
+  verifyOtp: (email: string, otp: string) => Promise<void>;
+  resendOtp: (email: string) => Promise<void>;
 }
 
 interface AuthProviderProps {
@@ -42,7 +45,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<UserResponse | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Initialize auth state from localStorage
@@ -75,7 +79,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         console.error('Failed to initialize auth:', err);
         setUser(null);
       } finally {
-        setIsLoading(false);
+        setIsInitializing(false);
       }
     };
 
@@ -125,16 +129,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       const response = await authService.register(data);
 
-      // Save auth data to localStorage
-      authStorage.saveAuth(response);
-
-      // Update state
-      setUser(response.user);
-
-      console.log('Registration successful:', response.user.fullName);
+      if (response.requiresVerification) {
+        // Don't set user state yet to prevent premature redirection
+        console.log('Registration successful, OTP required for:', response.user.email);
+      } else {
+        // Save auth data to localStorage
+        authStorage.saveAuth(response);
+        // Update state
+        setUser(response.user);
+        console.log('Registration successful:', response.user.fullName);
+      }
+      return response; // Return full response to handle in component
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : 'Registration failed. Please try again.';
+      const errorMessage = getErrorMessage(err);
       setError(errorMessage);
       throw err;
     } finally {
@@ -182,20 +189,48 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }, []);
 
+  const verifyOtp = useCallback(async (email: string, otpCode: string) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await authService.verifyOtp(email, otpCode);
+      setUser(response.user);
+    } catch (err: any) {
+      const msg = getErrorMessage(err);
+      setError(msg);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const resendOtp = useCallback(async (email: string) => {
+    try {
+      await authService.resendOtp(email);
+    } catch (err: any) {
+      const msg = err.response?.data?.message || err.message || 'Gửi lại OTP thất bại';
+      setError(msg);
+      throw err;
+    }
+  }, []);
+
   // ============================================
   // Context Value
   // ============================================
 
   const value: AuthContextType = {
     user,
-    isAuthenticated: !!user,
+    isAuthenticated: !!user && authStorage.isAuthenticated(),
     isLoading,
+    isInitializing,
     error,
     login,
     register,
     logout,
     clearError,
     refreshUser,
+    verifyOtp,
+    resendOtp,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

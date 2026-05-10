@@ -36,11 +36,11 @@ export function ProtectedRoute({
   allowedRoles,
   requireAuth = true,
 }: ProtectedRouteProps) {
-  const { user, isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isInitializing } = useAuth();
   const location = useLocation();
 
-  // Show loading spinner while checking auth
-  if (isLoading) {
+  // Show loading spinner ONLY during initial auth check
+  if (isInitializing) {
     return <LoadingSpinner />;
   }
 
@@ -118,6 +118,30 @@ export function UserRoute({ children }: { children: React.ReactNode }) {
 
 export function GuestRoute({ children }: { children: React.ReactNode }) {
   return <ProtectedRoute requireAuth={false}>{children}</ProtectedRoute>;
+}
+
+// ============================================
+// Tenant or Public Route Component 
+// Blocks Admin/Landlord from viewing public tenant space
+// ============================================
+
+export function TenantOrPublicRoute({ children }: { children: React.ReactNode }) {
+  const { user, isAuthenticated, isInitializing } = useAuth();
+
+  if (isInitializing) {
+    return <LoadingSpinner />;
+  }
+
+  if (isAuthenticated) {
+    if (user?.role === 'ADMIN') {
+      return <Navigate to="/admin" replace />;
+    }
+    if (user?.role === 'LANDLORD') {
+      return <Navigate to="/landlord" replace />;
+    }
+  }
+
+  return <>{children}</>;
 }
 
 export default ProtectedRoute;

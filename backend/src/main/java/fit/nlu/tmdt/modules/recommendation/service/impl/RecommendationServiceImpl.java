@@ -26,6 +26,8 @@ import fit.nlu.tmdt.modules.recommendation.repository.RecommendationLogRepositor
 import fit.nlu.tmdt.modules.recommendation.repository.UserPreferenceRepository;
 import fit.nlu.tmdt.modules.recommendation.service.RecommendationService;
 import fit.nlu.tmdt.modules.room.entity.Amenity;
+import fit.nlu.tmdt.modules.university.entity.University;
+import fit.nlu.tmdt.modules.university.repository.UniversityRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.Hibernate;
@@ -35,6 +37,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -57,6 +60,7 @@ public class RecommendationServiceImpl implements RecommendationService {
     private final BookingRepository bookingRepository;
     private final UserRepository userRepository;
     private final PostService postService;
+    private final UniversityRepository universityRepository;
 
     // Weights
     private static final double WEIGHT_PRICE = 0.30;
@@ -87,6 +91,32 @@ public class RecommendationServiceImpl implements RecommendationService {
         }
         
         all.addAll(getBecauseYouLiked(userId, request.getSize()));
+        
+        // ===== STUDENT FILTER: CHỈ GỢI Ý PHÒNG GẦN TRƯỜNG CHO SINH VIÊN =====
+        if (preferences.getUniversityLatitude() != null && preferences.getUniversityLongitude() != null) {
+            final double uniLat = preferences.getUniversityLatitude();
+            final double uniLon = preferences.getUniversityLongitude();
+            // Bán kính lọc: Dùng maxDistanceKm của user, mặc định 10km
+            final double maxDist = preferences.getMaxDistanceKm() != null ? preferences.getMaxDistanceKm() : 10.0;
+
+            all = all.stream().filter(rec -> {
+                if (rec.getPost() == null || rec.getPost().getRoom() == null) return false;
+                Double roomLat = rec.getPost().getRoom().getLatitude();
+                Double roomLon = rec.getPost().getRoom().getLongitude();
+                if (roomLat == null || roomLon == null) return false;
+                
+                double d = calculateDistance(uniLat, uniLon, roomLat, roomLon);
+                // Điều chỉnh điểm ưu tiên cho phòng ở siêu gần trường
+                if (d <= maxDist) {
+                    // Tăng score của các phòng trong phạm vi dựa trên độ gần
+                    rec.setScore(rec.getScore() * 0.6 + (1.0 - d / maxDist) * 0.4);
+                    rec.setReason("Gần trường " + preferences.getUniversityName() + " (" + String.format("%.1f", d) + " km)");
+                    return true;
+                }
+                return false;
+            }).collect(Collectors.toList());
+        }
+        // ===================================================================
 
         List<RecommendationResponse> unique = removeDuplicatesAndSort(all);
         logRecommendations(userId, unique);
@@ -379,11 +409,33 @@ public class RecommendationServiceImpl implements RecommendationService {
     @Transactional
     public UserPreference buildPreferenceFromHistory(Long userId) {
         log.info("Building preference from history for user: {}", userId);
+        
+        User user = userRepository.findByIdAndDeletedAtIsNull(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_001, "User not found"));
+                
         UserPreference pref = userPreferenceRepository.findByUserId(userId).orElseGet(() -> {
-            User user = userRepository.findByIdAndDeletedAtIsNull(userId)
-                    .orElseThrow(() -> new BusinessException(ErrorCode.USER_001, "User not found"));
             return UserPreference.builder().user(user).maxDistanceKm(10.0).totalFavorites(0).totalViews(0).build();
         });
+
+        // Sync University Data if student
+        if (user.getUniversityId() != null) {
+            Optional<University> uniOpt = universityRepository.findById(user.getUniversityId());
+            if (uniOpt.isPresent()) {
+                University uni = uniOpt.get();
+                pref.setUniversityId(uni.getId());
+                pref.setUniversityName(uni.getName());
+                pref.setUniversityLatitude(uni.getLatitude());
+                pref.setUniversityLongitude(uni.getLongitude());
+                
+                // Automatically use university location as primary preference if not custom-set yet
+                if (pref.getPreferredLatitude() == null || pref.getPreferredLongitude() == null) {
+                    pref.setPreferredLatitude(uni.getLatitude());
+                    pref.setPreferredLongitude(uni.getLongitude());
+                    pref.setPreferredDistrict(uni.getDistrict());
+                    pref.setPreferredProvince(uni.getProvince());
+                }
+            }
+        }
 
         List<Favorite> favorites = favoriteRepository.findByUserIdAndDeletedAtIsNull(userId);
         pref.setTotalFavorites(favorites.size());

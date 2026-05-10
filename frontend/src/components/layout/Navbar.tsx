@@ -67,13 +67,15 @@ export default function Navbar() {
               </>
             ) : (
               <div className="flex items-center space-x-4">
-                <Link
-                  to={user?.role === 'LANDLORD' ? "/landlord/posts/create" : "/register"}
-                  className="hidden lg:flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg font-medium text-sm transition-colors shadow-sm"
-                >
-                  <PlusCircle className="w-4 h-4" />
-                  Đăng tin mới
-                </Link>
+                {user?.role === 'LANDLORD' && (
+                  <Link
+                    to="/landlord/posts/create"
+                    className="hidden lg:flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg font-medium text-sm transition-colors shadow-sm"
+                  >
+                    <PlusCircle className="w-4 h-4" />
+                    Đăng tin mới
+                  </Link>
+                )}
 
                 <NotificationDropdown />
 

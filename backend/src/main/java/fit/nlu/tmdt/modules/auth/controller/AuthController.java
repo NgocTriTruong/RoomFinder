@@ -83,4 +83,19 @@ public class AuthController {
     }
 
         // OAuth2 is disabled by user request
+    @PostMapping("/verify-otp")
+    @Operation(summary = "Verify account with OTP")
+    public ResponseEntity<ApiResponse<AuthResponse>> verifyOtp(@Valid @RequestBody VerifyOtpRequest request) {
+        log.info("Verify OTP request for email: {}", request.getEmail());
+        AuthResponse response = authService.verifyOtp(request);
+        return ResponseEntity.ok(ApiResponse.success("Xác thực tài khoản thành công", response));
+    }
+
+    @PostMapping("/resend-otp")
+    @Operation(summary = "Resend verification OTP")
+    public ResponseEntity<ApiResponse<Void>> resendOtp(@RequestParam String email) {
+        log.info("Resend OTP request for email: {}", email);
+        authService.resendOtp(email);
+        return ResponseEntity.ok(ApiResponse.success("Mã OTP mới đã được gửi qua email của bạn", null));
+    }
 }

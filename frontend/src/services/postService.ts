@@ -16,6 +16,10 @@ export interface PostSearchParams {
   location?: string;
   amenityIds?: number[];
   category?: string;
+  latitude?: number;
+  longitude?: number;
+  radiusKm?: number;
+  nearbyUniversityId?: number;
 }
 
 export interface AdminPostQuery extends PostSearchParams {
@@ -30,7 +34,7 @@ export const postService = {
   /**
    * Get all public posts (Search & List)
    */
-  getPublicPosts: async (params: PostSearchParams & { page?: number; size?: number }): Promise<PaginatedData<PostResponse>> => {
+  getPublicPosts: async (params: PostSearchParams & { page?: number; size?: number; sortBy?: string; sortDirection?: string }): Promise<PaginatedData<PostResponse>> => {
     const response = await api.get<ApiResponse<PaginatedData<PostResponse>>>('/v1/posts/public', {
       params,
     });

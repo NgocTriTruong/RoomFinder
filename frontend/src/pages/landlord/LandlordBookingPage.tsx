@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Calendar, Phone, User, Home, Check, X, Loader2, Clock, History, AlertCircle, Ban } from 'lucide-react';
+import { Calendar, Phone, User, Home, Check, X, Loader2, MessageSquare, Clock, History, AlertCircle, Ban } from 'lucide-react';
 import { bookingService } from '../../services/bookingService';
 import type { BookingResponse } from '../../types';
 
@@ -129,7 +129,6 @@ export default function LandlordBookingPage() {
         return bookings;
     }
   };
-
   const getStatusBadge = (status: string) => {
     switch (status.toUpperCase()) {
       case 'CONFIRMED':
@@ -316,6 +315,12 @@ export default function LandlordBookingPage() {
                     </div>
                   )}
                 </div>
+                {booking.note && (
+                  <div className="bg-gray-50 p-2.5 rounded-md mt-2 flex items-start gap-2 border border-gray-100">
+                    <MessageSquare className="w-3.5 h-3.5 text-gray-400 mt-0.5 flex-shrink-0" />
+                    <p className="text-xs text-gray-600 italic">"{booking.note}"</p>
+                  </div>
+                )}
               </div>
 
               <div className="p-4 bg-gray-50 border-t border-gray-100 flex gap-2">

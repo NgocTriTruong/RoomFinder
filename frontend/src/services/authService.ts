@@ -25,7 +25,14 @@ export const authService = {
    */
   register: async (data: RegisterRequest): Promise<AuthResponse> => {
     const response = await api.post<ApiResponse<AuthResponse>>('/v1/auth/register', data);
-    return response.data.data!;
+    const authData = response.data.data!;
+    
+    // Only save tokens if verification is not required
+    if (!authData.requiresVerification) {
+      authStorage.saveAuth(authData);
+    }
+    
+    return authData;
   },
 
   /**
@@ -82,15 +89,18 @@ export const authService = {
   /**
    * Verify email with OTP
    */
-  verifyEmail: async (data: { email: string; otp: string }): Promise<void> => {
-    await api.post('/v1/auth/verify-email', data);
+  verifyOtp: async (email: string, otpCode: string): Promise<AuthResponse> => {
+    const response = await api.post<ApiResponse<AuthResponse>>('/v1/auth/verify-otp', { email, otpCode });
+    const authData = response.data.data!;
+    authStorage.saveAuth(authData);
+    return authData;
   },
 
   /**
-   * Resend verification email
+   * Resend verification OTP
    */
-  resendVerification: async (email: string): Promise<void> => {
-    await api.post('/v1/auth/resend-verification', { email });
+  resendOtp: async (email: string): Promise<void> => {
+    await api.post('/v1/auth/resend-otp', null, { params: { email } });
   },
 
   /**
@@ -128,9 +138,9 @@ export const authStorage = {
    * Save auth data to localStorage
    */
   saveAuth: (authData: AuthResponse): void => {
-    localStorage.setItem('accessToken', authData.accessToken);
-    localStorage.setItem('refreshToken', authData.refreshToken);
-    localStorage.setItem('user', JSON.stringify(authData.user));
+    if (authData.accessToken) localStorage.setItem('accessToken', authData.accessToken);
+    if (authData.refreshToken) localStorage.setItem('refreshToken', authData.refreshToken);
+    if (authData.user) localStorage.setItem('user', JSON.stringify(authData.user));
   },
 
   /**

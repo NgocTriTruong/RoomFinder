@@ -33,6 +33,7 @@ public class UserResponse {
     private LocalDate dateOfBirth;
     private String address;
     private String bio;
+    private Long universityId;
     private Double landlordRating;
     private Integer totalReviews;
     private String adminNote;

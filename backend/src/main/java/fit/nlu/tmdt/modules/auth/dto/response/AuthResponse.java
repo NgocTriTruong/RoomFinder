@@ -19,5 +19,6 @@ public class AuthResponse {
     private String tokenType;
     private long expiresIn;        // Access token expiration in seconds
     private long refreshExpiresIn; // Refresh token expiration in seconds
+    private boolean requiresVerification;
     private UserResponse user;
 }

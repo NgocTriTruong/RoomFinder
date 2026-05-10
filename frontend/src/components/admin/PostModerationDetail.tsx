@@ -29,7 +29,7 @@ export default function PostModerationDetail({ postId, onBack, onActionComplete 
         setRoom(roomData);
         
         const reviewData = await reviewService.getReviewsByPost(postId);
-        setReviews(reviewData?.content || []);
+        setReviews(reviewData || []);
       } catch (error) {
         console.error('Lỗi khi lấy chi tiết phòng:', error);
       } finally {

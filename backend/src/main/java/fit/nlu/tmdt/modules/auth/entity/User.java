@@ -84,6 +84,19 @@ public class User extends BaseEntity {
     private String adminNote;
 
     // ==========================================
+    // STUDENT/USER INFO
+    // ==========================================
+
+    @Column(name = "university_id")
+    private Long universityId;
+
+    @Column(name = "otp_code", length = 6)
+    private String otpCode;
+
+    @Column(name = "otp_expiry")
+    private LocalDateTime otpExpiry;
+
+    // ==========================================
     // OAUTH INFO
     // ==========================================
 
@@ -120,10 +133,7 @@ public class User extends BaseEntity {
     @Column(length = 255)
     private String address;
 
-    @Column(name = "university_id")
-    private Long universityId;
-
-    @Column(name = "bio", length = 500)
+    @Column(name = "bio", length = 1000)
     private String bio;
 
     // ==========================================
@@ -152,37 +162,22 @@ public class User extends BaseEntity {
     // HELPER METHODS
     // ==========================================
 
-    /**
-     * Kiểm tra tài khoản có bị khóa không
-     */
     public boolean isLocked() {
         return lockoutEnd != null && lockoutEnd.isAfter(LocalDateTime.now());
     }
 
-    /**
-     * Kiểm tra tài khoản có được xác thực không
-     */
     public boolean isEmailVerified() {
         return Boolean.TRUE.equals(isVerified);
     }
 
-    /**
-     * Kiểm tra có phải landlord không
-     */
     public boolean isLandlord() {
         return role == UserRole.LANDLORD;
     }
 
-    /**
-     * Kiểm tra có phải admin không
-     */
     public boolean isAdmin() {
         return role == UserRole.ADMIN;
     }
 
-    /**
-     * Tăng số lần đăng nhập thất bại
-     */
     public void incrementFailedLoginAttempts() {
         this.failedLoginAttempts = (this.failedLoginAttempts == null ? 0 : this.failedLoginAttempts) + 1;
         if (this.failedLoginAttempts >= 5) {
@@ -190,17 +185,11 @@ public class User extends BaseEntity {
         }
     }
 
-    /**
-     * Reset số lần đăng nhập thất bại
-     */
     public void resetFailedLoginAttempts() {
         this.failedLoginAttempts = 0;
         this.lockoutEnd = null;
     }
 
-    /**
-     * Cập nhật thông tin đăng nhập thành công
-     */
     public void recordSuccessfulLogin(String ip) {
         resetFailedLoginAttempts();
         this.lastLoginAt = LocalDateTime.now();
