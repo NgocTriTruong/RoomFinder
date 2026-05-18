@@ -118,7 +118,7 @@ export default function VerificationPage() {
 
   if (status) {
     return (
-      <div className="max-w-2xl mx-auto py-8">
+      <div className="max-w-2xl mx-auto py-8 space-y-8 px-4">
         <div className={`p-8 rounded-2xl border ${status.color} shadow-sm text-center space-y-4`}>
           <div className="flex justify-center">{status.icon}</div>
           <h2 className="text-2xl font-bold">{status.title}</h2>
@@ -140,6 +140,54 @@ export default function VerificationPage() {
             </button>
           )}
         </div>
+
+        {/* Submitted Documents Review Section */}
+        {(user?.frontIdCardUrl || user?.backIdCardUrl || user?.selfieUrl) && (
+          <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-6">
+            <h3 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-3 flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-blue-600" />
+              Hình ảnh hồ sơ CCCD đã tải lên
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {user.frontIdCardUrl && (
+                <div className="space-y-2">
+                  <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block">Mặt trước CCCD/CMND</span>
+                  <div className="aspect-video rounded-xl border border-gray-100 overflow-hidden bg-gray-50 shadow-inner">
+                    <img 
+                      src={resolveMediaUrl(user.frontIdCardUrl)} 
+                      alt="Mặt trước CCCD" 
+                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                    />
+                  </div>
+                </div>
+              )}
+              {user.backIdCardUrl && (
+                <div className="space-y-2">
+                  <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block">Mặt sau CCCD/CMND</span>
+                  <div className="aspect-video rounded-xl border border-gray-100 overflow-hidden bg-gray-50 shadow-inner">
+                    <img 
+                      src={resolveMediaUrl(user.backIdCardUrl)} 
+                      alt="Mặt sau CCCD" 
+                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                    />
+                  </div>
+                </div>
+              )}
+              {user.selfieUrl && (
+                <div className="md:col-span-2 space-y-2 max-w-md mx-auto w-full">
+                  <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block text-center">Ảnh chân dung cầm CCCD</span>
+                  <div className="aspect-square rounded-xl border border-gray-100 overflow-hidden bg-gray-50 shadow-inner">
+                    <img 
+                      src={resolveMediaUrl(user.selfieUrl)} 
+                      alt="Ảnh chân dung" 
+                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     );
   }

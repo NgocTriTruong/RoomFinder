@@ -20,14 +20,45 @@ export interface ComprehensiveStats {
     transactionCount: number;
     dailyRevenue: Record<string, number>;
     revenueByType: Record<string, number>;
+    successfulTransactions?: number;
+    failedTransactions?: number;
+    pendingTransactions?: number;
   };
   users: {
     totalUsers: number;
     roleBreakdown: Record<string, number>;
+    verifiedUsers?: number;
+    unverifiedUsers?: number;
+    landlords?: number;
+    tenants?: number;
   };
   posts: {
     totalPosts: number;
     statusBreakdown: Record<string, number>;
+    approvedPosts?: number;
+    pendingPosts?: number;
+    rejectedPosts?: number;
+    totalViews?: number;
+    totalFavorites?: number;
+  };
+  bookings: {
+    totalBookings: number;
+    pendingBookings: number;
+    confirmedBookings: number;
+    completedBookings: number;
+    cancelledBookings: number;
+    statusBreakdown: Record<string, number>;
+  };
+  reviews: {
+    totalReviews: number;
+    reviewsInPeriod: number;
+    averageRating: number;
+  };
+  reports: {
+    totalReports: number;
+    pendingReports: number;
+    resolvedReports: number;
+    dismissedReports: number;
   };
 }
 

@@ -1,5 +1,8 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Users, Eye, MessageCircle, TrendingUp, Loader2, CreditCard, BarChart3, Star, ArrowUpRight } from 'lucide-react';
+import { 
+  Users, Eye, MessageCircle, TrendingUp, Loader2, CreditCard, BarChart3, Star, ArrowUpRight,
+  Heart, CheckCircle2, XCircle, Calendar, TrendingDown, Activity
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
@@ -44,6 +47,52 @@ export default function LandlordDashboard() {
       originalDate: day.date
     }));
   }, [stats, chartType]);
+
+  const ratios = useMemo(() => {
+    if (!stats) return null;
+
+    const totalViews = stats.totalViews || 0;
+    const totalBookings = stats.totalBookings || 0;
+    const totalFavorites = stats.totalFavorites || 0;
+    const completedB = stats.completedBookings || 0;
+    const cancelledB = stats.cancelledBookings || 0;
+    const finalBookingsCount = completedB + cancelledB;
+
+    // 1. Booking Success Rate
+    const bookingSuccessRate = finalBookingsCount > 0
+      ? Math.round((completedB / finalBookingsCount) * 100 * 10) / 10
+      : 0;
+
+    // 2. Booking Cancel Rate
+    const bookingCancelRate = finalBookingsCount > 0
+      ? Math.round((cancelledB / finalBookingsCount) * 100 * 10) / 10
+      : 0;
+
+    // 3. Post Interaction Rate (Bookings / Views)
+    const postInteractionRate = totalViews > 0
+      ? Math.round((totalBookings / totalViews) * 100 * 100) / 100
+      : 0;
+
+    // 4. Post Engagement Rate (Favorites / Views)
+    const postEngagementRate = totalViews > 0
+      ? Math.round((totalFavorites / totalViews) * 100 * 100) / 100
+      : 0;
+
+    return {
+      bookingSuccessRate,
+      bookingCancelRate,
+      postInteractionRate,
+      postEngagementRate,
+      raw: {
+        totalViews,
+        totalBookings,
+        totalFavorites,
+        completedBookings: completedB,
+        cancelledB,
+        finalBookingsCount
+      }
+    };
+  }, [stats]);
 
   const formatValue = (val: number) => {
     if (chartType === 'cost') {
@@ -138,6 +187,123 @@ export default function LandlordDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Conversion & Performance Ratios Section */}
+      {ratios && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+              <Activity className="w-5 h-5 text-blue-600" />
+              Chỉ số Hiệu năng & Tỉ lệ chuyển đổi bài đăng
+            </h3>
+            <span className="text-xs text-gray-500 font-medium bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full border border-blue-100">
+              Đặc quyền Chủ trọ
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Card 1: Post Interaction Rate */}
+            <div className="bg-gradient-to-br from-blue-50/40 to-indigo-50/20 p-5 rounded-xl shadow-sm border border-blue-100/60 hover:border-blue-300 hover:shadow-md transition-all group">
+              <div className="flex justify-between items-start">
+                <span className="text-xs font-semibold text-blue-700 uppercase tracking-wider">Tỉ lệ Đặt lịch / Xem tin</span>
+                <span className="p-1.5 bg-blue-50 rounded-lg group-hover:bg-blue-100 transition-colors">
+                  <TrendingUp className="w-4 h-4 text-blue-600" />
+                </span>
+              </div>
+              <div className="mt-4 flex items-baseline gap-1">
+                <span className="text-3xl font-extrabold text-gray-900">{ratios.postInteractionRate}%</span>
+                <span className="text-xs text-gray-500 font-medium">chuyển đổi</span>
+              </div>
+              {/* Micro-progress Bar */}
+              <div className="w-full bg-blue-100/80 rounded-full h-1.5 mt-4">
+                <div 
+                  className="bg-blue-600 h-1.5 rounded-full transition-all duration-500" 
+                  style={{ width: `${Math.min(ratios.postInteractionRate * 5, 100)}%` }}
+                ></div>
+              </div>
+              <div className="flex justify-between items-center mt-2 text-[11px] text-gray-500 font-medium">
+                <span>{ratios.raw.totalBookings} Lịch hẹn</span>
+                <span>{ratios.raw.totalViews.toLocaleString()} Lượt xem</span>
+              </div>
+            </div>
+
+            {/* Card 2: Post Engagement Rate */}
+            <div className="bg-gradient-to-br from-pink-50/40 to-purple-50/20 p-5 rounded-xl shadow-sm border border-pink-100/60 hover:border-pink-300 hover:shadow-md transition-all group">
+              <div className="flex justify-between items-start">
+                <span className="text-xs font-semibold text-pink-700 uppercase tracking-wider">Tỉ lệ Yêu thích / Xem tin</span>
+                <span className="p-1.5 bg-pink-50 rounded-lg group-hover:bg-pink-100 transition-colors">
+                  <Heart className="w-4 h-4 text-pink-500 fill-pink-500" />
+                </span>
+              </div>
+              <div className="mt-4 flex items-baseline gap-1">
+                <span className="text-3xl font-extrabold text-gray-900">{ratios.postEngagementRate}%</span>
+                <span className="text-xs text-gray-500 font-medium">tương tác</span>
+              </div>
+              {/* Micro-progress Bar */}
+              <div className="w-full bg-pink-100/80 rounded-full h-1.5 mt-4">
+                <div 
+                  className="bg-pink-500 h-1.5 rounded-full transition-all duration-500" 
+                  style={{ width: `${Math.min(ratios.postEngagementRate * 5, 100)}%` }}
+                ></div>
+              </div>
+              <div className="flex justify-between items-center mt-2 text-[11px] text-gray-500 font-medium">
+                <span>{ratios.raw.totalFavorites} Yêu thích</span>
+                <span>{ratios.raw.totalViews.toLocaleString()} Lượt xem</span>
+              </div>
+            </div>
+
+            {/* Card 3: Booking Fulfillment Rate */}
+            <div className="bg-gradient-to-br from-emerald-50/40 to-green-50/20 p-5 rounded-xl shadow-sm border border-emerald-100/60 hover:border-emerald-300 hover:shadow-md transition-all group">
+              <div className="flex justify-between items-start">
+                <span className="text-xs font-semibold text-emerald-700 uppercase tracking-wider">Tỉ lệ Lịch hẹn Thành công</span>
+                <span className="p-1.5 bg-emerald-50 rounded-lg group-hover:bg-emerald-100 transition-colors">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                </span>
+              </div>
+              <div className="mt-4 flex items-baseline gap-1">
+                <span className="text-3xl font-extrabold text-gray-900">{ratios.bookingSuccessRate}%</span>
+                <span className="text-xs text-gray-500 font-medium">gặp mặt</span>
+              </div>
+              {/* Micro-progress Bar */}
+              <div className="w-full bg-emerald-100/80 rounded-full h-1.5 mt-4">
+                <div 
+                  className="bg-emerald-600 h-1.5 rounded-full transition-all duration-500" 
+                  style={{ width: `${ratios.bookingSuccessRate}%` }}
+                ></div>
+              </div>
+              <div className="flex justify-between items-center mt-2 text-[11px] text-gray-500 font-medium">
+                <span>{ratios.raw.completedBookings} Thành công</span>
+                <span>{ratios.raw.finalBookingsCount} Lịch đã chốt</span>
+              </div>
+            </div>
+
+            {/* Card 4: Booking Cancel Rate */}
+            <div className="bg-gradient-to-br from-rose-50/40 to-red-50/20 p-5 rounded-xl shadow-sm border border-rose-100/60 hover:border-rose-300 hover:shadow-md transition-all group">
+              <div className="flex justify-between items-start">
+                <span className="text-xs font-semibold text-rose-700 uppercase tracking-wider">Tỉ lệ Hủy lịch hẹn</span>
+                <span className="p-1.5 bg-rose-50 rounded-lg group-hover:bg-rose-100 transition-colors">
+                  <XCircle className="w-4 h-4 text-rose-600" />
+                </span>
+              </div>
+              <div className="mt-4 flex items-baseline gap-1">
+                <span className="text-3xl font-extrabold text-gray-900">{ratios.bookingCancelRate}%</span>
+                <span className="text-xs text-gray-500 font-medium">hủy hẹn</span>
+              </div>
+              {/* Micro-progress Bar */}
+              <div className="w-full bg-rose-100/80 rounded-full h-1.5 mt-4">
+                <div 
+                  className="bg-rose-600 h-1.5 rounded-full transition-all duration-500" 
+                  style={{ width: `${ratios.bookingCancelRate}%` }}
+                ></div>
+              </div>
+              <div className="flex justify-between items-center mt-2 text-[11px] text-gray-500 font-medium">
+                <span>{ratios.raw.cancelledB} Bị hủy</span>
+                <span>{ratios.raw.finalBookingsCount} Lịch đã chốt</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Activity visualization */}

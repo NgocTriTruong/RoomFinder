@@ -1,9 +1,12 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { Filter, SlidersHorizontal, Loader2, Search as SearchIcon } from 'lucide-react';
+import { Filter, SlidersHorizontal, Loader2, Search as SearchIcon, Mic } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import RoomCard from '../components/ui/RoomCard';
 import postService, { PostSearchParams } from '../services/postService';
-import { PostResponse } from '../types';
+import roomService from '../services/roomService';
+import { PostResponse, AmenityResponse } from '../types';
 import universityService, { UniversityResponse } from '../services/universityService';
+import VoiceSearchModal from '../components/ui/VoiceSearchModal';
 
 // Custom debounce hook
 function useDebounce<T>(value: T, delay: number): T {
@@ -20,9 +23,13 @@ function useDebounce<T>(value: T, delay: number): T {
 }
 
 export default function Search() {
+  const [searchParams] = useSearchParams();
   const [posts, setPosts] = useState<PostResponse[]>([]);
   const [totalElements, setTotalElements] = useState(0);
   const [loading, setLoading] = useState(true);
+  
+  // Voice search state
+  const [isVoiceOpen, setIsVoiceOpen] = useState(false);
   
   // Filters state
   const [keyword, setKeyword] = useState('');
@@ -31,6 +38,10 @@ export default function Search() {
   const [sortBy, setSortBy] = useState('createdAt');
   const [sortDirection, setSortDirection] = useState('desc');
   const [page, setPage] = useState(0);
+
+  // Amenities state
+  const [allAmenities, setAllAmenities] = useState<AmenityResponse[]>([]);
+  const [selectedAmenityIds, setSelectedAmenityIds] = useState<number[]>([]);
 
   // University filter
   const [universities, setUniversities] = useState<UniversityResponse[]>([]);
@@ -44,6 +55,73 @@ export default function Search() {
   
   // Track if it's the first load
   const isFirstLoad = useRef(true);
+
+  // Parse URL search parameters on mount or change
+  useEffect(() => {
+    const q = searchParams.get('q');
+    if (q) {
+      setKeyword(q);
+      const qLower = q.toLowerCase();
+
+      // 1. Auto-detect Price range from URL query
+      if (qLower.includes('dưới 2 triệu') || qLower.includes('dưới 2tr') || qLower.includes('dưới 2.000.000')) {
+        setPriceRange('Dưới 2 triệu');
+      } else if (qLower.includes('dưới 4 triệu') || qLower.includes('dưới 4tr') || qLower.includes('dưới 4.000.000')) {
+        setPriceRange('2 - 4 triệu');
+      } else if (qLower.includes('dưới 7 triệu') || qLower.includes('dưới 7tr') || qLower.includes('dưới 7.000.000')) {
+        setPriceRange('4 - 7 triệu');
+      } else if (qLower.includes('trên 7 triệu') || qLower.includes('trên 7tr')) {
+        setPriceRange('Trên 7 triệu');
+      }
+
+      // 2. Auto-detect District from URL query
+      if (qLower.includes('quận 1') || qLower.includes('q1')) {
+        setDistrict('Quận 1');
+      } else if (qLower.includes('quận 5') || qLower.includes('q5')) {
+        setDistrict('Quận 5');
+      } else if (qLower.includes('quận 9') || qLower.includes('q9')) {
+        setDistrict('Quận 9');
+      } else if (qLower.includes('bình thạnh')) {
+        setDistrict('Quận Bình Thạnh');
+      } else if (qLower.includes('gò vấp')) {
+        setDistrict('Quận Gò Vấp');
+      }
+
+      // 3. Auto-detect Amenities from URL query
+      if (allAmenities.length > 0) {
+        const detectedAmenityIds: number[] = [];
+        allAmenities.forEach(amenity => {
+          const amenityNameLower = amenity.name.toLowerCase();
+          if (qLower.includes(amenityNameLower)) {
+            detectedAmenityIds.push(amenity.id);
+          } else if (amenityNameLower === 'điều hòa' && (qLower.includes('máy lạnh') || qLower.includes('điều hoà'))) {
+            detectedAmenityIds.push(amenity.id);
+          }
+        });
+        if (detectedAmenityIds.length > 0) {
+          setSelectedAmenityIds(prev => {
+            const merged = [...prev];
+            detectedAmenityIds.forEach(id => {
+              if (!merged.includes(id)) merged.push(id);
+            });
+            return merged;
+          });
+        }
+      }
+    }
+  }, [searchParams, allAmenities]);
+
+  useEffect(() => {
+    const fetchAmenities = async () => {
+      try {
+        const data = await roomService.getAllAmenities();
+        setAllAmenities(data);
+      } catch (error) {
+        console.error('Lỗi khi lấy danh sách tiện nghi:', error);
+      }
+    };
+    fetchAmenities();
+  }, []);
 
   useEffect(() => {
     const fetchUniversities = async () => {
@@ -86,6 +164,10 @@ export default function Search() {
         params.location = district;
       }
 
+      if (selectedAmenityIds.length > 0) {
+        params.amenityIds = selectedAmenityIds;
+      }
+
       // Geo search if university is selected
       if (selectedUniversityId) {
         const uni = universities.find(u => u.id === Number(selectedUniversityId));
@@ -105,7 +187,7 @@ export default function Search() {
     } finally {
       if (isInitial) setLoading(false);
     }
-  }, [debouncedKeyword, priceRange, district, sortBy, sortDirection, page, selectedUniversityId, radiusKm, universities]);
+  }, [debouncedKeyword, priceRange, district, selectedAmenityIds, sortBy, sortDirection, page, selectedUniversityId, radiusKm, universities]);
 
   useEffect(() => {
     if (isFirstLoad.current) {
@@ -142,9 +224,26 @@ export default function Search() {
         {/* Sidebar Filters */}
         <aside className="w-full md:w-64 flex-shrink-0">
           <div className="bg-white p-5 rounded-lg shadow-sm border border-gray-100 sticky top-24">
-            <div className="flex items-center gap-2 mb-6 pb-4 border-b border-gray-100">
-              <Filter className="w-5 h-5 text-gray-700" />
-              <h2 className="text-lg font-semibold text-gray-800">Bộ lọc tìm kiếm</h2>
+            <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100">
+              <div className="flex items-center gap-2">
+                <Filter className="w-5 h-5 text-gray-700" />
+                <h2 className="text-lg font-semibold text-gray-800">Bộ lọc</h2>
+              </div>
+              {(keyword || priceRange || district || selectedUniversityId || selectedAmenityIds.length > 0) && (
+                <button
+                  onClick={() => {
+                    setKeyword('');
+                    setPriceRange('');
+                    setDistrict('');
+                    setSelectedUniversityId('');
+                    setSelectedAmenityIds([]);
+                    setUniKeyword('');
+                  }}
+                  className="text-xs text-blue-600 hover:text-blue-700 font-medium transition-colors cursor-pointer"
+                >
+                  Xóa bộ lọc
+                </button>
+              )}
             </div>
 
             {/* Keyword Search */}
@@ -155,12 +254,28 @@ export default function Search() {
                 <input
                   type="text"
                   placeholder="Quận 1, giá rẻ..."
-                  className="w-full pl-9 border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+                  className="w-full pl-9 pr-9 border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
                   value={keyword}
                   onChange={(e) => setKeyword(e.target.value)}
                 />
+                <button
+                  type="button"
+                  onClick={() => setIsVoiceOpen(true)}
+                  className="absolute right-2.5 top-2.5 text-gray-400 hover:text-blue-600 transition-colors p-0.5"
+                  title="Tìm kiếm bằng giọng nói"
+                >
+                  <Mic className="h-4 w-4 text-blue-500 animate-pulse" />
+                </button>
               </div>
             </div>
+
+            <VoiceSearchModal
+              isOpen={isVoiceOpen}
+              onClose={() => setIsVoiceOpen(false)}
+              onResult={(text) => {
+                setKeyword(text);
+              }}
+            />
 
             {/* Price Filter */}
             <div className="mb-6">
@@ -196,6 +311,44 @@ export default function Search() {
                 <option value="Quận Bình Thạnh">Bình Thạnh</option>
                 <option value="Quận Gò Vấp">Gò Vấp</option>
               </select>
+            </div>
+
+            {/* Amenities Filter */}
+            <div className="mb-6">
+              <h3 className="text-sm font-medium text-gray-900 mb-3">Tiện nghi</h3>
+              {allAmenities.length > 0 ? (
+                <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-1 scrollbar-thin">
+                  {allAmenities.map((amenity) => {
+                    const isChecked = selectedAmenityIds.includes(amenity.id);
+                    return (
+                      <label 
+                        key={amenity.id} 
+                        className={`flex items-center gap-1.5 p-1.5 rounded-lg border text-[11px] cursor-pointer select-none transition-all ${
+                          isChecked 
+                            ? 'bg-blue-50 border-blue-400 text-blue-700 font-semibold shadow-sm' 
+                            : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:border-gray-300'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          className="sr-only"
+                          onChange={() => {
+                            if (isChecked) {
+                              setSelectedAmenityIds(selectedAmenityIds.filter(id => id !== amenity.id));
+                            } else {
+                              setSelectedAmenityIds([...selectedAmenityIds, amenity.id]);
+                            }
+                          }}
+                        />
+                        <span className="truncate" title={amenity.name}>{amenity.name}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-xs text-gray-400 italic">Đang tải tiện nghi...</p>
+              )}
             </div>
 
             {/* University Filter */}

@@ -71,6 +71,74 @@ export default function AdminDashboard() {
     }));
   }, [comprehensiveStats]);
 
+  const ratios = useMemo(() => {
+    if (!comprehensiveStats) return null;
+    
+    const b = comprehensiveStats.bookings || { totalBookings: 0, completedBookings: 0, cancelledBookings: 0 };
+    const p = comprehensiveStats.posts || { totalViews: 0, totalFavorites: 0, totalPosts: 0 };
+    const r = comprehensiveStats.reviews || { totalReviews: 0 };
+    const tx = comprehensiveStats.revenue || { transactionCount: 0, successfulTransactions: 0 };
+
+    // 1. Booking Success Rate = Completed / Total final bookings (completed + cancelled + no show)
+    const completedB = b.completedBookings || 0;
+    const cancelledB = b.cancelledBookings || 0;
+    const finalBookingsCount = completedB + cancelledB;
+    const bookingSuccessRate = finalBookingsCount > 0 
+      ? Math.round((completedB / finalBookingsCount) * 100 * 10) / 10 
+      : 0;
+
+    // 2. Booking Cancellation Rate = Cancelled / Total final bookings
+    const bookingCancelRate = finalBookingsCount > 0
+      ? Math.round((cancelledB / finalBookingsCount) * 100 * 10) / 10
+      : 0;
+
+    // 3. Post Interaction Rate = Bookings / Views
+    const totalViews = p.totalViews || 0;
+    const totalBookings = b.totalBookings || 0;
+    const postInteractionRate = totalViews > 0
+      ? Math.round((totalBookings / totalViews) * 100 * 100) / 100
+      : 0;
+
+    // 4. Post Engagement (Favorite) Rate = Favorites / Views
+    const totalFavorites = p.totalFavorites || 0;
+    const postEngagementRate = totalViews > 0
+      ? Math.round((totalFavorites / totalViews) * 100 * 100) / 100
+      : 0;
+
+    // 5. Transaction Success Rate = Success Transactions / Total Transactions
+    const totalTransactions = tx.transactionCount || 0;
+    const successfulTx = tx.successfulTransactions || 0;
+    const transactionSuccessRate = totalTransactions > 0
+      ? Math.round((successfulTx / totalTransactions) * 100 * 10) / 10
+      : 0;
+
+    // 6. Review Response Rate = Reviews / Completed Bookings
+    const totalReviews = r.totalReviews || 0;
+    const reviewResponseRate = completedB > 0
+      ? Math.round((totalReviews / completedB) * 100 * 10) / 10
+      : 0;
+
+    return {
+      bookingSuccessRate,
+      bookingCancelRate,
+      postInteractionRate,
+      postEngagementRate,
+      transactionSuccessRate,
+      reviewResponseRate,
+      raw: {
+        finalBookingsCount,
+        totalViews,
+        totalBookings,
+        totalFavorites,
+        completedBookings: completedB,
+        cancelledB,
+        totalReviews,
+        totalTransactions,
+        successfulTx
+      }
+    };
+  }, [comprehensiveStats]);
+
   const formatCurrency = (amount: number | undefined | null) => {
     const val = typeof amount === 'number' ? amount : 0;
     return new Intl.NumberFormat('vi-VN', {
@@ -321,6 +389,161 @@ export default function AdminDashboard() {
             ))}
           </div>
         </div>
+
+        {/* Ratios & Analytics Section */}
+        {ratios && (
+          <div className="lg:col-span-3 bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-6">
+            <div>
+              <h3 className="text-xl font-black text-gray-900 tracking-tight flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-blue-600" />
+                Chỉ số Hiệu năng & Tỉ lệ chuyển đổi
+              </h3>
+              <p className="text-sm text-gray-500 font-medium mt-1">
+                Các chỉ số kinh doanh cốt lõi đo lường phễu tương tác và chất lượng vận hành dịch vụ trên sàn TMĐT.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {/* Tỉ lệ Tương tác xem tin - đặt lịch */}
+              <div className="p-5 rounded-2xl border border-gray-100 bg-gradient-to-br from-blue-50/20 to-indigo-50/10 flex flex-col justify-between hover:shadow-md transition-shadow">
+                <div className="flex justify-between items-start">
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-black uppercase text-blue-600 tracking-wider">Phễu Chuyển đổi (Conversion Funnel)</span>
+                    <h4 className="text-base font-bold text-gray-900">Tỉ lệ Đặt lịch / Xem tin</h4>
+                    <p className="text-xs text-gray-400 font-medium">Tỉ lệ chuyển đổi lượt xem trọ sang đặt lịch xem</p>
+                  </div>
+                  <div className="text-2xl font-black text-blue-600 bg-blue-50/50 px-3 py-1 rounded-xl">
+                    {ratios.postInteractionRate}%
+                  </div>
+                </div>
+                <div className="mt-6">
+                  <div className="w-full bg-gray-100 rounded-full h-2">
+                    <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${Math.min(ratios.postInteractionRate * 10, 100)}%` }} />
+                  </div>
+                  <div className="flex justify-between items-center mt-2 text-[11px] text-gray-500 font-medium">
+                    <span>{ratios.raw.totalBookings} Lịch hẹn</span>
+                    <span>{ratios.raw.totalViews.toLocaleString('vi-VN')} Lượt xem</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Tỉ lệ Yêu thích / Xem tin */}
+              <div className="p-5 rounded-2xl border border-gray-100 bg-gradient-to-br from-pink-50/20 to-purple-50/10 flex flex-col justify-between hover:shadow-md transition-shadow">
+                <div className="flex justify-between items-start">
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-black uppercase text-pink-600 tracking-wider">Độ Hấp dẫn (Engagement Rate)</span>
+                    <h4 className="text-base font-bold text-gray-900">Tỉ lệ Yêu thích / Xem tin</h4>
+                    <p className="text-xs text-gray-400 font-medium">Tỉ lệ người dùng lưu phòng vào mục yêu thích</p>
+                  </div>
+                  <div className="text-2xl font-black text-pink-600 bg-pink-50/50 px-3 py-1 rounded-xl">
+                    {ratios.postEngagementRate}%
+                  </div>
+                </div>
+                <div className="mt-6">
+                  <div className="w-full bg-gray-100 rounded-full h-2">
+                    <div className="bg-pink-500 h-2 rounded-full" style={{ width: `${Math.min(ratios.postEngagementRate * 10, 100)}%` }} />
+                  </div>
+                  <div className="flex justify-between items-center mt-2 text-[11px] text-gray-500 font-medium">
+                    <span>{ratios.raw.totalFavorites} Yêu thích</span>
+                    <span>{ratios.raw.totalViews.toLocaleString('vi-VN')} Lượt xem</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Tỉ lệ Đặt lịch thành công */}
+              <div className="p-5 rounded-2xl border border-gray-100 bg-gradient-to-br from-green-50/20 to-emerald-50/10 flex flex-col justify-between hover:shadow-md transition-shadow">
+                <div className="flex justify-between items-start">
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-black uppercase text-green-600 tracking-wider">Vận hành (Fulfillment Rate)</span>
+                    <h4 className="text-base font-bold text-gray-900">Tỉ lệ Lịch hẹn Thành công</h4>
+                    <p className="text-xs text-gray-400 font-medium">Tỉ lệ buổi xem trọ thành công thực tế</p>
+                  </div>
+                  <div className="text-2xl font-black text-green-600 bg-green-50/50 px-3 py-1 rounded-xl">
+                    {ratios.bookingSuccessRate}%
+                  </div>
+                </div>
+                <div className="mt-6">
+                  <div className="w-full bg-gray-100 rounded-full h-2">
+                    <div className="bg-green-600 h-2 rounded-full" style={{ width: `${ratios.bookingSuccessRate}%` }} />
+                  </div>
+                  <div className="flex justify-between items-center mt-2 text-[11px] text-gray-500 font-medium">
+                    <span>{ratios.raw.completedBookings} Thành công</span>
+                    <span>{ratios.raw.finalBookingsCount} Lịch đã chốt</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Tỉ lệ Hủy lịch hẹn */}
+              <div className="p-5 rounded-2xl border border-gray-100 bg-gradient-to-br from-red-50/20 to-rose-50/10 flex flex-col justify-between hover:shadow-md transition-shadow">
+                <div className="flex justify-between items-start">
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-black uppercase text-red-600 tracking-wider">Rủi ro (Churn & Cancel Rate)</span>
+                    <h4 className="text-base font-bold text-gray-900">Tỉ lệ Hủy lịch hẹn</h4>
+                    <p className="text-xs text-gray-400 font-medium">Tỉ lệ lịch hẹn bị khách/chủ trọ chủ động hủy</p>
+                  </div>
+                  <div className="text-2xl font-black text-red-600 bg-red-50/50 px-3 py-1 rounded-xl">
+                    {ratios.bookingCancelRate}%
+                  </div>
+                </div>
+                <div className="mt-6">
+                  <div className="w-full bg-gray-100 rounded-full h-2">
+                    <div className="bg-red-500 h-2 rounded-full" style={{ width: `${ratios.bookingCancelRate}%` }} />
+                  </div>
+                  <div className="flex justify-between items-center mt-2 text-[11px] text-gray-500 font-medium">
+                    <span>{ratios.raw.cancelledB} Bị hủy</span>
+                    <span>{ratios.raw.finalBookingsCount} Lịch đã chốt</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Tỉ lệ Phản hồi Đánh giá */}
+              <div className="p-5 rounded-2xl border border-gray-100 bg-gradient-to-br from-amber-50/20 to-orange-50/10 flex flex-col justify-between hover:shadow-md transition-shadow">
+                <div className="flex justify-between items-start">
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-black uppercase text-amber-600 tracking-wider">Đóng góp Cộng đồng (Feedback Rate)</span>
+                    <h4 className="text-base font-bold text-gray-900">Tỉ lệ Viết Đánh giá</h4>
+                    <p className="text-xs text-gray-400 font-medium">Tỉ lệ người thuê viết review sau khi xem trọ</p>
+                  </div>
+                  <div className="text-2xl font-black text-amber-600 bg-amber-50/50 px-3 py-1 rounded-xl">
+                    {ratios.reviewResponseRate}%
+                  </div>
+                </div>
+                <div className="mt-6">
+                  <div className="w-full bg-gray-100 rounded-full h-2">
+                    <div className="bg-amber-500 h-2 rounded-full" style={{ width: `${Math.min(ratios.reviewResponseRate, 100)}%` }} />
+                  </div>
+                  <div className="flex justify-between items-center mt-2 text-[11px] text-gray-500 font-medium">
+                    <span>{ratios.raw.totalReviews} Đánh giá</span>
+                    <span>{ratios.raw.completedBookings} Lịch thành công</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Tỉ lệ Thanh toán thành công */}
+              <div className="p-5 rounded-2xl border border-gray-100 bg-gradient-to-br from-purple-50/20 to-violet-50/10 flex flex-col justify-between hover:shadow-md transition-shadow">
+                <div className="flex justify-between items-start">
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-black uppercase text-purple-600 tracking-wider">Thanh toán (Payment Success Rate)</span>
+                    <h4 className="text-base font-bold text-gray-900">Tỉ lệ Giao dịch Thành công</h4>
+                    <p className="text-xs text-gray-400 font-medium">Tỉ lệ chủ trọ mua gói dịch vụ đẩy tin thành công</p>
+                  </div>
+                  <div className="text-2xl font-black text-purple-600 bg-purple-50/50 px-3 py-1 rounded-xl">
+                    {ratios.transactionSuccessRate}%
+                  </div>
+                </div>
+                <div className="mt-6">
+                  <div className="w-full bg-gray-100 rounded-full h-2">
+                    <div className="bg-purple-600 h-2 rounded-full" style={{ width: `${ratios.transactionSuccessRate}%` }} />
+                  </div>
+                  <div className="flex justify-between items-center mt-2 text-[11px] text-gray-500 font-medium">
+                    <span>{ratios.raw.successfulTx} Thành công</span>
+                    <span>{ratios.raw.totalTransactions} Giao dịch</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Recent Transactions */}
         <div className="lg:col-span-3 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">

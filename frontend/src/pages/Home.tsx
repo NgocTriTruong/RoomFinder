@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Search, MapPin, Loader2, Home as HomeIcon, Building2, Warehouse, BedDouble, Car, Wifi, Wind, Tv, Waves, Dumbbell } from 'lucide-react';
+import { Search, MapPin, Loader2, Home as HomeIcon, Building2, Warehouse, BedDouble, Car, Wifi, Wind, Tv, Waves, Dumbbell, Mic } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import RoomCard from '../components/ui/RoomCard';
 import postService from '../services/postService';
@@ -7,6 +7,7 @@ import type { PostResponse } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import universityService, { UniversityResponse } from '../services/universityService';
 import { createPlaceholderImage } from '../utils/localImage';
+import VoiceSearchModal from '../components/ui/VoiceSearchModal';
 
 const CATEGORIES = [
   { icon: HomeIcon, label: 'Phòng trọ', value: 'room' },
@@ -14,15 +15,6 @@ const CATEGORIES = [
   { icon: Warehouse, label: 'Nhà nguyên căn', value: 'house' },
 ];
 
-
-const QUICK_FILTERS = [
-  { icon: Wifi, label: 'Wifi miễn phí' },
-  { icon: Wind, label: 'Điều hòa' },
-  { icon: Tv, label: 'TV' },
-  { icon: Waves, label: 'Bể bơi' },
-  { icon: Car, label: 'Chỗ để xe' },
-  { icon: Dumbbell, label: 'Gym' },
-];
 
 export default function Home() {
   const navigate = useNavigate();
@@ -32,6 +24,9 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [mostViewedRooms, setMostViewedRooms] = useState<PostResponse[]>([]);
+  
+  // Voice search state
+  const [isVoiceOpen, setIsVoiceOpen] = useState(false);
   
   // University personalization
   const { user } = useAuth();
@@ -139,9 +134,17 @@ export default function Home() {
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="block w-full pl-11 pr-4 py-4 text-gray-900 placeholder-gray-500 bg-gray-50 rounded-xl border-0 focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
+                    className="block w-full pl-11 pr-12 py-4 text-gray-900 placeholder-gray-500 bg-gray-50 rounded-xl border-0 focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
                     placeholder="Tìm theo địa điểm, tên phòng..."
                   />
+                  <button
+                    type="button"
+                    onClick={() => setIsVoiceOpen(true)}
+                    className="absolute inset-y-0 right-3 flex items-center text-gray-400 hover:text-blue-600 transition-colors p-2"
+                    title="Tìm kiếm bằng giọng nói"
+                  >
+                    <Mic className="h-5 w-5 text-blue-500 animate-pulse" />
+                  </button>
                 </div>
                 <div className="w-full md:w-48 relative">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -166,6 +169,16 @@ export default function Home() {
                 </button>
               </div>
             </form>
+            <VoiceSearchModal 
+              isOpen={isVoiceOpen} 
+              onClose={() => setIsVoiceOpen(false)} 
+              onResult={(text) => {
+                setSearchQuery(text);
+                const params = new URLSearchParams();
+                params.append('q', text);
+                navigate(`/search?${params.toString()}`);
+              }} 
+            />
           </div>
 
           {/* Stats */}
@@ -209,24 +222,6 @@ export default function Home() {
               >
                 <Icon className="w-5 h-5" />
                 <span className="font-medium">{cat.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* Quick Filters */}
-      <section className="py-6 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
-        <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-          {QUICK_FILTERS.map((filter) => {
-            const Icon = filter.icon;
-            return (
-              <button
-                key={filter.label}
-                className="flex items-center gap-2 px-4 py-2 bg-white rounded-full border border-gray-200 text-gray-700 hover:border-blue-500 hover:text-blue-600 transition-colors whitespace-nowrap"
-              >
-                <Icon className="w-4 h-4" />
-                <span className="text-sm">{filter.label}</span>
               </button>
             );
           })}

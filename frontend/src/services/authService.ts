@@ -122,6 +122,19 @@ export const authService = {
   },
 
   /**
+   * Simulated Google Login
+   */
+  googleLogin: async (email: string, fullName: string): Promise<AuthResponse> => {
+    const response = await api.post<ApiResponse<AuthResponse>>('/v1/auth/google-login', {
+      email,
+      fullName,
+    });
+    const authData = response.data.data!;
+    authStorage.saveAuth(authData);
+    return authData;
+  },
+
+  /**
    * Reactivate deactivated account
    */
   reactivate: async (credentials: LoginRequest): Promise<void> => {

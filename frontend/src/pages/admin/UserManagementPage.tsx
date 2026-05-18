@@ -218,27 +218,29 @@ export default function UserManagementPage() {
   };
 
   const getKycBadge = (user: UserResponse) => {
+    // Nếu tài khoản đã xác thực (isVerified = true), hiển thị nhãn KYC
+    if (user.isVerified) {
+      return <span className="px-2.5 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold uppercase tracking-wider">KYC</span>;
+    }
+
     // Admin mặc định là đã xác thực
     if (user.role === 'ADMIN') {
       return <span className="px-2.5 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">Mặc định</span>;
     }
 
-    // Người thuê không bắt buộc KYC
-    if (user.role === 'USER') {
-      return <span className="px-2.5 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-medium">Không yêu cầu</span>;
+    // Đối với Chủ trọ (LANDLORD) chưa KYC
+    if (user.role === 'LANDLORD') {
+      switch (user.verificationStatus) {
+        case 'PENDING':
+          return <span className="px-2.5 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">Chờ duyệt</span>;
+        case 'REJECTED':
+          return <span className="px-2.5 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium">Từ chối</span>;
+        default:
+          return <span className="px-2.5 py-1 bg-gray-100 text-gray-500 rounded-full text-xs font-medium">Chưa KYC</span>;
+      }
     }
 
-    // Đối với Chủ trọ (LANDLORD)
-    switch (user.verificationStatus) {
-      case 'APPROVED':
-        return <span className="px-2.5 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">Đã KYC</span>;
-      case 'PENDING':
-        return <span className="px-2.5 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">Chờ duyệt</span>;
-      case 'REJECTED':
-        return <span className="px-2.5 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium">Từ chối</span>;
-      default:
-        return <span className="px-2.5 py-1 bg-gray-100 text-gray-500 rounded-full text-xs font-medium">Chưa KYC</span>;
-    }
+    return <span className="px-2.5 py-1 bg-gray-100 text-gray-500 rounded-full text-xs font-medium">Chưa KYC</span>;
   };
 
   return (

@@ -21,6 +21,7 @@ interface AuthContextType {
   isInitializing: boolean;
   error: string | null;
   login: (credentials: LoginRequest) => Promise<void>;
+  googleLogin: (email: string, fullName: string) => Promise<void>;
   register: (data: RegisterRequest) => Promise<AuthResponse>;
   logout: () => Promise<void>;
   clearError: () => void;
@@ -113,6 +114,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setUser(response.user);
 
       console.log('Login successful:', response.user.fullName);
+    } catch (err) {
+      setError(getErrorMessage(err));
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Google Login function
+  const googleLogin = useCallback(async (email: string, fullName: string) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await authService.googleLogin(email, fullName);
+      setUser(response.user);
+      console.log('Google login successful:', response.user.fullName);
     } catch (err) {
       setError(getErrorMessage(err));
       throw err;
@@ -225,6 +242,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     isInitializing,
     error,
     login,
+    googleLogin,
     register,
     logout,
     clearError,

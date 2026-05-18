@@ -72,6 +72,41 @@ export default function ChatUI() {
     sendTyping(activeConversation.id, activeConversation.otherUserId, isTyping);
   };
 
+  if (user && !user.isVerified) {
+    return (
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 flex flex-col items-center justify-center h-[calc(100vh-12rem)] min-h-[500px] text-center max-w-2xl mx-auto my-4 space-y-6 animate-in fade-in duration-300">
+        <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center text-red-500 animate-bounce">
+          <MessageCircle className="w-10 h-10" />
+        </div>
+        <h3 className="text-xl font-bold text-gray-900">Tính năng Trò chuyện đang bị khóa</h3>
+        <p className="text-sm text-gray-600 leading-relaxed max-w-md">
+          Nhằm bảo vệ cộng đồng sinh viên khỏi các tin nhắn rác hoặc hành vi lừa đảo, hệ thống yêu cầu tài khoản của bạn phải được xác thực **KYC tích xanh** trước khi nhắn tin trao đổi với các chủ trọ.
+        </p>
+        <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 text-xs text-blue-800 text-left space-y-2 max-w-md">
+          <p className="font-bold flex items-center gap-1">💡 Làm sao để mở khóa?</p>
+          <ul className="list-disc pl-4 space-y-1 font-medium">
+            <li>Đăng nhập bằng <strong className="font-semibold">Google Email Sinh viên (.edu.vn)</strong> để tự động nhận tích xanh KYC ngay lập tức.</li>
+            <li>Hoặc truy cập trang xác thực để gửi thông tin thẻ sinh viên/CCCD để được duyệt.</li>
+          </ul>
+        </div>
+        <div className="flex gap-4 w-full max-w-sm pt-2">
+          <a
+            href="/login"
+            className="flex-1 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 font-semibold transition-colors flex justify-center items-center"
+          >
+            Đăng nhập Google
+          </a>
+          <a
+            href="/landlord/verification"
+            className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-colors flex justify-center items-center shadow-sm"
+          >
+            Xác thực ngay
+          </a>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex h-[calc(100vh-12rem)] min-h-[500px]">
       <ChatSidebar
