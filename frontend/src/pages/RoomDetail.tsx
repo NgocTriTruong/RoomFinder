@@ -28,6 +28,8 @@ export default function RoomDetail() {
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [isSaved, setIsSaved] = useState(false);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [activeMediaType, setActiveMediaType] = useState<'image' | 'video'>('image');
   
   // State for reviews from within product detail
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
@@ -145,7 +147,20 @@ export default function RoomDetail() {
     );
   }
 
-  const thumbnail = resolveMediaUrl(room.room?.thumbnailUrl || room.images?.[0]) || createPlaceholderImage(room.title, 800, 600);
+  const allImages: string[] = (room.images && room.images.length > 0)
+    ? room.images
+    : (room.room?.images && room.room.images.length > 0)
+      ? room.room.images
+      : [room.room?.thumbnailUrl || room.images?.[0]].filter((img): img is string => !!img);
+
+  const thumbnail = allImages.length > 0
+    ? resolveMediaUrl(allImages[0])
+    : createPlaceholderImage(room.title, 800, 600);
+
+  const currentImage = allImages.length > 0 && activeImageIndex < allImages.length
+    ? resolveMediaUrl(allImages[activeImageIndex])
+    : thumbnail;
+
   const amenities = room.room?.amenities || [];
   const landlordAvatar = room.landlord?.avatar || createAvatarPlaceholder(room.landlord?.fullName || 'User', 128);
   const roomLocation = room.room?.latitude && room.room?.longitude
@@ -175,22 +190,103 @@ export default function RoomDetail() {
         {/* Main Content */}
         <div className="lg:col-span-2">
           <div className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-100">
-            <div className="relative h-96">
-              <img
-                src={thumbnail}
-                alt={room.title}
-                className="w-full h-full object-cover"
-                referrerPolicy="no-referrer"
-                onError={(event) => {
-                  event.currentTarget.src = createPlaceholderImage(room.title, 800, 600);
-                }}
-              />
+            {/* Media Tabs (Image / Video) */}
+            {room.videoUrl && (
+              <div className="flex border-b border-gray-100 bg-gray-50 p-1.5 rounded-t-lg">
+                <button
+                  onClick={() => setActiveMediaType('image')}
+                  className={`flex-1 py-2 text-center rounded-md font-semibold text-sm transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5 ${activeMediaType === 'image' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+                >
+                  📸 Hình ảnh ({allImages.length})
+                </button>
+                <button
+                  onClick={() => setActiveMediaType('video')}
+                  className={`flex-1 py-2 text-center rounded-md font-semibold text-sm transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5 ${activeMediaType === 'video' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+                >
+                  🎥 Video thực tế phòng
+                </button>
+              </div>
+            )}
+
+            {/* Media Display Area */}
+            <div className="relative h-96 bg-gray-900 overflow-hidden group">
+              {activeMediaType === 'video' && room.videoUrl ? (
+                <video
+                  src={resolveMediaUrl(room.videoUrl)}
+                  poster={resolveMediaUrl(room.videoThumbnail || thumbnail)}
+                  controls
+                  className="w-full h-full object-contain"
+                />
+              ) : (
+                <>
+                  <img
+                    src={currentImage}
+                    alt={`${room.title} - Ảnh ${activeImageIndex + 1}`}
+                    className="w-full h-full object-cover transition-all duration-300"
+                    referrerPolicy="no-referrer"
+                    onError={(event) => {
+                      event.currentTarget.src = createPlaceholderImage(room.title, 800, 600);
+                    }}
+                  />
+                  {/* Left Arrow */}
+                  {allImages.length > 1 && (
+                    <button
+                      onClick={() => setActiveImageIndex((prev) => (prev === 0 ? allImages.length - 1 : prev - 1))}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 p-2 bg-black/40 hover:bg-black/60 text-white rounded-full transition-all opacity-0 group-hover:opacity-100 cursor-pointer shadow-md z-10"
+                    >
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" />
+                      </svg>
+                    </button>
+                  )}
+                  {/* Right Arrow */}
+                  {allImages.length > 1 && (
+                    <button
+                      onClick={() => setActiveImageIndex((prev) => (prev === allImages.length - 1 ? 0 : prev + 1))}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-black/40 hover:bg-black/60 text-white rounded-full transition-all opacity-0 group-hover:opacity-100 cursor-pointer shadow-md z-10"
+                    >
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  )}
+                  {/* Image Counter Indicator */}
+                  {allImages.length > 1 && (
+                    <div className="absolute bottom-4 right-4 bg-black/60 text-white px-2.5 py-1 rounded-md text-xs font-semibold z-10 shadow-sm">
+                      {activeImageIndex + 1} / {allImages.length}
+                    </div>
+                  )}
+                </>
+              )}
+
               {room.isBoosted && (
-                <div className="absolute top-4 left-4 bg-amber-500 text-white px-3 py-1 rounded-md font-bold shadow-md">
+                <div className="absolute top-4 left-4 bg-amber-500 text-white px-3 py-1 rounded-md font-bold shadow-md z-10">
                   VIP
                 </div>
               )}
             </div>
+
+            {/* Thumbnails Row below media area */}
+            {activeMediaType === 'image' && allImages.length > 1 && (
+              <div className="flex gap-2 p-4 border-b border-gray-100 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-200">
+                {allImages.map((img, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setActiveImageIndex(idx)}
+                    className={`relative w-20 h-16 rounded-lg overflow-hidden flex-shrink-0 border-2 transition-all cursor-pointer ${activeImageIndex === idx ? 'border-blue-600 scale-95 shadow-sm' : 'border-transparent opacity-70 hover:opacity-100'}`}
+                  >
+                    <img
+                      src={resolveMediaUrl(img)}
+                      alt={`Thumbnail ${idx + 1}`}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.src = createPlaceholderImage(room.title, 100, 80);
+                      }}
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
 
             <div className="p-6">
               <div className="flex justify-between items-start">
@@ -393,8 +489,24 @@ export default function RoomDetail() {
                 <img src={landlordAvatar} alt="Landlord Avatar" referrerPolicy="no-referrer" />
               </div>
               <div>
-                <p className="font-semibold text-gray-900">{room.landlord?.fullName || 'Người dùng hệ thống'}</p>
-                <p className="text-sm text-gray-500">Chủ trọ</p>
+                <p className="font-semibold text-gray-900 flex items-center gap-1.5">
+                  {room.landlord?.fullName || 'Người dùng hệ thống'}
+                  {room.landlord?.isVerified && (
+                    <span className="inline-flex items-center justify-center bg-blue-500 text-white rounded-full p-0.5" title="Chủ trọ đã xác thực KYC">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3.5" d="M5 13l4 4L19 7"></path>
+                      </svg>
+                    </span>
+                  )}
+                </p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <p className="text-sm text-gray-500 font-medium">Chủ trọ</p>
+                  {room.landlord?.isVerified && (
+                    <span className="text-[10px] text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded font-bold border border-blue-100 flex items-center gap-0.5">
+                      Đã KYC
+                    </span>
+                  )}
+                </div>
                 {room.landlord?.rating && (
                   <div className="flex items-center mt-1">
                     <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400 mr-1" />
@@ -462,10 +574,25 @@ export default function RoomDetail() {
               </div>
             ) : (
               <>
+                {isAuthenticated && !user?.isVerified && (
+                  <div className="bg-red-50 border border-red-200 text-red-800 rounded-xl p-3.5 text-xs mb-4 leading-relaxed space-y-1 animate-pulse">
+                    <p className="font-bold flex items-center gap-1 text-red-700">
+                      <XCircle className="w-4 h-4 text-red-500" /> Tài khoản chưa xác thực KYC
+                    </p>
+                    <p>
+                      Vui lòng đăng nhập bằng <strong className="font-bold">Google Email Sinh viên (.edu.vn)</strong> hoặc cập nhật CCCD tại trang xác thực tài khoản để mở khóa các tính năng: Đặt lịch, Chat, Gọi điện và Chatbot.
+                    </p>
+                  </div>
+                )}
+
                 <button
                   onClick={() => {
                     if (!isAuthenticated) {
                       navigate('/login', { state: { from: `/room/${id}` } });
+                      return;
+                    }
+                    if (!user?.isVerified) {
+                      alert('⚠️ Yêu cầu xác thực (KYC):\n\nTính năng ĐẶT LỊCH XEM PHÒNG chỉ dành cho tài khoản Sinh viên đã KYC.\n\nVui lòng sử dụng Google Email Sinh viên để tự động KYC!');
                       return;
                     }
                     setIsBookingModalOpen(true);
@@ -477,14 +604,24 @@ export default function RoomDetail() {
                 </button>
 
                 <div className="grid grid-cols-2 gap-3 mb-3">
-                  <a 
-                    href={`tel:${room.landlord?.phone || ''}`} 
-                    onClick={() => id && postService.recordContact(id).catch(console.error)}
-                    className="w-full bg-green-50 hover:bg-green-100 text-green-700 py-3 rounded-lg font-medium flex items-center justify-center transition-colors"
+                  <button
+                    onClick={() => {
+                      if (!isAuthenticated) {
+                        navigate('/login', { state: { from: `/room/${id}` } });
+                        return;
+                      }
+                      if (!user?.isVerified) {
+                        alert('⚠️ Yêu cầu xác thực (KYC):\n\nTính năng GỌI ĐIỆN LIÊN HỆ chỉ dành cho tài khoản Sinh viên đã KYC.\n\nVui lòng sử dụng Google Email Sinh viên để tự động KYC!');
+                        return;
+                      }
+                      if (id) postService.recordContact(id).catch(console.error);
+                      window.location.href = `tel:${room.landlord?.phone || ''}`;
+                    }}
+                    className="w-full bg-green-50 hover:bg-green-100 text-green-700 py-3 rounded-lg font-medium flex items-center justify-center transition-colors cursor-pointer"
                   >
                     <Phone className="w-5 h-5 mr-2" />
                     Gọi điện
-                  </a>
+                  </button>
 
                   <button
                     onClick={() => {
@@ -492,10 +629,14 @@ export default function RoomDetail() {
                         navigate('/login', { state: { from: `/room/${id}` } });
                         return;
                       }
+                      if (!user?.isVerified) {
+                        alert('⚠️ Yêu cầu xác thực (KYC):\n\nTính năng NHẮN TIN LIÊN HỆ chỉ dành cho tài khoản Sinh viên đã KYC.\n\nVui lòng sử dụng Google Email Sinh viên để tự động KYC!');
+                        return;
+                      }
                       if (id) postService.recordContact(id).catch(console.error);
                       navigate(`/tenant/messages?receiverId=${room.landlord?.id}`);
                     }}
-                    className="w-full bg-blue-50 hover:bg-blue-100 text-blue-700 py-3 rounded-lg font-medium transition-colors flex justify-center items-center"
+                    className="w-full bg-blue-50 hover:bg-blue-100 text-blue-700 py-3 rounded-lg font-medium transition-colors flex justify-center items-center cursor-pointer"
                   >
                     Nhắn tin
                   </button>
@@ -503,8 +644,18 @@ export default function RoomDetail() {
 
                 <div className="mt-6 pt-6 border-t border-gray-100">
                   <button
-                    onClick={() => setIsReportModalOpen(true)}
-                    className="w-full text-red-500 hover:text-red-600 text-sm font-medium transition-colors text-center"
+                    onClick={() => {
+                      if (!isAuthenticated) {
+                        navigate('/login', { state: { from: `/room/${id}` } });
+                        return;
+                      }
+                      if (!user?.isVerified) {
+                        alert('⚠️ Yêu cầu xác thực (KYC):\n\nTính năng BÁO CÁO TIN ĐĂNG chỉ dành cho tài khoản Sinh viên đã KYC.');
+                        return;
+                      }
+                      setIsReportModalOpen(true);
+                    }}
+                    className="w-full text-red-500 hover:text-red-600 text-sm font-medium transition-colors text-center cursor-pointer"
                   >
                     Báo cáo tin đăng không hợp lệ
                   </button>

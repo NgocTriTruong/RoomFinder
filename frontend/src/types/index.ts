@@ -100,10 +100,13 @@ export interface PostResponse {
     phone: string | null;
     rating: number | null;
     totalReviews: number | null;
+    isVerified?: boolean;
   };
   isBoosted: boolean;
   boostedUntil: string | null;
   rejectionReason?: string | null;
+  videoUrl?: string | null;
+  videoThumbnail?: string | null;
   expiresAt: string;
   createdAt: string;
   updatedAt: string;
@@ -267,12 +270,14 @@ export interface BookingResponse {
     fullName: string;
     phone: string | null;
     avatar: string | null;
+    isVerified?: boolean;
   };
   landlord: {
     id: number;
     fullName: string;
     phone: string | null;
     avatar: string | null;
+    isVerified?: boolean;
   };
   createdAt: string;
   updatedAt: string;
@@ -280,6 +285,7 @@ export interface BookingResponse {
   cancelledAt: string | null;
   completedAt: string | null;
   confirmationCode: string | null;
+  isReviewed?: boolean;
 }
 
 export type BookingStatus = 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED' | 'REJECTED';
@@ -357,6 +363,9 @@ export interface LandlordDashboardStats {
   totalContacts: number;
   totalServiceCost: number;
   conversionRate: number;
+  totalFavorites: number;
+  completedBookings: number;
+  cancelledBookings: number;
   topPosts: {
     id: number;
     title: string;

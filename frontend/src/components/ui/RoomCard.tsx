@@ -144,6 +144,38 @@ export default function RoomCard({ room, isSaved: propIsSaved, onToggleSave }: R
             </span>
           )}
         </div>
+
+        {/* Landlord Info with Verified Check */}
+        {room.landlord && (
+          <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between">
+            <div className="flex items-center gap-2 overflow-hidden">
+              <img
+                src={room.landlord.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(room.landlord.fullName)}`}
+                alt={room.landlord.fullName}
+                className="w-6 h-6 rounded-full object-cover bg-gray-100 shrink-0"
+                referrerPolicy="no-referrer"
+                onError={(e) => {
+                  e.currentTarget.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(room.landlord.fullName)}`;
+                }}
+              />
+              <span className="text-xs font-semibold text-gray-700 flex items-center gap-1 truncate">
+                {room.landlord.fullName}
+                {room.landlord.isVerified && (
+                  <span className="inline-flex items-center justify-center bg-blue-500 text-white rounded-full p-0.5 shrink-0" title="Chủ trọ đã xác thực KYC">
+                    <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3.5" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                  </span>
+                )}
+              </span>
+            </div>
+            {room.landlord.isVerified && (
+              <span className="text-[9px] text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded font-bold border border-blue-100 shrink-0 uppercase tracking-wider">
+                Đã KYC
+              </span>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
