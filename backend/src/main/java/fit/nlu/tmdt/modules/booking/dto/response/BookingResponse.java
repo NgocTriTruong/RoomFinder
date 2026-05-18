@@ -23,6 +23,7 @@ public class BookingResponse {
     private String note;
     private String landlordNote;
     private String confirmationCode;
+    private Boolean isReviewed;
 
     // Post info
     private PostSummary post;
@@ -61,5 +62,6 @@ public class BookingResponse {
         private String fullName;
         private String phone;
         private String avatar;
+        private Boolean isVerified;
     }
 }

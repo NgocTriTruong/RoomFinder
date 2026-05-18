@@ -82,6 +82,14 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success("Account reactivated successfully. You can now login.", null));
     }
 
+    @PostMapping("/google-login")
+    @Operation(summary = "Google Login for students")
+    public ResponseEntity<ApiResponse<AuthResponse>> googleLogin(@Valid @RequestBody GoogleLoginRequest request) {
+        log.info("Google Login attempt for email: {}", request.getEmail());
+        AuthResponse response = authService.oauth2Login("GOOGLE", "gg-" + request.getEmail().hashCode(), request.getEmail(), request.getFullName());
+        return ResponseEntity.ok(ApiResponse.success("Đăng nhập bằng Google thành công", response));
+    }
+
         // OAuth2 is disabled by user request
     @PostMapping("/verify-otp")
     @Operation(summary = "Verify account with OTP")

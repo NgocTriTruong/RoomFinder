@@ -368,13 +368,25 @@ public class AuthServiceImpl implements AuthService {
                                 return userRepository.save(existingUser);
                             })
                             .orElseGet(() -> {
-                                // 3. Create new user
+                                // 3. Check if email is student email to set KYC (isVerified = true)
+                                String domain = email.substring(email.lastIndexOf("@") + 1);
+                                var universities = universityRepository.findAll();
+                                var university = universities.stream()
+                                        .filter(u -> u.getEmailDomain() != null && !u.getEmailDomain().isEmpty() 
+                                                   && domain.endsWith(u.getEmailDomain()))
+                                        .findFirst();
+                                
+                                boolean isStudentVerified = university.isPresent();
+                                Long universityId = isStudentVerified ? university.get().getId() : null;
+
+                                // Create new user
                                 User newUser = User.builder()
                                         .email(email)
                                         .fullName(fullName)
                                         .role(UserRole.USER)
                                         .status(UserStatus.ACTIVE)
-                                        .isVerified(true) // OAuth users are pre-verified
+                                        .isVerified(isStudentVerified) // Only student emails get automatically verified/KYC'ed
+                                        .universityId(universityId)
                                         .provider(provider.toUpperCase())
                                         .providerId(providerId)
                                         .build();
@@ -444,10 +456,15 @@ public class AuthServiceImpl implements AuthService {
             throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Mã OTP đã hết hạn");
         }
         
-        // Mark as verified
+        // Mark as active and verify if student (USER role)
         user.setStatus(UserStatus.ACTIVE);
-        user.setIsVerified(true);
-        user.setVerifiedAt(LocalDateTime.now());
+        if (user.getRole() == UserRole.USER) {
+            user.setIsVerified(true);
+            user.setVerifiedAt(LocalDateTime.now());
+        } else {
+            user.setIsVerified(false);
+            user.setVerifiedAt(null);
+        }
         user.setOtpCode(null);
         user.setOtpExpiry(null);
         

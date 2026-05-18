@@ -16,10 +16,9 @@ import fit.nlu.tmdt.modules.post.entity.Post;
 import fit.nlu.tmdt.modules.post.repository.PostRepository;
 import fit.nlu.tmdt.modules.notification.entity.Notification;
 import fit.nlu.tmdt.modules.notification.service.NotificationService;
+import fit.nlu.tmdt.modules.review.repository.ReviewRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import fit.nlu.tmdt.modules.notification.entity.Notification;
-import fit.nlu.tmdt.modules.notification.service.NotificationService;
 import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -47,6 +46,7 @@ public class BookingServiceImpl implements BookingService {
     private final PostRepository postRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
+    private final ReviewRepository reviewRepository;
 
     @Value("${booking.min-advance-hours:2}")
     private int minAdvanceHours;
@@ -369,6 +369,7 @@ public class BookingServiceImpl implements BookingService {
                     .note(booking.getNote())
                     .landlordNote(displayNote)
                     .confirmationCode(booking.getConfirmationCode())
+                    .isReviewed(reviewRepository.existsByBookingIdAndDeletedAtIsNull(booking.getId()))
                     .post(post != null ? BookingResponse.PostSummary.builder()
                             .id(post.getId())
                             .title(post.getTitle())
@@ -380,12 +381,14 @@ public class BookingServiceImpl implements BookingService {
                             .fullName(user.getFullName())
                             .phone(user.getPhone())
                             .avatar(user.getAvatarUrl())
+                            .isVerified(user.getIsVerified())
                             .build() : null)
                     .landlord(landlord != null ? BookingResponse.UserSummary.builder()
                             .id(landlord.getId())
                             .fullName(landlord.getFullName())
                             .phone(landlord.getPhone())
                             .avatar(landlord.getAvatarUrl())
+                            .isVerified(landlord.getIsVerified())
                             .build() : null)
                     .createdAt(booking.getCreatedAt())
                     .confirmedAt(booking.getConfirmedAt())

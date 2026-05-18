@@ -266,6 +266,11 @@ public class PostServiceImpl implements PostService {
         long pendingBookings = bookingRepository.countByLandlordIdAndStatus(landlordId,
                 fit.nlu.tmdt.modules.booking.entity.enums.BookingStatus.PENDING);
         Long totalContacts = postRepository.sumContactCountByLandlordId(landlordId);
+        Long totalFavorites = postRepository.sumFavoriteCountByLandlordId(landlordId);
+        long completedBookings = bookingRepository.countByLandlordIdAndStatus(landlordId,
+                fit.nlu.tmdt.modules.booking.entity.enums.BookingStatus.COMPLETED);
+        long cancelledBookings = bookingRepository.countByLandlordIdAndStatus(landlordId,
+                fit.nlu.tmdt.modules.booking.entity.enums.BookingStatus.CANCELLED);
 
         // Get daily stats from ViewHistory table (last 7 days)
         LocalDateTime now = LocalDateTime.now();
@@ -328,8 +333,8 @@ public class PostServiceImpl implements PostService {
                 .map(p -> LandlordDashboardStats.PostSummary.builder()
                         .id(p.getId())
                         .title(p.getTitle())
-                        .views(p.getViewCount())
-                        .bookings(p.getBookingCount())
+                        .views(p.getViewCount() != null ? p.getViewCount() : 0)
+                        .bookings(p.getBookingCount() != null ? p.getBookingCount() : 0)
                         .contacts(p.getContactCount() != null ? p.getContactCount() : 0)
                         .build())
                 .collect(Collectors.toList());
@@ -343,6 +348,9 @@ public class PostServiceImpl implements PostService {
                 .totalContacts(totalContacts != null ? totalContacts : 0)
                 .totalServiceCost(totalServiceCost)
                 .conversionRate(conversionRate)
+                .totalFavorites(totalFavorites != null ? totalFavorites : 0)
+                .completedBookings(completedBookings)
+                .cancelledBookings(cancelledBookings)
                 .topPosts(topPosts)
                 .recentActivity(recentActivity)
                 .debugInfo(debugInfo)

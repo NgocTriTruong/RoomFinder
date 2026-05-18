@@ -19,6 +19,9 @@ public class LandlordDashboardStats {
     @JsonProperty("totalServiceCost")
     private double totalServiceCost;
     private double conversionRate;
+    private long totalFavorites;
+    private long completedBookings;
+    private long cancelledBookings;
     private String debugInfo;
     private List<PostSummary> topPosts;
     private List<DailyActivity> recentActivity;
