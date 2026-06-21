@@ -147,11 +147,12 @@ export default function RoomDetail() {
     );
   }
 
-  const allImages: string[] = (room.images && room.images.length > 0)
+  const rawImages: string[] = (room.images && room.images.length > 0)
     ? room.images
     : (room.room?.images && room.room.images.length > 0)
       ? room.room.images
       : [room.room?.thumbnailUrl || room.images?.[0]].filter((img): img is string => !!img);
+  const allImages = Array.from(new Set(rawImages));
 
   const thumbnail = allImages.length > 0
     ? resolveMediaUrl(allImages[0])
@@ -161,7 +162,8 @@ export default function RoomDetail() {
     ? resolveMediaUrl(allImages[activeImageIndex])
     : thumbnail;
 
-  const amenities = room.room?.amenities || [];
+  const rawAmenities = room.room?.amenities || [];
+  const amenities = Array.from(new Map(rawAmenities.map(item => [item.id, item])).values());
   const landlordAvatar = room.landlord?.avatar || createAvatarPlaceholder(room.landlord?.fullName || 'User', 128);
   const roomLocation = room.room?.latitude && room.room?.longitude
     ? { lat: room.room.latitude, lng: room.room.longitude }

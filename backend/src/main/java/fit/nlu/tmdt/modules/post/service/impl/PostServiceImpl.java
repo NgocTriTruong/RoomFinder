@@ -563,9 +563,10 @@ public class PostServiceImpl implements PostService {
                 .distanceToUniversity(room.getDistanceToUniversity())
                 .hasParking(room.getIsParkingAvailable())
                 .hasBalcony(room.getHasBalcony())
-                .amenities(room.getAmenities().stream()
+                .amenities(room.getAmenities() != null ? room.getAmenities().stream()
                         .map(this::toAmenitySimple)
-                        .collect(Collectors.toList()))
+                        .distinct()
+                        .collect(Collectors.toList()) : new ArrayList<>())
                 .build();
 
         LandlordSummary landlordSummary = LandlordSummary.builder()
@@ -597,7 +598,7 @@ public class PostServiceImpl implements PostService {
                 .bookingCount(post.getBookingCount())
                 .room(roomSummary)
                 .landlord(landlordSummary)
-                .images(post.getImages())
+                .images(post.getImages() != null ? post.getImages().stream().distinct().collect(Collectors.toList()) : new ArrayList<>())
                 .videoUrl(post.getVideoUrl())
                 .createdAt(post.getCreatedAt())
                 .updatedAt(post.getUpdatedAt())
