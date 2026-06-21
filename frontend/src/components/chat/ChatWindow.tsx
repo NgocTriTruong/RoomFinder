@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Send, Phone, MoreVertical, ArrowLeft, MessageCircle, Loader2, Image as ImageIcon } from 'lucide-react';
+import { Send, Phone, MoreVertical, ArrowLeft, MessageCircle, Loader2, Image as ImageIcon, PhoneOff, Mic, MicOff } from 'lucide-react';
 import type { ConversationResponse, MessageResponse } from '../../services/messageService';
 import { createAvatarPlaceholder } from '../../utils/localImage';
 
@@ -13,6 +13,23 @@ interface ChatWindowProps {
   onSendMessage: (content: string) => void;
   onTyping: (isTyping: boolean) => void;
   onBack?: () => void;
+
+  // Call properties
+  callState: 'idle' | 'calling' | 'incoming' | 'connected';
+  callUser: {
+    id: number;
+    name: string;
+    avatar: string | null;
+  } | null;
+  localStream: MediaStream | null;
+  remoteStream: MediaStream | null;
+  isMuted: boolean;
+  callDuration: number;
+  startCall: (targetUserId: number, targetUserName: string, targetUserAvatar?: string, conversationId?: number) => Promise<void>;
+  acceptCall: () => Promise<void>;
+  declineCall: () => void;
+  endCall: () => void;
+  toggleMute: () => void;
 }
 
 export default function ChatWindow({
@@ -25,12 +42,42 @@ export default function ChatWindow({
   onSendMessage,
   onTyping,
   onBack,
+
+  // Call props destructuring
+  callState,
+  callUser,
+  localStream,
+  remoteStream,
+  isMuted,
+  callDuration,
+  startCall,
+  acceptCall,
+  declineCall,
+  endCall,
+  toggleMute,
 }: ChatWindowProps) {
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    if (audioRef.current && remoteStream) {
+      audioRef.current.srcObject = remoteStream;
+      audioRef.current.play().catch((err) => {
+        console.error("Failed to play remote audio:", err);
+      });
+    }
+  }, [remoteStream]);
+
+  const formatCallDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -119,7 +166,7 @@ export default function ChatWindow({
   const isOnline = false;
 
   return (
-    <div className="flex flex-col h-full w-full">
+    <div className="flex flex-col h-full w-full relative overflow-hidden">
       {/* Header */}
       <div className="p-4 border-b border-gray-200 bg-white flex items-center justify-between flex-shrink-0">
         <div className="flex items-center">
@@ -160,7 +207,12 @@ export default function ChatWindow({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button className="p-2 text-gray-400 hover:text-blue-600 bg-gray-50 rounded-full transition-colors">
+          <button
+            onClick={() => startCall(otherUserId, otherUserName, otherUserAvatar || undefined, conversation.id)}
+            disabled={callState !== 'idle'}
+            className="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 bg-blue-50 rounded-full transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Gọi thoại trực tiếp"
+          >
             <Phone className="w-5 h-5" />
           </button>
           <button className="p-2 text-gray-400 hover:text-gray-600 bg-gray-50 rounded-full transition-colors">
@@ -268,6 +320,107 @@ export default function ChatWindow({
           </button>
         </form>
       </div>
+
+      {/* WebRTC Calling Interface Overlay */}
+      {callState !== 'idle' && (
+        <div className="absolute inset-0 z-50 bg-gradient-to-b from-slate-900 via-slate-950 to-slate-900 flex flex-col items-center justify-between p-8 text-white animate-in fade-in duration-300">
+          <div className="flex flex-col items-center mt-12 space-y-4">
+            {/* Status Indicator Bar */}
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-white/10 backdrop-blur-md rounded-full text-xs font-semibold tracking-wider text-blue-300 uppercase animate-pulse">
+              <span className="w-2 h-2 rounded-full bg-blue-400" />
+              {callState === 'calling' && 'Đang gọi đi...'}
+              {callState === 'incoming' && 'Cuộc gọi đến...'}
+              {callState === 'connected' && 'Đang kết nối'}
+            </div>
+
+            {/* Avatar & Ringing/Pulsing Visual Effect */}
+            <div className="relative mt-8">
+              {/* Inner Pulsing Rings */}
+              {callState !== 'connected' ? (
+                <>
+                  <div className="absolute -inset-4 rounded-full bg-blue-500/20 animate-ping opacity-75" />
+                  <div className="absolute -inset-8 rounded-full bg-blue-500/10 animate-pulse opacity-50" />
+                </>
+              ) : (
+                <div className="absolute -inset-2 rounded-full bg-green-500/25 animate-pulse" />
+              )}
+              
+              <img
+                src={callUser?.avatar || createAvatarPlaceholder(callUser?.name || otherUserName, 150)}
+                alt={callUser?.name || otherUserName}
+                className={`w-32 h-32 rounded-full object-cover shadow-2xl border-4 ${
+                  callState === 'connected' ? 'border-green-500' : 'border-blue-500'
+                }`}
+                referrerPolicy="no-referrer"
+              />
+            </div>
+
+            {/* User Info */}
+            <div className="text-center space-y-1">
+              <h2 className="text-2xl font-bold tracking-wide">{callUser?.name || otherUserName}</h2>
+              {callState === 'connected' ? (
+                <p className="text-sm font-semibold text-green-400 font-mono tracking-wider">
+                  {formatCallDuration(callDuration)}
+                </p>
+              ) : (
+                <p className="text-sm text-slate-400">
+                  {callState === 'calling' ? 'Đang đổ chuông máy đối phương...' : 'Đang chờ bạn trả lời...'}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Controls Bar */}
+          <div className="mb-12 flex items-center justify-center gap-6">
+            {callState === 'incoming' ? (
+              <>
+                {/* Decline Button */}
+                <button
+                  onClick={declineCall}
+                  className="w-16 h-16 flex items-center justify-center bg-red-600 hover:bg-red-700 active:scale-95 text-white rounded-full shadow-lg transition-all duration-200"
+                  title="Từ chối cuộc gọi"
+                >
+                  <PhoneOff className="w-7 h-7" />
+                </button>
+                {/* Accept Button */}
+                <button
+                  onClick={acceptCall}
+                  className="w-16 h-16 flex items-center justify-center bg-green-500 hover:bg-green-600 active:scale-95 text-white rounded-full shadow-lg transition-all duration-200"
+                  title="Chấp nhận cuộc gọi"
+                >
+                  <Phone className="w-7 h-7 animate-pulse" />
+                </button>
+              </>
+            ) : (
+              <>
+                {/* Mute Button */}
+                <button
+                  onClick={toggleMute}
+                  className={`w-14 h-14 flex items-center justify-center rounded-full shadow-md transition-all duration-200 active:scale-95 ${
+                    isMuted
+                      ? 'bg-red-500 text-white hover:bg-red-600'
+                      : 'bg-white/10 text-white hover:bg-white/20 border border-white/20'
+                  }`}
+                  title={isMuted ? 'Bật micro' : 'Tắt micro'}
+                >
+                  {isMuted ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
+                </button>
+                {/* End Call Button */}
+                <button
+                  onClick={endCall}
+                  className="w-16 h-16 flex items-center justify-center bg-red-600 hover:bg-red-700 active:scale-95 text-white rounded-full shadow-lg transition-all duration-200"
+                  title="Kết thúc cuộc gọi"
+                >
+                  <PhoneOff className="w-7 h-7" />
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Hidden audio element for receiving remote stream */}
+      <audio ref={audioRef} autoPlay style={{ display: 'none' }} />
     </div>
   );
 }

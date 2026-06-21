@@ -74,7 +74,54 @@ export function useNotifications() {
     };
     fetchInitial();
 
-    // ... existing websocket logic ...
+    const getWsUrl = () => {
+      const envUrl = import.meta.env.VITE_WS_URL;
+      if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+        const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
+        if (window.location.port) {
+          return `${protocol}//${window.location.hostname}:8080/ws`;
+        }
+        return `${protocol}//${window.location.host}/ws`;
+      }
+      return envUrl || 'http://localhost:8080/ws';
+    };
+
+    const WS_BASE_URL = getWsUrl();
+    const socket = SockJS(WS_BASE_URL, undefined, {
+      transports: ['websocket', 'xhr-streaming', 'xhr-polling'],
+    });
+
+    const client = new Client({
+      webSocketFactory: () => socket as any,
+      connectHeaders: {
+        Authorization: `Bearer ${token}`,
+      },
+      reconnectDelay: 5000,
+      heartbeatIncoming: 25000,
+      heartbeatOutgoing: 25000,
+      onConnect: () => {
+        console.log('[WS Notif] Connected to notifications channel');
+        client.subscribe('/user/queue/notifications', (message) => {
+          try {
+            const newNotif = JSON.parse(message.body) as Notification;
+            setNotifications(prev => [newNotif, ...prev]);
+            setUnreadCount(prev => prev + 1);
+          } catch (e) {
+            console.error('[WS Notif] Failed to parse notification:', e);
+          }
+        });
+      },
+      onDisconnect: () => {
+        console.log('[WS Notif] Disconnected from notifications channel');
+      },
+      onStompError: (frame) => {
+        console.error('[WS Notif] STOMP error:', frame);
+      }
+    });
+
+    stompClient.current = client;
+    client.activate();
+
     return () => {
       if (stompClient.current) {
         stompClient.current.deactivate();

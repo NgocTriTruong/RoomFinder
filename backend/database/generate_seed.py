@@ -250,6 +250,72 @@ room_types = [
     }
 ]
 
+def get_room_description(template, area, price, deposit, distance, uni_name, uni_abbr, street, ward, district, curfew):
+    type_name = template["type_name"]
+    price_str = f"{price:,}"
+    deposit_str = f"{deposit:,}"
+    
+    # 1. Location details
+    loc_desc = (
+        f"**Vị trí thuận tiện và yên tĩnh**\n"
+        f"- Địa chỉ: {street}, {ward if 'Phường' in ward or 'Xã' in ward or 'Thị trấn' in ward else 'Phường ' + ward}, {district}.\n"
+        f"- Chỉ cách khuôn viên trường {uni_name} ({uni_abbr}) khoảng {distance:.2f}km. "
+        f"Việc đi học hàng ngày cực kỳ thuận tiện và nhanh chóng bằng xe máy, xe buýt hoặc đi bộ. "
+        f"Khu vực xung quanh cao ráo, không bị ngập nước, đường sá thông thoáng."
+    )
+    
+    # 2. Design specifications
+    design_desc = (
+        f"**Thiết kế căn phòng**\n"
+        f"- Diện tích sử dụng: {area}m2. Thiết kế tối ưu không gian, sạch sẽ, thoáng mát, thích hợp cho việc học tập lâu dài.\n"
+        f"- Sở hữu cửa sổ lớn đón ánh sáng tự nhiên tốt, giữ phòng luôn khô ráo."
+    )
+    if template.get("has_balcony"):
+        design_desc += "\n- Có ban công riêng đón gió mát mẻ, thuận tiện cho việc phơi đồ hoặc làm góc thư giãn."
+        
+    # 3. Embedded amenities
+    amenities_list = []
+    if 1 in template["amenity_ids"]:
+        amenities_list.append("Wifi internet tốc độ cao riêng biệt từng phòng")
+    if 2 in template["amenity_ids"]:
+        amenities_list.append("Máy điều hòa nhiệt độ Inverter hoạt động êm ái, tiết kiệm điện")
+    if 3 in template["amenity_ids"]:
+        amenities_list.append("Hệ thống nước nóng lạnh an toàn")
+    if 4 in template["amenity_ids"]:
+        amenities_list.append("Chỗ để xe máy rộng rãi dưới tầng trệt, an ninh đảm bảo")
+    if 6 in template["amenity_ids"]:
+        amenities_list.append("Tủ lạnh dung tích lớn tiện lợi lưu trữ đồ ăn")
+    if 7 in template["amenity_ids"]:
+        amenities_list.append("Khu vực giặt sấy/máy giặt tiện nghi")
+    if 9 in template["amenity_ids"]:
+        amenities_list.append("Kệ bếp nấu ăn thoáng khí, tủ bếp sạch sẽ")
+        
+    if amenities_list:
+        amenities_str = "\n".join([f"- {amen}" for amen in amenities_list])
+        amen_desc = f"**Các tiện ích lắp sẵn**\n{amenities_str}"
+    else:
+        amen_desc = f"**Các tiện ích lắp sẵn**\n- Đầy đủ trang thiết bị cơ bản phục vụ nhu cầu sinh hoạt hàng ngày."
+        
+    # 4. Security
+    curfew_str = f"Giờ đóng cổng: {curfew} đêm nhằm đảm bảo trật tự chung." if curfew != "Tự do" else "Giờ giấc ra vào tự do thoải mái, không chung chủ."
+    sec_desc = (
+        f"**An ninh và quy định**\n"
+        f"- Hệ thống cửa cổng kiểm soát bằng khóa vân tay bảo mật cao kết hợp camera giám sát 24/7.\n"
+        f"- {curfew_str}\n"
+        f"- Môi trường sống văn minh, hàng xóm chủ yếu là sinh viên ngoan ngoãn và nhân viên văn phòng lịch sự."
+    )
+    
+    # 5. Financial details
+    price_desc = (
+        f"**Thông tin chi phí thuê**\n"
+        f"- Giá thuê hàng tháng: {price_str} đ/tháng.\n"
+        f"- Tiền đặt cọc: {deposit_str} đ (cam kết hoàn trả đầy đủ khi kết thúc hợp đồng theo đúng thỏa thuận).\n"
+        f"- Chỉ số điện nước tính theo đồng hồ riêng gắn trước cửa phòng, cam kết thu đúng chỉ số tiêu thụ thực tế."
+    )
+    
+    full_desc = f"{loc_desc}\n\n{design_desc}\n\n{amen_desc}\n\n{sec_desc}\n\n{price_desc}"
+    return full_desc
+
 # Generate premium seed script content
 def generate_sql():
     sql = []
@@ -419,7 +485,7 @@ def generate_sql():
             if len(post_title) < 20: # Ensure validation passes
                 post_title = f"Cho thuê {type_name.lower()} {area}m2 cách {uni_abbr} {distance}km tuyệt đẹp"
             
-            desc = f"Cho thuê {type_name.lower()} diện tích {area}m2 cách trường {uni_name} khoảng {distance}km. Phòng trọ cực kỳ tiện lợi, thoáng mát và sạch sẽ, thích hợp cho việc học tập lâu dài của sinh viên. Đầy đủ tiện nghi hiện đại gồm hệ thống đèn led thông minh, ổ khoá vân tay bảo mật, khu giặt sấy tiện lợi. Video thực tế của phòng được đính kèm ở bài đăng."
+            desc = get_room_description(template, area, price, deposit, distance, uni_name, uni_abbr, street, ward, district, curfew).replace("'", "''")
             
             views = random.randint(100, 450)
             favs = random.randint(10, 60)
@@ -465,7 +531,17 @@ def generate_sql():
     return "\n".join(sql)
 
 if __name__ == '__main__':
+    import os
     sql_content = generate_sql()
+    
+    # Write to root
     with open('premium_seed_data.sql', 'w', encoding='utf-8') as f:
         f.write(sql_content)
-    print("premium_seed_data.sql with video URLs and geodetic distances generated successfully!")
+        
+    # Write to backend/database if it exists
+    db_seed_path = os.path.join('backend', 'database', 'premium_seed_data.sql')
+    if os.path.exists(os.path.dirname(db_seed_path)):
+        with open(db_seed_path, 'w', encoding='utf-8') as f:
+            f.write(sql_content)
+            
+    print("premium_seed_data.sql generated successfully in root and backend/database/!")

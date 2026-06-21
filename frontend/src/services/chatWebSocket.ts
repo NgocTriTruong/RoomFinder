@@ -1,7 +1,19 @@
 import SockJS from 'sockjs-client';
 import { Client, IMessage, IStompSocket } from '@stomp/stompjs';
 
-const WS_BASE_URL = import.meta.env.VITE_WS_URL || 'http://localhost:8080/ws';
+const getWsUrl = () => {
+  const envUrl = import.meta.env.VITE_WS_URL;
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+    const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
+    if (window.location.port) {
+      return `${protocol}//${window.location.hostname}:8080/ws`;
+    }
+    return `${protocol}//${window.location.host}/ws`;
+  }
+  return envUrl || 'http://localhost:8080/ws';
+};
+
+const WS_BASE_URL = getWsUrl();
 
 export type MessageType = 'CHAT' | 'TYPING' | 'READ' | 'ONLINE' | 'OFFLINE' | 'DELIVERED' | 'ERROR';
 
@@ -143,6 +155,20 @@ class ChatWebSocketService {
 
     this.client.publish({
       destination: '/app/chat.send',
+      body: JSON.stringify({
+        type: 'CHAT',
+        conversationId,
+        receiverId,
+        content,
+      }),
+    });
+  }
+
+  sendPrivateMessage(conversationId: number, receiverId: number, content: string) {
+    if (!this.client?.connected) return;
+
+    this.client.publish({
+      destination: '/app/chat.private',
       body: JSON.stringify({
         type: 'CHAT',
         conversationId,

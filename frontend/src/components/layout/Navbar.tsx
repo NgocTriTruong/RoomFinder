@@ -1,13 +1,21 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Search, Menu, User, Home, LogOut, Settings, Heart, Calendar, PlusCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Search, Menu, User, Home, LogOut, Settings, Heart, Calendar, PlusCircle, Mic } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import NotificationDropdown from './NotificationDropdown';
+import VoiceSearchModal from '../ui/VoiceSearchModal';
 
 export default function Navbar() {
   const { isAuthenticated, user, logout } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [headerSearchQuery, setHeaderSearchQuery] = useState(searchParams.get('q') || '');
+  const [isVoiceOpen, setIsVoiceOpen] = useState(false);
+
+  useEffect(() => {
+    setHeaderSearchQuery(searchParams.get('q') || '');
+  }, [searchParams]);
 
   const handleLogout = async () => {
     await logout();
@@ -20,10 +28,8 @@ export default function Navbar() {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <div className="flex-shrink-0 flex items-center">
-            <Link to={user?.role === 'ADMIN' ? "/admin" : "/"} className="flex items-center gap-2">
-              <div className="bg-blue-600 p-2 rounded-lg">
-                <Home className="w-6 h-6 text-white" />
-              </div>
+            <Link to={user?.role === 'ADMIN' ? "/admin" : "/"} className="flex items-center gap-0">
+              <img src="/logo.png" alt="RoomFinder Logo" className="h-[44px] w-auto object-contain rounded-md" />
               <span className="text-xl font-bold text-gray-900">RoomFinder</span>
             </Link>
           </div>
@@ -36,9 +42,26 @@ export default function Navbar() {
               </div>
               <input
                 type="text"
-                className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg leading-5 bg-gray-50 placeholder-gray-500 focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-600 focus:border-blue-600 sm:text-sm transition-colors"
+                value={headerSearchQuery}
+                onChange={(e) => setHeaderSearchQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    const params = new URLSearchParams();
+                    if (headerSearchQuery) params.append('q', headerSearchQuery);
+                    navigate(`/search?${params.toString()}`);
+                  }
+                }}
+                className="block w-full pl-10 pr-10 py-2 border border-gray-200 rounded-lg leading-5 bg-gray-50 placeholder-gray-500 focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-600 focus:border-blue-600 sm:text-sm transition-colors"
                 placeholder="Tìm kiếm phòng trọ, khu vực..."
               />
+              <button
+                type="button"
+                onClick={() => setIsVoiceOpen(true)}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-blue-600 transition-colors cursor-pointer"
+                title="Tìm kiếm bằng giọng nói"
+              >
+                <Mic className="h-4 w-4 text-blue-500 animate-pulse" />
+              </button>
             </div>
           </div>
 
@@ -155,6 +178,16 @@ export default function Navbar() {
           </div>
         </div>
       </div>
+      <VoiceSearchModal
+        isOpen={isVoiceOpen}
+        onClose={() => setIsVoiceOpen(false)}
+        onResult={(text) => {
+          setHeaderSearchQuery(text);
+          const params = new URLSearchParams();
+          params.append('q', text);
+          navigate(`/search?${params.toString()}`);
+        }}
+      />
     </header>
   );
 }

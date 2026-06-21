@@ -1,12 +1,11 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { Filter, SlidersHorizontal, Loader2, Search as SearchIcon, Mic } from 'lucide-react';
+import { SlidersHorizontal, Loader2 } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import RoomCard from '../components/ui/RoomCard';
 import postService, { PostSearchParams } from '../services/postService';
 import roomService from '../services/roomService';
 import { PostResponse, AmenityResponse } from '../types';
 import universityService, { UniversityResponse } from '../services/universityService';
-import VoiceSearchModal from '../components/ui/VoiceSearchModal';
 
 // Custom debounce hook
 function useDebounce<T>(value: T, delay: number): T {
@@ -23,14 +22,12 @@ function useDebounce<T>(value: T, delay: number): T {
 }
 
 export default function Search() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [posts, setPosts] = useState<PostResponse[]>([]);
   const [totalElements, setTotalElements] = useState(0);
   const [loading, setLoading] = useState(true);
   
-  // Voice search state
-  const [isVoiceOpen, setIsVoiceOpen] = useState(false);
-  
+
   // Filters state
   const [keyword, setKeyword] = useState('');
   const [priceRange, setPriceRange] = useState('');
@@ -224,62 +221,27 @@ export default function Search() {
         {/* Sidebar Filters */}
         <aside className="w-full md:w-64 flex-shrink-0">
           <div className="bg-white p-5 rounded-lg shadow-sm border border-gray-100 sticky top-24">
-            <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100">
-              <div className="flex items-center gap-2">
-                <Filter className="w-5 h-5 text-gray-700" />
-                <h2 className="text-lg font-semibold text-gray-800">Bộ lọc</h2>
-              </div>
-              {(keyword || priceRange || district || selectedUniversityId || selectedAmenityIds.length > 0) && (
-                <button
-                  onClick={() => {
-                    setKeyword('');
-                    setPriceRange('');
-                    setDistrict('');
-                    setSelectedUniversityId('');
-                    setSelectedAmenityIds([]);
-                    setUniKeyword('');
-                  }}
-                  className="text-xs text-blue-600 hover:text-blue-700 font-medium transition-colors cursor-pointer"
-                >
-                  Xóa bộ lọc
-                </button>
-              )}
-            </div>
-
-            {/* Keyword Search */}
-            <div className="mb-6">
-              <h3 className="text-sm font-medium text-gray-900 mb-3">Từ khóa</h3>
-              <div className="relative">
-                <SearchIcon className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Quận 1, giá rẻ..."
-                  className="w-full pl-9 pr-9 border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
-                  value={keyword}
-                  onChange={(e) => setKeyword(e.target.value)}
-                />
-                <button
-                  type="button"
-                  onClick={() => setIsVoiceOpen(true)}
-                  className="absolute right-2.5 top-2.5 text-gray-400 hover:text-blue-600 transition-colors p-0.5"
-                  title="Tìm kiếm bằng giọng nói"
-                >
-                  <Mic className="h-4 w-4 text-blue-500 animate-pulse" />
-                </button>
-              </div>
-            </div>
-
-            <VoiceSearchModal
-              isOpen={isVoiceOpen}
-              onClose={() => setIsVoiceOpen(false)}
-              onResult={(text) => {
-                setKeyword(text);
-              }}
-            />
-
             {/* Price Filter */}
             <div className="mb-6">
-              <h3 className="text-sm font-medium text-gray-900 mb-3">Khoảng giá</h3>
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="text-sm font-medium text-gray-900">Khoảng giá</h3>
+                {(keyword || priceRange || district || selectedUniversityId || selectedAmenityIds.length > 0) && (
+                  <button
+                    onClick={() => {
+                      setKeyword('');
+                      setPriceRange('');
+                      setDistrict('');
+                      setSelectedUniversityId('');
+                      setSelectedAmenityIds([]);
+                      setUniKeyword('');
+                      setSearchParams({});
+                    }}
+                    className="text-xs text-blue-600 hover:text-blue-700 font-medium transition-colors cursor-pointer"
+                  >
+                    Xóa bộ lọc
+                  </button>
+                )}
+              </div>
               <div className="space-y-2">
                 {['Dưới 2 triệu', '2 - 4 triệu', '4 - 7 triệu', 'Trên 7 triệu'].map((range, idx) => (
                   <label key={idx} className="flex items-center">

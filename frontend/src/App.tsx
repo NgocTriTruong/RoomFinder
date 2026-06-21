@@ -18,6 +18,16 @@ import Home from './pages/Home';
 import Search from './pages/Search';
 import RoomDetail from './pages/RoomDetail';
 
+// Static Pages
+import About from './pages/static/About';
+import Regulation from './pages/static/Regulation';
+import Privacy from './pages/static/Privacy';
+import Contact from './pages/static/Contact';
+import Faqs from './pages/static/Faqs';
+import PostGuide from './pages/static/PostGuide';
+import Pricing from './pages/static/Pricing';
+import Dispute from './pages/static/Dispute';
+
 // Auth Pages
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -74,6 +84,14 @@ function App() {
             <Route index element={<Home />} />
             <Route path="search" element={<Search />} />
             <Route path="room/:id" element={<RoomDetail />} />
+            <Route path="about" element={<About />} />
+            <Route path="regulation" element={<Regulation />} />
+            <Route path="privacy" element={<Privacy />} />
+            <Route path="contact" element={<Contact />} />
+            <Route path="faqs" element={<Faqs />} />
+            <Route path="post-guide" element={<PostGuide />} />
+            <Route path="pricing" element={<Pricing />} />
+            <Route path="dispute" element={<Dispute />} />
           </Route>
 
           {/* ============================================ */}

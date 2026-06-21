@@ -1,5 +1,19 @@
 @import "tailwindcss";
 
+@theme {
+  --color-blue-50: #e6f6ff;
+  --color-blue-100: #d3eeff;
+  --color-blue-200: #a7dbf9;
+  --color-blue-300: #72c3f3;
+  --color-blue-400: #3ea5e9;
+  --color-blue-500: #1583cf;
+  --color-blue-600: #1172b6;
+  --color-blue-700: #0e5e96;
+  --color-blue-800: #0c4e7d;
+  --color-blue-900: #0d4268;
+  --color-blue-950: #092b45;
+}
+
 /* Custom Scrollbar Styles */
 ::-webkit-scrollbar {
   width: 6px;

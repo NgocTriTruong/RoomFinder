@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Home, Eye, EyeOff, Loader2, Check, X } from 'lucide-react';
+import { Home, Eye, EyeOff, Loader2, Check, X, User, Building2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { getErrorMessage } from '@/services/api';
 import type { RegisterRequest } from '@/types';
@@ -149,10 +149,8 @@ export default function Register() {
       <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow-sm border border-gray-100">
         {/* Header */}
         <div className="text-center">
-          <Link to="/" className="inline-flex items-center justify-center gap-2 mb-6">
-            <div className="bg-blue-600 p-2 rounded-lg">
-              <Home className="w-6 h-6 text-white" />
-            </div>
+          <Link to="/" className="inline-flex items-center justify-center gap-0 mb-6">
+            <img src="/logo.png" alt="RoomFinder Logo" className="h-[50px] w-auto object-contain rounded-md" />
             <span className="text-2xl font-bold text-gray-900">RoomFinder</span>
           </Link>
           <h2 className="text-2xl md:text-3xl font-bold text-gray-900">Tạo tài khoản mới</h2>
@@ -254,7 +252,7 @@ export default function Register() {
                   }`}
                 >
                   <div className="flex flex-col items-center gap-1">
-                    <span className="text-lg">🏠</span>
+                    <User className={`w-6 h-6 mb-1 ${role === 'USER' ? 'text-blue-600' : 'text-gray-400'}`} />
                     <span>Người tìm phòng</span>
                   </div>
                 </button>
@@ -268,7 +266,7 @@ export default function Register() {
                   }`}
                 >
                   <div className="flex flex-col items-center gap-1">
-                    <span className="text-lg">🏢</span>
+                    <Building2 className={`w-6 h-6 mb-1 ${role === 'LANDLORD' ? 'text-amber-500' : 'text-gray-400'}`} />
                     <span>Chủ cho thuê</span>
                   </div>
                 </button>

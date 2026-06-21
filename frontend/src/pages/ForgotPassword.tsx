@@ -35,10 +35,8 @@ export default function ForgotPassword() {
       <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-sm border border-gray-100">
           <div className="text-center">
-            <Link to="/" className="inline-flex items-center justify-center gap-2 mb-6">
-              <div className="bg-blue-600 p-2 rounded-lg">
-                <Home className="w-6 h-6 text-white" />
-              </div>
+            <Link to="/" className="inline-flex items-center justify-center gap-0 mb-6">
+              <img src="/logo.png" alt="RoomFinder Logo" className="h-[50px] w-auto object-contain rounded-md" />
               <span className="text-2xl font-bold text-gray-900">RoomFinder</span>
             </Link>
             <div className="mb-6">
@@ -67,10 +65,8 @@ export default function ForgotPassword() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-sm border border-gray-100">
         <div className="text-center">
-          <Link to="/" className="inline-flex items-center justify-center gap-2 mb-6">
-            <div className="bg-blue-600 p-2 rounded-lg">
-              <Home className="w-6 h-6 text-white" />
-            </div>
+          <Link to="/" className="inline-flex items-center justify-center gap-0 mb-6">
+            <img src="/logo.png" alt="RoomFinder Logo" className="h-[50px] w-auto object-contain rounded-md" />
             <span className="text-2xl font-bold text-gray-900">RoomFinder</span>
           </Link>
           <h2 className="text-2xl md:text-3xl font-bold text-gray-900">Quên mật khẩu?</h2>

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Search, MapPin, Loader2, Home as HomeIcon, Building2, Warehouse, BedDouble, Car, Wifi, Wind, Tv, Waves, Dumbbell, Mic } from 'lucide-react';
+import { Search, MapPin, Loader2, Home as HomeIcon, Building2, Warehouse, BedDouble, Car, Wifi, Wind, Tv, Waves, Dumbbell, Mic, ShieldCheck, PhoneCall, Sparkles, Gift, Info, Target, Award, Play, Pause, Volume2, VolumeX } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import RoomCard from '../components/ui/RoomCard';
 import postService from '../services/postService';
@@ -32,6 +32,29 @@ export default function Home() {
   const { user } = useAuth();
   const [userUniversity, setUserUniversity] = useState<UniversityResponse | null>(null);
   const [universityRooms, setUniversityRooms] = useState<PostResponse[]>([]);
+
+  // Video player state
+  const videoRef = React.useRef<HTMLVideoElement>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
+
+  const togglePlay = () => {
+    if (videoRef.current) {
+      if (isPlaying) {
+        videoRef.current.pause();
+      } else {
+        videoRef.current.play().catch(err => console.log(err));
+      }
+      setIsPlaying(!isPlaying);
+    }
+  };
+
+  const toggleMute = () => {
+    if (videoRef.current) {
+      videoRef.current.muted = !isMuted;
+      setIsMuted(!isMuted);
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -373,7 +396,190 @@ export default function Home() {
         )}
       </section>
 
+      {/* RF Activities Section */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full border-t border-gray-100">
+        <div className="text-center max-w-3xl mx-auto mb-16">
+          <span className="text-xs font-bold text-blue-600 uppercase tracking-wider">
+            Giải Pháp Đột Phá
+          </span>
+          <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 tracking-tight mt-2">
+            Các Hoạt Động Cốt Lõi Tại RoomFinder
+          </h2>
+          <p className="mt-4 text-base text-gray-500">
+            Nâng tầm trải nghiệm tìm kiếm nhà trọ bằng việc áp dụng tối đa các giải pháp công nghệ thời gian thực, đảm bảo quyền lợi và sự minh bạch cao nhất.
+          </p>
+        </div>
 
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          {[
+            {
+              num: '01',
+              color: 'text-blue-600',
+              title: 'Xác Thực Tích Xanh KYC',
+              description: 'Chủ nhà và phòng trọ được xác minh danh tính thông qua đối chiếu căn cước công dân và sổ hồng/hợp đồng sở hữu hợp pháp. RoomFinder tiến hành thẩm định thực tế để gắn nhãn tích xanh, giúp giảm thiểu 100% rủi ro lừa đảo cọc ảo của sinh viên và người thuê trọ.'
+            },
+            {
+              num: '02',
+              color: 'text-indigo-600',
+              title: 'Gọi điện & Chat Realtime',
+              description: 'Ứng dụng giải pháp WebRTC đàm thoại trực tiếp thời gian thực ngay trên giao diện web hoàn toàn miễn phí. Người thuê có thể kết nối âm thanh HD chất lượng cao, đàm thoại thảo luận giá cả và thống nhất lịch xem phòng với chủ nhà mà không cần qua app trung gian.'
+            },
+            {
+              num: '03',
+              color: 'text-purple-600',
+              title: 'Tìm Kiếm AI & Giọng Nói',
+              description: 'Tích hợp trợ lý ảo thông minh giúp bạn tìm kiếm phòng trọ bằng giọng nói tiện lợi. Chỉ cần đọc tên trường học hoặc khu vực bạn mong muốn, hệ thống sẽ tự động quét bản đồ số và đề xuất phòng trọ chất lượng tốt nhất trong phạm vi bán kính 5km.'
+            },
+            {
+              num: '04',
+              color: 'text-emerald-600',
+              title: 'Hỗ Trợ Tài Chính Độc Quyền',
+              description: 'RoomFinder kết hợp với các đối tác ngân hàng uy tín mang tới gói bảo lãnh đặt cọc và hỗ trợ trả góp tiền thuê phòng lãi suất cực thấp cho sinh viên nghèo. Đi kèm là hàng ngàn voucher giảm trực tiếp tiền thuê tháng đầu tiên lên tới 20%.'
+            }
+          ].map((act, idx) => {
+            return (
+              <div 
+                key={idx}
+                className="group p-2 transition-all duration-300"
+              >
+                <div className={`text-4xl font-black ${act.color} opacity-40 group-hover:opacity-100 transition-opacity mb-4 font-mono`}>
+                  {act.num}
+                </div>
+                <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">
+                  {act.title}
+                </h3>
+                <p className="text-gray-500 text-sm leading-relaxed">
+                  {act.description}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* About Us Section */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full border-t border-gray-100">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+          {/* Left Column - Narrative and Details */}
+          <div className="lg:col-span-7 space-y-6">
+            <span className="text-xs font-bold text-blue-600 uppercase tracking-wider">
+              Về Chúng Tôi
+            </span>
+            <h3 className="text-3xl md:text-4xl font-extrabold text-gray-900 tracking-tight">
+              Hành Trình Xây Dựng Cổng Kết Nối Phòng Trọ Lớn Nhất Việt Nam
+            </h3>
+            
+            <div className="space-y-4 text-gray-600 text-sm leading-relaxed">
+              <p>
+                RoomFinder khởi đầu từ một dự án tình nguyện của nhóm cựu sinh viên công nghệ, những người thấu hiểu sâu sắc nỗi ám ảnh của sinh viên ngoại tỉnh mỗi mùa nhập học: từ việc lạc đường, ép giá, gặp cò mồi lừa đảo, cho tới những điều kiện sống tồi tàn không đúng như quảng cáo.
+              </p>
+              <p>
+                Chúng tôi quyết định áp dụng công nghệ số để xây dựng một cổng thông tin phòng trọ hoàn toàn minh bạch. Nơi người thuê được cung cấp đầy đủ thông tin chuẩn xác về giá cả, hình ảnh/video thực tế, và được giao tiếp trực tiếp với chủ trọ chính chủ mà không phải chịu bất kỳ khoản chi phí hoa hồng nào.
+              </p>
+            </div>
+
+            <div className="pt-6 grid grid-cols-1 sm:grid-cols-3 gap-6">
+              <div className="border-l-2 border-blue-600 pl-4">
+                <div className="text-2xl font-bold text-blue-600">5 Phút</div>
+                <div className="text-xs text-gray-500 mt-1">Thời gian trung bình kết nối thành công và tìm thấy phòng ưng ý.</div>
+              </div>
+              <div className="border-l-2 border-indigo-600 pl-4">
+                <div className="text-2xl font-bold text-indigo-600">100%</div>
+                <div className="text-xs text-gray-500 mt-1">Chủ trọ đều được kiểm tra giấy tờ pháp lý kỹ càng.</div>
+              </div>
+              <div className="border-l-2 border-emerald-600 pl-4">
+                <div className="text-2xl font-bold text-emerald-600">50K+</div>
+                <div className="text-xs text-gray-500 mt-1">Thành viên hoạt động sôi nổi và đánh giá tin đăng mỗi ngày.</div>
+              </div>
+            </div>
+
+            <div className="pt-6 border-t border-gray-100 grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div>
+                <h4 className="font-bold text-gray-900 mb-2">Tầm Nhìn Hướng Tới Tương Lai</h4>
+                <p className="text-gray-500 text-xs leading-relaxed">
+                  Không chỉ dừng lại ở vai trò đăng tin, RoomFinder hướng đến mục tiêu số hóa toàn bộ thủ tục đặt cọc, làm hợp đồng điện tử và hỗ trợ thanh toán hóa đơn điện nước định kỳ chỉ trên một nền tảng duy nhất.
+                </p>
+              </div>
+              <div>
+                <h4 className="font-bold text-gray-900 mb-2">Cam Kết Minh Bạch Về Giá</h4>
+                <p className="text-gray-500 text-xs leading-relaxed">
+                  Chúng tôi cam kết hoàn tiền 100% phí cọc nếu thông tin phòng trọ thực tế sai lệch so với tin đăng đã được RoomFinder xác thực.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column - Visual Representation */}
+          <div className="lg:col-span-5 relative">
+            <div className="relative overflow-hidden rounded-3xl shadow-xl border border-gray-150 group">
+              <img 
+                src="/about_us_room.png" 
+                alt="Không gian phòng trọ sinh viên tiện nghi" 
+                className="w-full h-[450px] object-cover transform group-hover:scale-105 transition-transform duration-700"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent p-8 flex flex-col justify-end text-white">
+                <span className="text-xs font-semibold text-cyan-300 uppercase tracking-wider mb-2">RoomFinder Spaces</span>
+                <h4 className="text-xl font-bold mb-2">Phòng Trọ Đầy Đủ Tiện Nghi & An Ninh</h4>
+                <p className="text-slate-200 text-xs leading-relaxed">
+                  Hàng ngàn căn hộ dịch vụ và phòng trọ sinh viên chất lượng cao đang chờ đón bạn khám phá trên hệ thống RoomFinder.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Video Walkthrough Section */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full border-t border-gray-100">
+        <div className="text-center max-w-3xl mx-auto mb-12">
+          <span className="text-xs font-bold text-blue-600 uppercase tracking-wider">
+            Trải Nghiệm Thực Tế
+          </span>
+          <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 tracking-tight mt-2">
+            Video Tham Quan Phòng Thực Tế
+          </h2>
+          <p className="mt-4 text-base text-gray-500">
+            Khám phá không gian sống sinh động, chân thực và chi tiết trước khi đặt lịch xem trực tiếp.
+          </p>
+        </div>
+
+        <div className="max-w-4xl mx-auto relative rounded-3xl overflow-hidden shadow-2xl border border-gray-200 aspect-video group bg-slate-900">
+          <video
+            ref={videoRef}
+            src="https://assets.mixkit.co/videos/preview/mixkit-modern-apartment-interior-with-a-living-room-and-kitchen-40141-large.mp4"
+            className="w-full h-full object-cover"
+            loop
+            muted={isMuted}
+            playsInline
+            onClick={togglePlay}
+          />
+          
+          {/* Custom controls overlay */}
+          <div className="absolute inset-0 bg-black/35 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center pointer-events-none">
+            <div className="flex gap-4 pointer-events-auto">
+              <button
+                onClick={togglePlay}
+                className="w-16 h-16 bg-white/95 text-blue-600 hover:bg-white rounded-full flex items-center justify-center shadow-lg transform active:scale-95 transition-transform"
+                title={isPlaying ? "Tạm dừng" : "Phát video"}
+              >
+                {isPlaying ? <Pause className="w-6 h-6 fill-current" /> : <Play className="w-6 h-6 fill-current ml-1" />}
+              </button>
+              <button
+                onClick={toggleMute}
+                className="w-16 h-16 bg-white/95 text-slate-800 hover:bg-white rounded-full flex items-center justify-center shadow-lg transform active:scale-95 transition-transform"
+                title={isMuted ? "Bật âm thanh" : "Tắt âm thanh"}
+              >
+                {isMuted ? <VolumeX className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
+              </button>
+            </div>
+          </div>
+
+          {/* Quick status bar/badge */}
+          <div className="absolute bottom-4 left-6 text-white text-xs bg-black/60 px-3 py-1.5 rounded-full backdrop-blur-sm pointer-events-none">
+            {isPlaying ? "Đang phát • Video thực tế từ RoomFinder" : "Đã tạm dừng • Nhấn để phát"}
+          </div>
+        </div>
+      </section>
 
       {/* CTA Section */}
       <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-blue-600 to-indigo-700">

@@ -4,6 +4,7 @@ import { MapPin, Maximize, Tag, Phone, Heart, Share2, ArrowLeft, Calendar, Star,
 import ReportModal from '../components/ui/ReportModal';
 import BookingModal from '../components/ui/BookingModal';
 import ReviewModal from '../components/ui/ReviewModal';
+import RoomCard from '../components/ui/RoomCard';
 import LeafletMap from '@/components/map/LeafletMap';
 import postService from '../services/postService';
 import reviewService from '../services/reviewService';
@@ -15,6 +16,50 @@ import { resolveMediaUrl } from '../utils/mediaUrl';
 import { Check, XCircle } from 'lucide-react';
 import { getErrorMessage } from '@/services/api';
 import favoriteService from '../services/favoriteService';
+
+const renderDescription = (text: string | null | undefined) => {
+  if (!text) {
+    return <p className="text-gray-500 italic">Không có mô tả chi tiết cho phòng này.</p>;
+  }
+  
+  return text.split('\n').map((line, index) => {
+    const trimmed = line.trim();
+    if (!trimmed) {
+      return <div key={index} className="h-2" />;
+    }
+    
+    // Check if line starts and ends with ** or *
+    const isBoldHeader = (trimmed.startsWith('**') && trimmed.endsWith('**')) || (trimmed.startsWith('*') && trimmed.endsWith('*'));
+    
+    if (isBoldHeader) {
+      const cleanLine = trimmed.replace(/^\*\*|\*\*$/g, '').replace(/^\*|\*$/g, '');
+      return (
+        <h3 key={index} className="font-semibold text-gray-900 text-base mt-4 mb-2">
+          {cleanLine}
+        </h3>
+      );
+    }
+    
+    // Process inline asterisks
+    let formattedLine: React.ReactNode = line;
+    if (line.includes('**') || line.includes('*')) {
+      const parts = line.split(/(\*\*.*?\*\*|\*.*?\*)/g);
+      formattedLine = parts.map((part, pIdx) => {
+        if ((part.startsWith('**') && part.endsWith('**')) || (part.startsWith('*') && part.endsWith('*'))) {
+          const cleanPart = part.replace(/^\*\*|\*\*$/g, '').replace(/^\*|\*$/g, '');
+          return <strong key={pIdx} className="font-semibold text-gray-900">{cleanPart}</strong>;
+        }
+        return part;
+      });
+    }
+    
+    return (
+      <p key={index} className="text-gray-600 leading-relaxed mb-1">
+        {formattedLine}
+      </p>
+    );
+  });
+};
 
 export default function RoomDetail() {
   const { id } = useParams<{ id: string }>();
@@ -36,9 +81,15 @@ export default function RoomDetail() {
   const [userCompletedBooking, setUserCompletedBooking] = useState<any | null>(null);
   const [hasUserReviewed, setHasUserReviewed] = useState(false);
 
+  const [similarRooms, setSimilarRooms] = useState<PostResponse[]>([]);
+
   const isAdmin = user?.role === 'ADMIN';
   const isLandlordPreview = window.location.pathname.includes('/landlord/room-preview');
   const isPending = room?.status === 'PENDING';
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [id]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -54,6 +105,42 @@ export default function RoomDetail() {
         if (isAuthenticated && roomData.room?.id) {
           const savedStatus = await favoriteService.isFavorite(roomData.room.id);
           setIsSaved(savedStatus);
+        }
+
+        // Fetch similar rooms based on district from address
+        const address = roomData.room?.address;
+        let district: string | undefined = undefined;
+        if (address) {
+          const parts = address.split(',');
+          if (parts.length >= 2) {
+            district = parts[parts.length - 2].trim();
+          }
+        }
+
+        try {
+          const similarData = await postService.getPublicPosts({
+            location: district,
+            page: 0,
+            size: 5,
+          });
+          const filtered = (similarData.content || [])
+            .filter((p: PostResponse) => p.id.toString() !== id.toString())
+            .slice(0, 4);
+
+          if (filtered.length === 0) {
+            const fallbackData = await postService.getPublicPosts({
+              page: 0,
+              size: 5,
+            });
+            const fallbackFiltered = (fallbackData.content || [])
+              .filter((p: PostResponse) => p.id.toString() !== id.toString())
+              .slice(0, 4);
+            setSimilarRooms(fallbackFiltered);
+          } else {
+            setSimilarRooms(filtered);
+          }
+        } catch (err) {
+          console.error('Failed to fetch similar rooms:', err);
         }
         
         // Logic to detect if user can write a review directly from here
@@ -199,13 +286,13 @@ export default function RoomDetail() {
                   onClick={() => setActiveMediaType('image')}
                   className={`flex-1 py-2 text-center rounded-md font-semibold text-sm transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5 ${activeMediaType === 'image' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
                 >
-                  📸 Hình ảnh ({allImages.length})
+                  Hình ảnh ({allImages.length})
                 </button>
                 <button
                   onClick={() => setActiveMediaType('video')}
                   className={`flex-1 py-2 text-center rounded-md font-semibold text-sm transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5 ${activeMediaType === 'video' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
                 >
-                  🎥 Video thực tế phòng
+                  Video thực tế phòng
                 </button>
               </div>
             )}
@@ -398,8 +485,8 @@ export default function RoomDetail() {
 
               <div className="mt-8">
                 <h2 className="text-xl font-semibold text-gray-800 mb-4">Mô tả chi tiết</h2>
-                <div className="text-gray-600 space-y-4 leading-relaxed whitespace-pre-line">
-                  {room.description || 'Không có mô tả chi tiết cho phòng này.'}
+                <div className="text-gray-600">
+                  {renderDescription(room.description)}
                 </div>
               </div>
 
@@ -694,6 +781,20 @@ export default function RoomDetail() {
              window.location.reload();
           }}
         />
+      )}
+
+      {/* Similar Rooms Section */}
+      {similarRooms.length > 0 && (
+        <div className="mt-12 pt-10 border-t border-gray-200">
+          <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+            Phòng trọ tương tự khu vực
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {similarRooms.map((item) => (
+              <RoomCard key={item.id} room={item} />
+            ))}
+          </div>
+        </div>
       )}
     </div>
   );

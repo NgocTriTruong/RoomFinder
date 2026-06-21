@@ -40,7 +40,18 @@ export default function FloatingChatWidget() {
         sendTyping,
         wsConnected,
         loading,
-        fetchConversations
+        fetchConversations,
+        callState,
+        callUser,
+        localStream,
+        remoteStream,
+        isMuted,
+        callDuration,
+        startCall,
+        acceptCall,
+        declineCall,
+        endCall,
+        toggleMute
     } = useChat();
 
     // Initialize bot messages
@@ -625,6 +636,17 @@ export default function FloatingChatWidget() {
                                                 wsConnected={wsConnected}
                                                 onSendMessage={(content) => sendMessage(activeConversation.id, activeConversation.otherUserId, content)}
                                                 onTyping={(isTyping) => sendTyping(activeConversation.id, activeConversation.otherUserId, isTyping)}
+                                                callState={callState}
+                                                callUser={callUser}
+                                                localStream={localStream}
+                                                remoteStream={remoteStream}
+                                                isMuted={isMuted}
+                                                callDuration={callDuration}
+                                                startCall={startCall}
+                                                acceptCall={acceptCall}
+                                                declineCall={declineCall}
+                                                endCall={endCall}
+                                                toggleMute={toggleMute}
                                             />
                                         </div>
                                     )}

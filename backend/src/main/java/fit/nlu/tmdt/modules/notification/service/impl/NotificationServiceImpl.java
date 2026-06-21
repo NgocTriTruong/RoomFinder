@@ -114,7 +114,7 @@ public class NotificationServiceImpl implements NotificationService {
         // Send to /user/{username}/queue/notifications
         // Note: Spring Security's Principal username is used by messagingTemplate.convertAndSendToUser
         // In our case, we should ensure the user is identifiable by their email or username
-        String username = notification.getUser().getEmail(); // Or whatever is used as Principal
+        String username = notification.getUser().getId().toString();
         
         messagingTemplate.convertAndSendToUser(
                 username,

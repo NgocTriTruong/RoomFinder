@@ -22,7 +22,20 @@ export default function ChatUI() {
     setActiveConversation,
     sendMessage,
     sendTyping,
-    fetchConversations
+    fetchConversations,
+
+    // Call properties
+    callState,
+    callUser,
+    localStream,
+    remoteStream,
+    isMuted,
+    callDuration,
+    startCall,
+    acceptCall,
+    declineCall,
+    endCall,
+    toggleMute,
   } = useChat();
 
   // Handle receiverId from URL
@@ -126,6 +139,17 @@ export default function ChatUI() {
           wsConnected={wsConnected}
           onSendMessage={handleSendMessage}
           onTyping={handleTyping}
+          callState={callState}
+          callUser={callUser}
+          localStream={localStream}
+          remoteStream={remoteStream}
+          isMuted={isMuted}
+          callDuration={callDuration}
+          startCall={startCall}
+          acceptCall={acceptCall}
+          declineCall={declineCall}
+          endCall={endCall}
+          toggleMute={toggleMute}
         />
       ) : (
         <div className="hidden md:flex flex-1 items-center justify-center bg-gray-50">

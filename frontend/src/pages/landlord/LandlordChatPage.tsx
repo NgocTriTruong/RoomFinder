@@ -17,6 +17,19 @@ export default function LandlordChatPage() {
     setActiveConversation,
     sendMessage,
     sendTyping,
+
+    // Call properties
+    callState,
+    callUser,
+    localStream,
+    remoteStream,
+    isMuted,
+    callDuration,
+    startCall,
+    acceptCall,
+    declineCall,
+    endCall,
+    toggleMute,
   } = useChat();
 
   const typingUserName = activeConversation
@@ -52,6 +65,17 @@ export default function LandlordChatPage() {
           wsConnected={wsConnected}
           onSendMessage={handleSendMessage}
           onTyping={handleTyping}
+          callState={callState}
+          callUser={callUser}
+          localStream={localStream}
+          remoteStream={remoteStream}
+          isMuted={isMuted}
+          callDuration={callDuration}
+          startCall={startCall}
+          acceptCall={acceptCall}
+          declineCall={declineCall}
+          endCall={endCall}
+          toggleMute={toggleMute}
         />
       ) : (
         <div className="hidden md:flex flex-1 items-center justify-center bg-gray-50">
