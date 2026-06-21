@@ -3,6 +3,9 @@ import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 // API Base URL - defaults to localhost for development
 const getApiUrl = () => {
   const envUrl = import.meta.env.VITE_API_URL;
+  if (envUrl) {
+    return envUrl;
+  }
   // If the frontend is built but runs on a non-localhost domain, resolve dynamically
   if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     // Check if the current frontend is running with a custom port (e.g., development/staging on IP)
@@ -11,7 +14,7 @@ const getApiUrl = () => {
     }
     return `${window.location.origin}/api`;
   }
-  return envUrl || 'http://localhost:8080/api';
+  return 'http://localhost:8080/api';
 };
 
 export const API_BASE_URL = getApiUrl();
