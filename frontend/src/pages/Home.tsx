@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Search, MapPin, Loader2, Home as HomeIcon, Building2, Warehouse, BedDouble, Car, Wifi, Wind, Tv, Waves, Dumbbell, Mic, ShieldCheck, PhoneCall, Sparkles, Gift, Info, Target, Award, Play, Pause, Volume2, VolumeX } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import RoomCard from '../components/ui/RoomCard';
+import RoomCard, { RoomCardSkeleton } from '../components/ui/RoomCard';
 import postService from '../services/postService';
 import type { PostResponse } from '../types';
 import { useAuth } from '../contexts/AuthContext';
@@ -112,16 +112,7 @@ export default function Home() {
     navigate(`/search?category=${value}`);
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Đang tải dữ liệu...</p>
-        </div>
-      </div>
-    );
-  }
+
 
   return (
     <div className="flex flex-col bg-gray-50">
@@ -252,30 +243,36 @@ export default function Home() {
       </section>
 
       {/* University Suggestions (Only for students) */}
-      {userUniversity && universityRooms.length > 0 && (
+      {user?.universityId && (loading || (userUniversity && universityRooms.length > 0)) && (
         <section className="py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
           <div className="flex justify-between items-center mb-6 bg-blue-50 p-6 rounded-2xl border border-blue-100">
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <span className="px-2 py-0.5 bg-blue-600 text-white text-xs font-semibold rounded-full">Dành cho bạn</span>
-                <h2 className="text-2xl md:text-3xl font-bold text-gray-900">Phòng gần trường {userUniversity.abbreviation || userUniversity.name}</h2>
+                <h2 className="text-2xl md:text-3xl font-bold text-gray-900">Phòng gần trường {userUniversity ? (userUniversity.abbreviation || userUniversity.name) : '...'}</h2>
               </div>
               <p className="text-gray-600">Những phòng trọ nằm trong bán kính 5km quanh trường của bạn</p>
             </div>
-            <button 
-              onClick={() => navigate(`/search?nearbyUniversityId=${userUniversity.id}`)} 
-              className="hidden md:flex bg-white text-blue-600 px-4 py-2 rounded-lg border border-blue-200 hover:bg-blue-50 font-medium items-center gap-1 transition-colors"
-            >
-              Xem thêm
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
+            {userUniversity && (
+              <button 
+                onClick={() => navigate(`/search?nearbyUniversityId=${userUniversity.id}`)} 
+                className="hidden md:flex bg-white text-blue-600 px-4 py-2 rounded-lg border border-blue-200 hover:bg-blue-50 font-medium items-center gap-1 transition-colors"
+              >
+                Xem thêm
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            )}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {universityRooms.map((room) => (
-              <RoomCard key={room.id} room={room} />
-            ))}
+            {loading ? (
+              Array.from({ length: 4 }).map((_, i) => <RoomCardSkeleton key={i} />)
+            ) : (
+              universityRooms.map((room) => (
+                <RoomCard key={room.id} room={room} />
+              ))
+            )}
           </div>
         </section>
       )}
@@ -301,7 +298,11 @@ export default function Home() {
           </button>
         </div>
 
-        {suggestedRooms.length > 0 ? (
+        {loading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {Array.from({ length: 8 }).map((_, i) => <RoomCardSkeleton key={i} />)}
+          </div>
+        ) : suggestedRooms.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {suggestedRooms.map((room) => (
               <RoomCard key={room.id} room={room} />
@@ -335,7 +336,11 @@ export default function Home() {
           </button>
         </div>
 
-        {vipRooms.length > 0 ? (
+        {loading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {Array.from({ length: 4 }).map((_, i) => <RoomCardSkeleton key={i} />)}
+          </div>
+        ) : vipRooms.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {vipRooms.map((room) => (
               <RoomCard key={room.id} room={room} />
@@ -374,7 +379,11 @@ export default function Home() {
           </button>
         </div>
 
-        {mostViewedRooms.length > 0 ? (
+        {loading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {Array.from({ length: 4 }).map((_, i) => <RoomCardSkeleton key={i} />)}
+          </div>
+        ) : mostViewedRooms.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {mostViewedRooms.map((room) => (
               <div key={room.id} className="relative group">

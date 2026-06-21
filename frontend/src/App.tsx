@@ -3,7 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { useEffect } from 'react';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { ProtectedRoute, GuestRoute, LandlordRoute, AdminRoute, TenantOrPublicRoute } from './components/ProtectedRoute';
 
@@ -68,10 +69,21 @@ import TransactionManagementPage from './pages/admin/TransactionManagementPage';
 import AuditLogPage from './pages/admin/AuditLogPage';
 import SystemSettingsPage from './pages/admin/SystemSettingsPage';
 
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  return null;
+}
+
 function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
+        <ScrollToTop />
         <Routes>
           {/* ============================================ */}
           {/* PUBLIC ROUTES - Accessible by everyone */}
@@ -161,6 +173,7 @@ function App() {
             <Route path="bookings" element={<TenantBookingPage />} />
             <Route path="messages" element={<ChatUI />} />
             <Route path="settings" element={<AccountSettingsPage />} />
+            <Route path="verification" element={<VerificationPage />} />
           </Route>
 
           {/* ============================================ */}

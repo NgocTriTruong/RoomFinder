@@ -58,7 +58,7 @@ export default function Dispute() {
 
           <div className="bg-gray-50 border border-gray-100 p-5 rounded-xl">
             <div className="space-y-1 text-xs text-gray-600 leading-relaxed">
-              <p className="font-bold text-gray-900 text-amber-600">⚠️ Khuyến cáo an toàn giao dịch:</p>
+              <p className="font-bold text-gray-900 text-amber-600">Khuyến cáo an toàn giao dịch:</p>
               <p>
                 RoomFinder khuyên bạn tuyệt đối không thực hiện bất kỳ giao dịch chuyển tiền nào ngoài cổng thanh toán chính thức của hệ thống khi chưa ký kết hợp đồng giấy hoặc hợp đồng điện tử có giá trị pháp lý rõ ràng.
               </p>

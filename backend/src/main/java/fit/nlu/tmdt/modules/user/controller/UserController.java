@@ -138,7 +138,7 @@ public class UserController {
                 : Sort.by(sortBy).descending();
         Pageable pageable = PageRequest.of(page, size, sort);
 
-        Page<UserResponse> users = userService.getAdminUsers(null, "LANDLORD", null, "PENDING", pageable);
+        Page<UserResponse> users = userService.getAdminUsers(null, null, null, "PENDING", pageable);
         return ResponseEntity.ok(ApiResponse.success(PageResponse.of(users)));
     }
 
@@ -199,8 +199,8 @@ public class UserController {
     }
 
     @PostMapping("/kyc")
-    @PreAuthorize("hasRole('LANDLORD')")
-    @Operation(summary = "Submit KYC verification (Landlord)")
+    @PreAuthorize("hasAnyRole('LANDLORD', 'USER')")
+    @Operation(summary = "Submit KYC verification")
     @LogExecutionTime
     public ResponseEntity<ApiResponse<UserResponse>> submitKYC(
             @CurrentUser Long userId,

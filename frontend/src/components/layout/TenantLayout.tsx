@@ -9,7 +9,8 @@ import {
   Bell,
   User,
   Check,
-  Loader2
+  Loader2,
+  ShieldCheck
 } from 'lucide-react';
 import { notificationService } from '../../services/notificationService';
 import type { NotificationResponse } from '../../services/notificationService';
@@ -32,6 +33,7 @@ export default function TenantLayout() {
     { path: '/tenant/bookings', icon: <Calendar className="w-5 h-5" />, label: 'Lịch hẹn của tôi' },
     { path: '/tenant/messages', icon: <MessageCircle className="w-5 h-5" />, label: 'Tin nhắn' },
     { path: '/tenant/settings', icon: <Settings className="w-5 h-5" />, label: 'Cài đặt tài khoản' },
+    { path: '/tenant/verification', icon: <ShieldCheck className="w-5 h-5" />, label: 'Xác thực tài khoản' },
   ];
 
   const formatNotificationTime = (dateString: string) => {
@@ -54,10 +56,8 @@ export default function TenantLayout() {
       <aside className="w-64 bg-white border-r border-gray-200 hidden md:flex flex-col fixed h-full z-10">
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
-            <div className="bg-blue-600 p-2 rounded-lg">
-              <User className="w-6 h-6 text-white" />
-            </div>
-            <span className="text-xl font-bold text-gray-900">Tenant</span>
+            <img src="/logo.png" alt="RoomFinder Logo" className="h-[40px] w-auto object-contain rounded-md" />
+            <span className="text-xl font-bold text-gray-900">RoomFinder</span>
           </div>
         </div>
         

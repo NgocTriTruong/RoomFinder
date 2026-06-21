@@ -80,7 +80,11 @@ public class UserServiceImpl implements UserService {
             user.setVerifiedAt(LocalDateTime.now());
             
             title = "Xác thực KYC thành công";
-            content = "Chúc mừng! Hồ sơ xác thực danh tính của bạn đã được phê duyệt. Bạn hiện đã là chủ trọ uy tín trên hệ thống.";
+            if (user.getRole() == UserRole.LANDLORD) {
+                content = "Chúc mừng! Hồ sơ xác thực danh tính của bạn đã được phê duyệt. Bạn hiện đã là chủ trọ uy tín trên hệ thống.";
+            } else {
+                content = "Chúc mừng! Tài khoản sinh viên của bạn đã được xác thực thành công. Bạn hiện có thể tự do nhắn tin và liên hệ với các chủ trọ.";
+            }
         } else if ("REJECTED".equals(status)) {
             user.setVerificationStatus("REJECTED");
             user.setIsVerified(false);

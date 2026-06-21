@@ -146,12 +146,14 @@ export default function VerificationPage() {
           <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-6">
             <h3 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-3 flex items-center gap-2">
               <ShieldCheck className="w-5 h-5 text-blue-600" />
-              Hình ảnh hồ sơ CCCD đã tải lên
+              {user?.role === 'LANDLORD' ? 'Hình ảnh hồ sơ CCCD đã tải lên' : 'Hình ảnh thẻ sinh viên/CCCD đã tải lên'}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {user.frontIdCardUrl && (
                 <div className="space-y-2">
-                  <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block">Mặt trước CCCD/CMND</span>
+                  <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block">
+                    {user?.role === 'LANDLORD' ? 'Mặt trước CCCD/CMND' : 'Mặt trước Thẻ sinh viên / CCCD'}
+                  </span>
                   <div className="aspect-video rounded-xl border border-gray-100 overflow-hidden bg-gray-50 shadow-inner">
                     <img 
                       src={resolveMediaUrl(user.frontIdCardUrl)} 
@@ -163,7 +165,9 @@ export default function VerificationPage() {
               )}
               {user.backIdCardUrl && (
                 <div className="space-y-2">
-                  <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block">Mặt sau CCCD/CMND</span>
+                  <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block">
+                    {user?.role === 'LANDLORD' ? 'Mặt sau CCCD/CMND' : 'Mặt sau Thẻ sinh viên / CCCD'}
+                  </span>
                   <div className="aspect-video rounded-xl border border-gray-100 overflow-hidden bg-gray-50 shadow-inner">
                     <img 
                       src={resolveMediaUrl(user.backIdCardUrl)} 
@@ -175,7 +179,9 @@ export default function VerificationPage() {
               )}
               {user.selfieUrl && (
                 <div className="md:col-span-2 space-y-2 max-w-md mx-auto w-full">
-                  <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block text-center">Ảnh chân dung cầm CCCD</span>
+                  <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block text-center">
+                    {user?.role === 'LANDLORD' ? 'Ảnh chân dung cầm CCCD' : 'Ảnh chân dung cầm thẻ sinh viên / CCCD'}
+                  </span>
                   <div className="aspect-square rounded-xl border border-gray-100 overflow-hidden bg-gray-50 shadow-inner">
                     <img 
                       src={resolveMediaUrl(user.selfieUrl)} 
@@ -197,10 +203,12 @@ export default function VerificationPage() {
       <div>
         <h2 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
           <ShieldCheck className="w-9 h-9 text-blue-600" />
-          Xác thực danh tính chủ trọ
+          {user?.role === 'LANDLORD' ? 'Xác thực danh tính chủ trọ' : 'Xác thực tài khoản sinh viên'}
         </h2>
         <p className="text-gray-600 mt-2 text-lg">
-          Để tăng tính minh bạch và uy tín, chúng tôi yêu cầu các chủ trọ xác thực thông tin cá nhân.
+          {user?.role === 'LANDLORD' 
+            ? 'Để tăng tính minh bạch và uy tín, chúng tôi yêu cầu các chủ trọ xác thực thông tin cá nhân.' 
+            : 'Để nâng cao tính an toàn và tin cậy cho cộng đồng, vui lòng tải ảnh thẻ sinh viên hoặc CCCD của bạn.'}
         </p>
       </div>
 
@@ -224,7 +232,9 @@ export default function VerificationPage() {
 
         {/* Front ID Card */}
         <div className="space-y-3">
-          <label className="block text-sm font-bold text-gray-700">Mặt trước CCCD/CMND</label>
+          <label className="block text-sm font-bold text-gray-700">
+            {user?.role === 'LANDLORD' ? 'Mặt trước CCCD/CMND' : 'Mặt trước Thẻ sinh viên / CCCD'}
+          </label>
           <div 
             onClick={() => handleUploadClick('frontIdCardUrl')}
             className={`aspect-video rounded-2xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all relative overflow-hidden group ${
@@ -254,7 +264,9 @@ export default function VerificationPage() {
 
         {/* Back ID Card */}
         <div className="space-y-3">
-          <label className="block text-sm font-bold text-gray-700">Mặt sau CCCD/CMND</label>
+          <label className="block text-sm font-bold text-gray-700">
+            {user?.role === 'LANDLORD' ? 'Mặt sau CCCD/CMND' : 'Mặt sau Thẻ sinh viên / CCCD'}
+          </label>
           <div 
             onClick={() => handleUploadClick('backIdCardUrl')}
             className={`aspect-video rounded-2xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all relative overflow-hidden group ${
@@ -284,7 +296,9 @@ export default function VerificationPage() {
 
         {/* Selfie */}
         <div className="md:col-span-2 space-y-3">
-          <label className="block text-sm font-bold text-gray-700 text-center">Ảnh chân dung cầm CCCD</label>
+          <label className="block text-sm font-bold text-gray-700 text-center">
+            {user?.role === 'LANDLORD' ? 'Ảnh chân dung cầm CCCD' : 'Ảnh chân dung cầm thẻ sinh viên / CCCD'}
+          </label>
           <div 
             onClick={() => handleUploadClick('selfieUrl')}
             className={`max-w-md mx-auto aspect-square rounded-2xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all relative overflow-hidden group ${

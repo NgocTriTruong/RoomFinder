@@ -73,11 +73,9 @@ export default function LandlordLayout() {
       {/* Sidebar */}
       <aside className="w-64 bg-white border-r border-gray-200 flex flex-col hidden md:flex fixed h-full z-10">
         <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center gap-2">
-            <div className="bg-blue-600 p-2 rounded-lg">
-              <LayoutDashboard className="w-6 h-6 text-white" />
-            </div>
-            <span className="text-xl font-bold text-gray-900">Landlord</span>
+          <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
+            <img src="/logo.png" alt="RoomFinder Logo" className="h-[40px] w-auto object-contain rounded-md" />
+            <span className="text-xl font-bold text-gray-900">RoomFinder</span>
           </div>
         </div>
         
@@ -118,7 +116,7 @@ export default function LandlordLayout() {
         <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
           <div className="flex items-center justify-between px-6 py-4">
             <div className="flex items-center gap-4">
-              <h1 className="text-xl font-bold text-gray-800 hidden sm:block">Dashboard</h1>
+              <h1 className="text-xl font-bold text-gray-800 hidden sm:block">Không gian chủ trọ</h1>
               <div className="bg-amber-100 text-amber-700 border border-amber-200 px-3 py-1 rounded-full text-sm font-semibold flex items-center">
                 <span className="relative flex h-2 w-2 mr-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>

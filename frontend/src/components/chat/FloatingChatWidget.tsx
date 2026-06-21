@@ -60,7 +60,7 @@ export default function FloatingChatWidget() {
             setBotMessages([
                 {
                     sender: 'bot',
-                    text: `Xin chào ${user.fullName.split(' ')[0]}! Tôi là Nova, trợ lý AI thông minh của bạn. 🌟\n\nTôi có thể giúp bạn:\n🔍 Tìm kiếm phòng trọ, căn hộ (ví dụ: "tìm phòng ở Quận 1 dưới 4 triệu")\n📅 Hướng dẫn đặt lịch hẹn xem phòng\n🛡️ Giải đáp thông tin xác thực KYC & Tích xanh\n\nBạn muốn tôi hỗ trợ thông tin gì hôm nay?`,
+                    text: `Xin chào ${user.fullName.split(' ')[0]}! Tôi là RoomFinder, trợ lý AI thông minh của bạn.\n\nTôi có thể giúp bạn:\nTìm kiếm phòng trọ, căn hộ (ví dụ: "tìm phòng ở Quận 1 dưới 4 triệu")\nHướng dẫn đặt lịch hẹn xem phòng\nGiải đáp thông tin xác thực KYC & Tích xanh\n\nBạn muốn tôi hỗ trợ thông tin gì hôm nay?`,
                     timestamp: new Date()
                 }
             ]);
@@ -181,19 +181,19 @@ export default function FloatingChatWidget() {
         // 2. CONVERSATIONAL KNOWLEDGE ROUTING (FAQ & HELP)
         if (textLower.includes('lịch hẹn') || textLower.includes('đặt lịch') || textLower.includes('booking')) {
             return {
-                text: "📅 **Hướng dẫn đặt lịch xem phòng:**\n\n1. Bạn nhấn vào phòng trọ mong muốn để mở trang chi tiết.\n2. Ở sidebar bên phải, kéo xuống phần **Đặt lịch hẹn xem phòng**.\n3. Chọn ngày xem phòng và click chọn khung giờ trống thích hợp.\n4. Nhấn **Đặt lịch ngay**.\n5. Bạn có thể xem và quản lý trạng thái lịch hẹn của mình tại **Lịch hẹn của tôi** (ở thanh menu tài khoản cá nhân)!"
+                text: "**Hướng dẫn đặt lịch xem phòng:**\n\n1. Bạn nhấn vào phòng trọ mong muốn để mở trang chi tiết.\n2. Ở sidebar bên phải, kéo xuống phần **Đặt lịch hẹn xem phòng**.\n3. Chọn ngày xem phòng và click chọn khung giờ trống thích hợp.\n4. Nhấn **Đặt lịch ngay**.\n5. Bạn có thể xem và quản lý trạng thái lịch hẹn của mình tại **Lịch hẹn của tôi** (ở thanh menu tài khoản cá nhân)!"
             };
         }
 
         if (textLower.includes('kyc') || textLower.includes('xác thực') || textLower.includes('tích xanh') || textLower.includes('uy tín')) {
             return {
-                text: "🛡️ **Hệ thống xác thực KYC & Tích xanh uy tín:**\n\n* **Đối với Chủ trọ (Landlord):** Phải gửi tài liệu CCCD (mặt trước, mặt sau và ảnh selfie) tại trang *Xác thực tài khoản*. Khi Admin phê duyệt, tài khoản chủ trọ sẽ có biểu tượng **Tích xanh uy tín** kế bên tên của họ.\n* **Đối với Người thuê (Sinh viên):** Nếu bạn đăng ký tài khoản bằng **Gmail Sinh viên** (.edu.vn) và xác thực mã OTP thành công, tài khoản của bạn sẽ tự động được hệ thống KYC, thể hiện độ uy tín tối đa trong mắt chủ trọ!"
+                text: "**Hệ thống xác thực KYC & Tích xanh uy tín:**\n\n* **Đối với Chủ trọ (Landlord):** Phải gửi tài liệu CCCD (mặt trước, mặt sau và ảnh selfie) tại trang *Xác thực tài khoản*. Khi Admin phê duyệt, tài khoản chủ trọ sẽ có biểu tượng **Tích xanh uy tín** kế bên tên của họ.\n* **Đối với Người thuê (Sinh viên):** Nếu bạn đăng ký tài khoản bằng **Gmail Sinh viên** (.edu.vn) và xác thực mã OTP thành công, tài khoản của bạn sẽ tự động được hệ thống KYC, thể hiện độ uy tín tối đa trong mắt chủ trọ!"
             };
         }
 
         if (textLower.includes('hotline') || textLower.includes('hỗ trợ') || textLower.includes('liên hệ') || textLower.includes('sđt') || textLower.includes('email')) {
             return {
-                text: "📞 **Thông tin hỗ trợ kỹ thuật:**\n\nBạn có thể liên hệ trực tiếp đội ngũ hỗ trợ qua:\n* ☎️ **Hotline:** 1900 6868 (Thời gian hỗ trợ: 8:00 - 22:00 hàng ngày)\n* ✉️ **Email:** support@tmdt.vn\n* 🏢 **Địa chỉ:** Trường Đại học Nông Lâm TP.HCM, Phường Linh Trung, Thành phố Thủ Đức."
+                text: "**Thông tin hỗ trợ kỹ thuật:**\n\nBạn có thể liên hệ trực tiếp đội ngũ hỗ trợ qua:\n* **Hotline:** 1900 6868 (Thời gian hỗ trợ: 8:00 - 22:00 hàng ngày)\n* **Email:** support@tmdt.vn\n* **Địa chỉ:** Trường Đại học Nông Lâm TP.HCM, Phường Linh Trung, Thành phố Thủ Đức."
             };
         }
 
@@ -201,7 +201,7 @@ export default function FloatingChatWidget() {
             try {
                 const featured = await postService.getFeaturedPosts(4);
                 return {
-                    text: "✨ **Danh sách phòng VIP nổi bật chất lượng cao trên hệ thống:**",
+                    text: "**Danh sách phòng VIP nổi bật chất lượng cao trên hệ thống:**",
                     rooms: featured
                 };
             } catch (e) {
@@ -213,7 +213,7 @@ export default function FloatingChatWidget() {
 
         if (textLower.includes('cảm ơn') || textLower.includes('thank')) {
             return {
-                text: "Rất vui được hỗ trợ bạn! Chúc bạn nhanh chóng tìm được căn phòng ưng ý nhất và có những trải nghiệm tuyệt vời trên nền tảng của chúng tôi! 🥰"
+                text: "Rất vui được hỗ trợ bạn! Chúc bạn nhanh chóng tìm được căn phòng ưng ý nhất và có những trải nghiệm tuyệt vời trên nền tảng của chúng tôi!"
             };
         }
 
@@ -360,7 +360,7 @@ export default function FloatingChatWidget() {
                                         <Bot className="w-5 h-5 text-white" />
                                     </div>
                                     <div>
-                                        <h3 className="font-bold text-sm">Trợ lý ảo Nova AI</h3>
+                                        <h3 className="font-bold text-sm">Trợ lý RoomFinder</h3>
                                         <span className="text-[10px] text-indigo-100 flex items-center gap-1">
                                             <span className="w-1.5 h-1.5 bg-green-400 rounded-full inline-block animate-ping"></span>
                                             Trực tuyến • Hỗ trợ giọng nói
@@ -390,12 +390,12 @@ export default function FloatingChatWidget() {
                                     <div className="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-500 animate-bounce">
                                         <Bot className="w-9 h-9" />
                                     </div>
-                                    <h4 className="text-sm font-bold text-gray-900">Trợ lý Nova AI đang khóa</h4>
-                                    <p className="text-xs text-gray-600 leading-relaxed max-w-xs">
-                                        Tính năng tìm phòng thông minh bằng giọng nói với **Nova AI** yêu cầu tài khoản sinh viên đã xác thực **KYC tích xanh**.
-                                    </p>
-                                    <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-3 text-[11px] text-indigo-800 text-left space-y-1 w-full">
-                                        <p className="font-bold flex items-center gap-1">💡 Cách mở khóa tích xanh:</p>
+                                    <h4 className="text-sm font-bold text-gray-900">Trợ lý RoomFinder đang khóa</h4>
+                                        <p className="text-xs text-gray-600 leading-relaxed max-w-xs">
+                                            Tính năng tìm phòng thông minh bằng giọng nói với **RoomFinder** yêu cầu tài khoản sinh viên đã xác thực **KYC tích xanh**.
+                                        </p>
+                                        <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-3 text-[11px] text-indigo-800 text-left space-y-1 w-full">
+                                            <p className="font-bold flex items-center gap-1">Cách mở khóa tích xanh:</p>
                                         <ul className="list-disc pl-4 space-y-0.5">
                                             <li>Đăng nhập bằng <strong className="font-semibold">Google Email Sinh viên (.edu.vn)</strong></li>
                                             <li>Gửi ảnh thẻ sinh viên/CCCD tại trang xác thực tài khoản.</li>
@@ -414,7 +414,7 @@ export default function FloatingChatWidget() {
                                         <button
                                             onClick={() => {
                                                 setIsOpen(false);
-                                                navigate('/landlord/verification');
+                                                navigate(user?.role === 'LANDLORD' ? '/landlord/verification' : '/tenant/verification');
                                             }}
                                             className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold cursor-pointer transition-colors shadow-sm"
                                         >
@@ -488,7 +488,7 @@ export default function FloatingChatWidget() {
                                             <div className="flex justify-start">
                                                 <div className="flex gap-2 items-center text-indigo-600 bg-white px-4 py-2.5 rounded-2xl border border-indigo-100 shadow-sm text-xs font-medium">
                                                     <Loader2 className="w-4 h-4 animate-spin" />
-                                                    Nova đang xử lý dữ liệu...
+                                                    RoomFinder đang xử lý dữ liệu...
                                                 </div>
                                             </div>
                                         )}
@@ -501,19 +501,19 @@ export default function FloatingChatWidget() {
                                             onClick={() => handleQuickQuery('Tìm phòng Quận 1 dưới 3 triệu')}
                                             className="text-[11px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 hover:bg-indigo-100 hover:border-indigo-200 px-3 py-1.5 rounded-full transition-all shrink-0"
                                         >
-                                            🔍 Tìm phòng Q1 &lt; 3tr
+                                            Tìm phòng Q1 &lt; 3tr
                                         </button>
                                         <button 
                                             onClick={() => handleQuickQuery('Hướng dẫn đặt lịch hẹn')}
                                             className="text-[11px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 hover:bg-indigo-100 hover:border-indigo-200 px-3 py-1.5 rounded-full transition-all shrink-0"
                                         >
-                                            📅 Đặt lịch xem phòng
+                                            Đặt lịch xem phòng
                                         </button>
                                         <button 
                                             onClick={() => handleQuickQuery('Chính sách KYC tích xanh')}
                                             className="text-[11px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 hover:bg-indigo-100 hover:border-indigo-200 px-3 py-1.5 rounded-full transition-all shrink-0"
                                         >
-                                            🛡️ KYC Tích Xanh là gì?
+                                            KYC Tích Xanh là gì?
                                         </button>
                                     </div>
 
@@ -539,7 +539,7 @@ export default function FloatingChatWidget() {
                                                         ? 'bg-rose-500 text-white animate-pulse shadow-md ring-4 ring-rose-100' 
                                                         : 'text-gray-400 hover:text-indigo-600 hover:bg-gray-100'
                                                 }`}
-                                                title="Nói với Nova AI"
+                                                title="Nói với RoomFinder"
                                             >
                                                 <Mic className="w-4 h-4" />
                                             </button>
@@ -572,7 +572,7 @@ export default function FloatingChatWidget() {
                                         Để bảo vệ người dùng, tính năng **Trò chuyện trực tuyến với chủ trọ** yêu cầu tài khoản sinh viên đã xác thực **KYC tích xanh**.
                                     </p>
                                     <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-[11px] text-blue-800 text-left space-y-1 w-full">
-                                        <p className="font-bold flex items-center gap-1">💡 Cách mở khóa tích xanh:</p>
+                                        <p className="font-bold flex items-center gap-1">Cách mở khóa tích xanh:</p>
                                         <ul className="list-disc pl-4 space-y-0.5">
                                             <li>Đăng nhập bằng <strong className="font-semibold">Google Email Sinh viên (.edu.vn)</strong></li>
                                             <li>Gửi ảnh thẻ sinh viên/CCCD tại trang xác thực tài khoản.</li>
@@ -666,7 +666,7 @@ export default function FloatingChatWidget() {
                         ? 'bg-indigo-600 text-white rotate-90 ring-4 ring-indigo-100'
                         : 'bg-white text-indigo-600 hover:bg-indigo-50 border-2 border-indigo-50'
                         }`}
-                    aria-label="Nova AI Assistant"
+                    aria-label="RoomFinder Assistant"
                 >
                     {activeTab === 'bot' && isOpen ? <X className="w-6 h-6" /> : <Bot className="w-6 h-6 animate-bounce" />}
                 </button>

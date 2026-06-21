@@ -83,11 +83,9 @@ export default function AdminLayout() {
       <aside className={`w-64 bg-gray-900 text-white flex flex-col fixed h-full z-40 transition-transform duration-300 transform 
         ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
         <div className="p-6 border-b border-gray-800 flex items-center justify-between">
-          <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/admin')}>
-            <div className="bg-blue-600 p-2 rounded-lg">
-              <ShieldCheck className="w-6 h-6 text-white" />
-            </div>
-            <span className="text-xl font-bold tracking-wide">Admin Portal</span>
+          <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/admin')}>
+            <img src="/logo.png" alt="RoomFinder Logo" className="h-[40px] w-auto object-contain rounded-md" />
+            <span className="text-xl font-bold tracking-wide text-white">RoomFinder</span>
           </div>
           <button
             className="lg:hidden p-2 hover:bg-gray-800 rounded-lg"
@@ -146,7 +144,7 @@ export default function AdminLayout() {
 
               {/* Breadcrumb */}
               <div className="flex items-center text-sm text-gray-500 overflow-hidden">
-                <span className="hover:text-blue-600 cursor-pointer hidden sm:inline" onClick={() => navigate('/admin')}>Admin</span>
+                <span className="hover:text-blue-600 cursor-pointer hidden sm:inline" onClick={() => navigate('/admin')}>Quản trị</span>
                 <ChevronRight className="w-4 h-4 mx-2 hidden sm:inline" />
                 <span className="font-medium text-gray-900 truncate">{getBreadcrumb()}</span>
               </div>

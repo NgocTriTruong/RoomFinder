@@ -96,7 +96,7 @@ export default function ChatUI() {
           Nhằm bảo vệ cộng đồng sinh viên khỏi các tin nhắn rác hoặc hành vi lừa đảo, hệ thống yêu cầu tài khoản của bạn phải được xác thực **KYC tích xanh** trước khi nhắn tin trao đổi với các chủ trọ.
         </p>
         <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 text-xs text-blue-800 text-left space-y-2 max-w-md">
-          <p className="font-bold flex items-center gap-1">💡 Làm sao để mở khóa?</p>
+          <p className="font-bold flex items-center gap-1">Làm sao để mở khóa?</p>
           <ul className="list-disc pl-4 space-y-1 font-medium">
             <li>Đăng nhập bằng <strong className="font-semibold">Google Email Sinh viên (.edu.vn)</strong> để tự động nhận tích xanh KYC ngay lập tức.</li>
             <li>Hoặc truy cập trang xác thực để gửi thông tin thẻ sinh viên/CCCD để được duyệt.</li>
@@ -110,7 +110,7 @@ export default function ChatUI() {
             Đăng nhập Google
           </a>
           <a
-            href="/landlord/verification"
+            href={user?.role === 'LANDLORD' ? "/landlord/verification" : "/tenant/verification"}
             className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-colors flex justify-center items-center shadow-sm"
           >
             Xác thực ngay

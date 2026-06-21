@@ -180,3 +180,45 @@ export default function RoomCard({ room, isSaved: propIsSaved, onToggleSave }: R
     </div>
   );
 }
+
+export function RoomCardSkeleton() {
+  return (
+    <div className="relative flex flex-col bg-white rounded-lg overflow-hidden shadow-sm border border-gray-100 animate-pulse h-full">
+      {/* Thumbnail placeholder */}
+      <div className="relative h-48 w-full bg-gray-200"></div>
+      
+      {/* Content placeholder */}
+      <div className="p-4 flex flex-col flex-grow">
+        {/* Title */}
+        <div className="h-5 bg-gray-200 rounded w-3/4 mb-3"></div>
+        <div className="h-4 bg-gray-200 rounded w-1/2 mb-4"></div>
+
+        {/* Price */}
+        <div className="h-6 bg-gray-200 rounded w-1/3 mb-4"></div>
+
+        {/* Details (Area, Address) */}
+        <div className="flex items-center space-x-4 mb-4">
+          <div className="h-4 bg-gray-200 rounded w-16"></div>
+          <div className="h-4 bg-gray-200 rounded w-24"></div>
+        </div>
+
+        {/* Amenities */}
+        <div className="flex gap-2 mb-4">
+          <div className="h-6 bg-gray-200 rounded w-16"></div>
+          <div className="h-6 bg-gray-200 rounded w-16"></div>
+          <div className="h-6 bg-gray-200 rounded w-16"></div>
+        </div>
+
+        {/* Landlord */}
+        <div className="mt-auto pt-3 border-t border-gray-100 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-full bg-gray-200"></div>
+            <div className="h-3 bg-gray-200 rounded w-20"></div>
+          </div>
+          <div className="h-4 bg-gray-200 rounded w-12"></div>
+        </div>
+      </div>
+    </div>
+  );
+}
+

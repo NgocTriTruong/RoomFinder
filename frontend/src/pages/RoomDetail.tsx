@@ -681,7 +681,7 @@ export default function RoomDetail() {
                       return;
                     }
                     if (!user?.isVerified) {
-                      alert('⚠️ Yêu cầu xác thực (KYC):\n\nTính năng ĐẶT LỊCH XEM PHÒNG chỉ dành cho tài khoản Sinh viên đã KYC.\n\nVui lòng sử dụng Google Email Sinh viên để tự động KYC!');
+                      alert('Yêu cầu xác thực (KYC):\n\nTính năng ĐẶT LỊCH XEM PHÒNG chỉ dành cho tài khoản Sinh viên đã KYC.\n\nVui lòng sử dụng Google Email Sinh viên để tự động KYC!');
                       return;
                     }
                     setIsBookingModalOpen(true);
@@ -700,7 +700,7 @@ export default function RoomDetail() {
                         return;
                       }
                       if (!user?.isVerified) {
-                        alert('⚠️ Yêu cầu xác thực (KYC):\n\nTính năng GỌI ĐIỆN LIÊN HỆ chỉ dành cho tài khoản Sinh viên đã KYC.\n\nVui lòng sử dụng Google Email Sinh viên để tự động KYC!');
+                        alert('Yêu cầu xác thực (KYC):\n\nTính năng GỌI ĐIỆN LIÊN HỆ chỉ dành cho tài khoản Sinh viên đã KYC.\n\nVui lòng sử dụng Google Email Sinh viên để tự động KYC!');
                         return;
                       }
                       if (id) postService.recordContact(id).catch(console.error);
@@ -719,7 +719,7 @@ export default function RoomDetail() {
                         return;
                       }
                       if (!user?.isVerified) {
-                        alert('⚠️ Yêu cầu xác thực (KYC):\n\nTính năng NHẮN TIN LIÊN HỆ chỉ dành cho tài khoản Sinh viên đã KYC.\n\nVui lòng sử dụng Google Email Sinh viên để tự động KYC!');
+                        alert('Yêu cầu xác thực (KYC):\n\nTính năng NHẮN TIN LIÊN HỆ chỉ dành cho tài khoản Sinh viên đã KYC.\n\nVui lòng sử dụng Google Email Sinh viên để tự động KYC!');
                         return;
                       }
                       if (id) postService.recordContact(id).catch(console.error);
@@ -739,7 +739,7 @@ export default function RoomDetail() {
                         return;
                       }
                       if (!user?.isVerified) {
-                        alert('⚠️ Yêu cầu xác thực (KYC):\n\nTính năng BÁO CÁO TIN ĐĂNG chỉ dành cho tài khoản Sinh viên đã KYC.');
+                        alert('Yêu cầu xác thực (KYC):\n\nTính năng BÁO CÁO TIN ĐĂNG chỉ dành cho tài khoản Sinh viên đã KYC.');
                         return;
                       }
                       setIsReportModalOpen(true);

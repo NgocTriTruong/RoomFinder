@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { SlidersHorizontal, Loader2 } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
-import RoomCard from '../components/ui/RoomCard';
+import RoomCard, { RoomCardSkeleton } from '../components/ui/RoomCard';
 import postService, { PostSearchParams } from '../services/postService';
 import roomService from '../services/roomService';
 import { PostResponse, AmenityResponse } from '../types';
@@ -26,12 +26,44 @@ export default function Search() {
   const [posts, setPosts] = useState<PostResponse[]>([]);
   const [totalElements, setTotalElements] = useState(0);
   const [loading, setLoading] = useState(true);
-  
+
 
   // Filters state
-  const [keyword, setKeyword] = useState('');
-  const [priceRange, setPriceRange] = useState('');
-  const [district, setDistrict] = useState('');
+  const [keyword, setKeyword] = useState(() => {
+    const q = searchParams.get('q');
+    if (q) return q;
+    const categoryParam = searchParams.get('category');
+    if (categoryParam === 'room') return 'phòng trọ';
+    if (categoryParam === 'apartment') return 'căn hộ';
+    if (categoryParam === 'house') return 'nhà nguyên căn';
+    return '';
+  });
+
+  const [priceRange, setPriceRange] = useState(() => {
+    const q = searchParams.get('q');
+    if (q) {
+      const qLower = q.toLowerCase();
+      if (qLower.includes('dưới 2 triệu') || qLower.includes('dưới 2tr') || qLower.includes('dưới 2.000.000')) return 'Dưới 2 triệu';
+      if (qLower.includes('dưới 4 triệu') || qLower.includes('dưới 4tr') || qLower.includes('dưới 4.000.000')) return '2 - 4 triệu';
+      if (qLower.includes('dưới 7 triệu') || qLower.includes('dưới 7tr') || qLower.includes('dưới 7.000.000')) return '4 - 7 triệu';
+      if (qLower.includes('trên 7 triệu') || qLower.includes('trên 7tr')) return 'Trên 7 triệu';
+    }
+    return '';
+  });
+
+  const [district, setDistrict] = useState(() => {
+    const q = searchParams.get('q');
+    if (q) {
+      const qLower = q.toLowerCase();
+      if (qLower.includes('quận 1') || qLower.includes('q1')) return 'Quận 1';
+      if (qLower.includes('quận 5') || qLower.includes('q5')) return 'Quận 5';
+      if (qLower.includes('quận 9') || qLower.includes('q9')) return 'Quận 9';
+      if (qLower.includes('bình thạnh')) return 'Quận Bình Thạnh';
+      if (qLower.includes('gò vấp')) return 'Quận Gò Vấp';
+    }
+    return '';
+  });
+
   const [sortBy, setSortBy] = useState('createdAt');
   const [sortDirection, setSortDirection] = useState('desc');
   const [page, setPage] = useState(0);
@@ -42,16 +74,17 @@ export default function Search() {
 
   // University filter
   const [universities, setUniversities] = useState<UniversityResponse[]>([]);
-  const [selectedUniversityId, setSelectedUniversityId] = useState<number | ''>('');
+  const [selectedUniversityId, setSelectedUniversityId] = useState<number | ''>(() => {
+    const nearby = searchParams.get('nearbyUniversityId');
+    return nearby ? Number(nearby) : '';
+  });
+  const [selectedUniversity, setSelectedUniversity] = useState<UniversityResponse | null>(null);
   const [radiusKm, setRadiusKm] = useState(5);
   const [uniKeyword, setUniKeyword] = useState('');
 
   // Debounced values
   const debouncedKeyword = useDebounce(keyword, 500);
   const debouncedUniKeyword = useDebounce(uniKeyword, 300);
-  
-  // Track if it's the first load
-  const isFirstLoad = useRef(true);
 
   // Parse URL search parameters on mount or change
   useEffect(() => {
@@ -91,7 +124,7 @@ export default function Search() {
           const amenityNameLower = amenity.name.toLowerCase();
           if (qLower.includes(amenityNameLower)) {
             detectedAmenityIds.push(amenity.id);
-          } else if (amenityNameLower === 'điều hòa' && (qLower.includes('máy lạnh') || qLower.includes('điều hoà'))) {
+          } else if (amenityNameLower === 'điều hòa' && (qLower.includes('máy lạnh') || qLower.includes('điều hoá'))) {
             detectedAmenityIds.push(amenity.id);
           }
         });
@@ -104,6 +137,22 @@ export default function Search() {
             return merged;
           });
         }
+      }
+    }
+
+    const nearbyUniId = searchParams.get('nearbyUniversityId');
+    if (nearbyUniId) {
+      setSelectedUniversityId(Number(nearbyUniId));
+    }
+
+    const categoryParam = searchParams.get('category');
+    if (categoryParam) {
+      if (categoryParam === 'room') {
+        setKeyword('phòng trọ');
+      } else if (categoryParam === 'apartment') {
+        setKeyword('căn hộ');
+      } else if (categoryParam === 'house') {
+        setKeyword('nhà nguyên căn');
       }
     }
   }, [searchParams, allAmenities]);
@@ -132,10 +181,39 @@ export default function Search() {
     fetchUniversities();
   }, [debouncedUniKeyword, district]);
 
-  const fetchPosts = useCallback(async (isInitial = false) => {
+  // Sync selectedUniversity when selectedUniversityId changes
+  useEffect(() => {
+    if (!selectedUniversityId) {
+      setSelectedUniversity(null);
+      return;
+    }
+    const found = universities.find(u => u.id === Number(selectedUniversityId));
+    if (found) {
+      setSelectedUniversity(found);
+    } else {
+      universityService.getById(selectedUniversityId)
+        .then(data => {
+          setSelectedUniversity(data);
+          setUniversities(prev => {
+            if (!prev.some(u => u.id === data.id)) {
+              return [...prev, data];
+            }
+            return prev;
+          });
+        })
+        .catch(err => console.error('Lỗi khi lấy thông tin chi tiết trường:', err));
+    }
+  }, [selectedUniversityId, universities]);
+
+  // Reset page to 0 when filters change to ensure correct pagination
+  useEffect(() => {
+    setPage(0);
+  }, [debouncedKeyword, priceRange, district, selectedAmenityIds, sortBy, sortDirection, selectedUniversityId, radiusKm]);
+
+  const fetchPosts = useCallback(async () => {
     try {
-      if (isInitial) setLoading(true);
-      
+      setLoading(true);
+
       const params: PostSearchParams & { page: number; size: number; sortBy: string; sortDirection: string } = {
         keyword: debouncedKeyword,
         page,
@@ -167,12 +245,11 @@ export default function Search() {
 
       // Geo search if university is selected
       if (selectedUniversityId) {
-        const uni = universities.find(u => u.id === Number(selectedUniversityId));
-        if (uni) {
-          params.latitude = uni.latitude;
-          params.longitude = uni.longitude;
+        params.nearbyUniversityId = Number(selectedUniversityId);
+        if (selectedUniversity) {
+          params.latitude = selectedUniversity.latitude;
+          params.longitude = selectedUniversity.longitude;
           params.radiusKm = radiusKm;
-          params.nearbyUniversityId = uni.id;
         }
       }
 
@@ -182,17 +259,12 @@ export default function Search() {
     } catch (error) {
       console.error('Lỗi khi tìm kiếm:', error);
     } finally {
-      if (isInitial) setLoading(false);
+      setLoading(false);
     }
-  }, [debouncedKeyword, priceRange, district, selectedAmenityIds, sortBy, sortDirection, page, selectedUniversityId, radiusKm, universities]);
+  }, [debouncedKeyword, priceRange, district, selectedAmenityIds, sortBy, sortDirection, page, selectedUniversityId, radiusKm, selectedUniversity]);
 
   useEffect(() => {
-    if (isFirstLoad.current) {
-      fetchPosts(true);
-      isFirstLoad.current = false;
-    } else {
-      fetchPosts(false);
-    }
+    fetchPosts();
   }, [fetchPosts]);
 
   const handleApplyFilters = () => {
@@ -214,10 +286,108 @@ export default function Search() {
     }
   };
 
+  const renderPagination = () => {
+    const totalPages = Math.ceil(totalElements / 9);
+    if (totalPages <= 1) return null;
+
+    const pages: (number | string)[] = [];
+    const maxVisiblePages = 5;
+
+    // Always include page 1 (index 0)
+    pages.push(0);
+
+    if (totalPages <= maxVisiblePages + 2) {
+      for (let i = 1; i < totalPages - 1; i++) {
+        pages.push(i);
+      }
+    } else {
+      // We have more pages than can be shown
+      const start = Math.max(1, page - 1);
+      const end = Math.min(totalPages - 2, page + 1);
+
+      if (start > 1) {
+        pages.push('ellipsis-start');
+      }
+
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+
+      if (end < totalPages - 2) {
+        pages.push('ellipsis-end');
+      }
+    }
+
+    // Always include last page (index totalPages - 1)
+    if (totalPages > 1) {
+      pages.push(totalPages - 1);
+    }
+
+    return (
+      <div className="mt-10 flex items-center justify-center gap-2">
+        <button
+          onClick={() => {
+            if (page > 0) {
+              setPage(page - 1);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+          }}
+          disabled={page === 0}
+          className="px-3.5 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+        >
+          Trước
+        </button>
+
+        {pages.map((p, idx) => {
+          if (p === 'ellipsis-start' || p === 'ellipsis-end') {
+            return (
+              <span key={`ellipsis-${idx}`} className="px-2 py-2 text-gray-400 select-none">
+                ...
+              </span>
+            );
+          }
+
+          const pageNum = p as number;
+          const isActive = pageNum === page;
+
+          return (
+            <button
+              key={pageNum}
+              onClick={() => {
+                setPage(pageNum);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className={`w-10 h-10 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+                isActive
+                  ? 'bg-blue-600 text-white shadow-md shadow-blue-200'
+                  : 'border border-gray-200 text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-300'
+              }`}
+            >
+              {pageNum + 1}
+            </button>
+          );
+        })}
+
+        <button
+          onClick={() => {
+            if (page < totalPages - 1) {
+              setPage(page + 1);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+          }}
+          disabled={page === totalPages - 1}
+          className="px-3.5 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+        >
+          Sau
+        </button>
+      </div>
+    );
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex flex-col md:flex-row gap-8">
-        
+
         {/* Sidebar Filters */}
         <aside className="w-full md:w-64 flex-shrink-0">
           <div className="bg-white p-5 rounded-lg shadow-sm border border-gray-100 sticky top-24">
@@ -261,7 +431,7 @@ export default function Search() {
             {/* District Filter */}
             <div className="mb-6">
               <h3 className="text-sm font-medium text-gray-900 mb-3">Khu vực</h3>
-              <select 
+              <select
                 className="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
                 value={district}
                 onChange={(e) => setDistrict(e.target.value)}
@@ -283,13 +453,12 @@ export default function Search() {
                   {allAmenities.map((amenity) => {
                     const isChecked = selectedAmenityIds.includes(amenity.id);
                     return (
-                      <label 
-                        key={amenity.id} 
-                        className={`flex items-center gap-1.5 p-1.5 rounded-lg border text-[11px] cursor-pointer select-none transition-all ${
-                          isChecked 
-                            ? 'bg-blue-50 border-blue-400 text-blue-700 font-semibold shadow-sm' 
-                            : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:border-gray-300'
-                        }`}
+                      <label
+                        key={amenity.id}
+                        className={`flex items-center gap-1.5 p-1.5 rounded-lg border text-[11px] cursor-pointer select-none transition-all ${isChecked
+                          ? 'bg-blue-50 border-blue-400 text-blue-700 font-semibold shadow-sm'
+                          : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:border-gray-300'
+                          }`}
                       >
                         <input
                           type="checkbox"
@@ -323,7 +492,7 @@ export default function Search() {
                 value={uniKeyword}
                 onChange={(e) => setUniKeyword(e.target.value)}
               />
-              <select 
+              <select
                 className="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
                 value={selectedUniversityId}
                 onChange={(e) => setSelectedUniversityId(e.target.value ? Number(e.target.value) : '')}
@@ -361,7 +530,7 @@ export default function Search() {
               </div>
             )}
 
-            <button 
+            <button
               onClick={handleApplyFilters}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-md font-medium transition-colors"
             >
@@ -378,7 +547,7 @@ export default function Search() {
             </h1>
             <div className="flex items-center gap-2">
               <SlidersHorizontal className="w-5 h-5 text-gray-500" />
-              <select 
+              <select
                 onChange={handleSortChange}
                 className="border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
               >
@@ -389,9 +558,11 @@ export default function Search() {
             </div>
           </div>
 
-          {loading && page === 0 ? (
-            <div className="flex justify-center py-20">
-              <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              {Array.from({ length: 9 }).map((_, idx) => (
+                <RoomCardSkeleton key={idx} />
+              ))}
             </div>
           ) : (
             <>
@@ -400,25 +571,14 @@ export default function Search() {
                   <RoomCard key={post.id} room={post} />
                 ))}
               </div>
-              
+
               {posts.length === 0 && (
                 <div className="text-center py-20 bg-gray-50 rounded-lg">
                   <p className="text-gray-500">Không tìm thấy kết quả nào phù hợp.</p>
                 </div>
               )}
 
-              {totalElements > posts.length && (
-                <div className="mt-8 text-center">
-                  <button 
-                    onClick={() => setPage(page + 1)}
-                    disabled={loading}
-                    className="px-6 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center mx-auto gap-2"
-                  >
-                    {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-                    Xem thêm
-                  </button>
-                </div>
-              )}
+              {renderPagination()}
             </>
           )}
         </div>
