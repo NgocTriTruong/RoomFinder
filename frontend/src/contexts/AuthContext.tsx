@@ -9,6 +9,7 @@ import {
 import { authService, authStorage } from '@/services/authService';
 import { getErrorMessage } from '@/services/api';
 import type { UserResponse, LoginRequest, RegisterRequest, AuthResponse } from '@/types';
+import { supabase } from '@/utils/supabaseClient';
 
 // ============================================
 // Types
@@ -28,6 +29,8 @@ interface AuthContextType {
   refreshUser: () => Promise<void>;
   verifyOtp: (email: string, otp: string) => Promise<void>;
   resendOtp: (email: string) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
+  signInWithFacebook: () => Promise<void>;
 }
 
 interface AuthProviderProps {
@@ -134,6 +137,42 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setError(getErrorMessage(err));
       throw err;
     } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Google OAuth via Supabase
+  const signInWithGoogle = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+      if (error) throw error;
+    } catch (err) {
+      setError(getErrorMessage(err));
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Facebook OAuth via Supabase
+  const signInWithFacebook = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'facebook',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+      if (error) throw error;
+    } catch (err) {
+      setError(getErrorMessage(err));
       setIsLoading(false);
     }
   }, []);
@@ -249,6 +288,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     refreshUser,
     verifyOtp,
     resendOtp,
+    signInWithGoogle,
+    signInWithFacebook,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

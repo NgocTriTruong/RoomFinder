@@ -23,6 +23,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
 import PaymentResultPage from './pages/PaymentResultPage';
+import AuthCallback from './pages/AuthCallback';
 
 // Landlord Pages
 import LandlordDashboard from './pages/landlord/LandlordDashboard';
@@ -94,14 +95,8 @@ function App() {
               </GuestRoute>
             }
           />
-          <Route
-            path="/forgot-password"
-            element={
-              <GuestRoute>
-                <ForgotPassword />
-              </GuestRoute>
-            }
-          />
+          <Route path="/forgot-password" element={<GuestRoute><ForgotPassword /></GuestRoute>} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/payment/vnpay/return" element={<PaymentResultPage />} />
 
           {/* ============================================ */}
