@@ -500,17 +500,20 @@ public class AuthServiceImpl implements AuthService {
         }
         String domain = email.substring(email.lastIndexOf("@") + 1).toLowerCase();
         
-        // Normalize hcmuaf.edu.vn to nlu.edu.vn for Nong Lam University
-        if (domain.endsWith("hcmuaf.edu.vn")) {
-            domain = "nlu.edu.vn";
-        }
-        
-        String finalDomain = domain;
         var universities = universityRepository.findAll();
-        return universities.stream()
-                .filter(u -> u.getEmailDomain() != null && !u.getEmailDomain().isEmpty() 
-                           && finalDomain.endsWith(u.getEmailDomain().toLowerCase()))
-                .findFirst()
-                .orElse(null);
+        for (University u : universities) {
+            if (u.getEmailDomain() == null || u.getEmailDomain().isEmpty()) {
+                continue;
+            }
+            // Hỗ trợ danh sách nhiều tên miền phân cách bởi dấu phẩy
+            String[] domains = u.getEmailDomain().split(",");
+            for (String d : domains) {
+                String trimmedDomain = d.trim().toLowerCase();
+                if (!trimmedDomain.isEmpty() && domain.endsWith(trimmedDomain)) {
+                    return u;
+                }
+            }
+        }
+        return null;
     }
 }
