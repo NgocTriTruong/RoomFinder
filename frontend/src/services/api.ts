@@ -10,6 +10,7 @@ const api = axios.create({
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
+    'Bypass-Tunnel-Reminder': 'true',
   },
   withCredentials: false, // Disable credentials for token-based auth
 });
@@ -76,6 +77,10 @@ api.interceptors.response.use(
         try {
           const response = await axios.post(`${API_BASE_URL}/v1/auth/refresh`, {
             refreshToken,
+          }, {
+            headers: {
+              'Bypass-Tunnel-Reminder': 'true'
+            }
           });
 
           const { accessToken, refreshToken: newRefreshToken } = response.data.data;
