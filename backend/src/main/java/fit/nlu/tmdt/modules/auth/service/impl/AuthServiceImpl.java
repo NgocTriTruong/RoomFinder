@@ -70,21 +70,12 @@ public class AuthServiceImpl implements AuthService {
         // 4. Validate Student Email if Role is USER
         Long universityId = null;
         if (role == UserRole.USER) {
-            String email = request.getEmail();
-            String domain = email.substring(email.lastIndexOf("@") + 1);
-            
-            // Check if domain matches any university or sub-domain
-            var universities = universityRepository.findAll();
-            var university = universities.stream()
-                    .filter(u -> u.getEmailDomain() != null && !u.getEmailDomain().isEmpty() 
-                               && domain.endsWith(u.getEmailDomain()))
-                    .findFirst();
-            
-            if (university.isEmpty()) {
+            University university = findUniversityByEmail(request.getEmail());
+            if (university == null) {
                 throw new BusinessException(ErrorCode.VALIDATION_ERROR, 
                     "Bạn phải sử dụng email sinh viên để đăng ký tài khoản người thuê trọ.");
             }
-            universityId = university.get().getId();
+            universityId = university.getId();
         }
 
         // 5. Generate OTP
@@ -369,15 +360,10 @@ public class AuthServiceImpl implements AuthService {
                             })
                             .orElseGet(() -> {
                                 // 3. Check if email is student email to set KYC (isVerified = true)
-                                String domain = email.substring(email.lastIndexOf("@") + 1);
-                                var universities = universityRepository.findAll();
-                                var university = universities.stream()
-                                        .filter(u -> u.getEmailDomain() != null && !u.getEmailDomain().isEmpty() 
-                                                   && domain.endsWith(u.getEmailDomain()))
-                                        .findFirst();
+                                University university = findUniversityByEmail(email);
                                 
-                                boolean isStudentVerified = university.isPresent();
-                                Long universityId = isStudentVerified ? university.get().getId() : null;
+                                boolean isStudentVerified = university != null;
+                                Long universityId = isStudentVerified ? university.getId() : null;
 
                                 // Create new user
                                 User newUser = User.builder()
@@ -506,5 +492,25 @@ public class AuthServiceImpl implements AuthService {
         
         userRepository.save(user);
         emailService.sendOtpEmail(user.getEmail(), otp);
+    }
+
+    private University findUniversityByEmail(String email) {
+        if (email == null || !email.contains("@")) {
+            return null;
+        }
+        String domain = email.substring(email.lastIndexOf("@") + 1).toLowerCase();
+        
+        // Normalize hcmuaf.edu.vn to nlu.edu.vn for Nong Lam University
+        if (domain.endsWith("hcmuaf.edu.vn")) {
+            domain = "nlu.edu.vn";
+        }
+        
+        String finalDomain = domain;
+        var universities = universityRepository.findAll();
+        return universities.stream()
+                .filter(u -> u.getEmailDomain() != null && !u.getEmailDomain().isEmpty() 
+                           && finalDomain.endsWith(u.getEmailDomain().toLowerCase()))
+                .findFirst()
+                .orElse(null);
     }
 }
