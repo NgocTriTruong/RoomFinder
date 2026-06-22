@@ -16,4 +16,5 @@ public class KYCRequest {
     private String frontIdCardUrl;
     private String backIdCardUrl;
     private String selfieUrl;
+    private String businessLicenseUrl;
 }

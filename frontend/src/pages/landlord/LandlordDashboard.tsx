@@ -116,10 +116,6 @@ export default function LandlordDashboard() {
           <h2 className="text-2xl font-bold text-gray-900">Tổng quan</h2>
           <p className="text-gray-600 mt-1">Chào mừng bạn trở lại, {user?.fullName}</p>
         </div>
-        <div className="flex items-center gap-2 text-sm text-gray-500 bg-white px-4 py-2 rounded-lg border border-gray-200 shadow-sm">
-          <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-          Dữ liệu thời gian thực
-        </div>
       </div>
 
       {/* Stats Cards Row 1 */}

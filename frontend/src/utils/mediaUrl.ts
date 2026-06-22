@@ -20,9 +20,22 @@ export const resolveMediaUrl = (url?: string | null): string | null => {
     return null;
   }
 
-  const normalized = url.trim();
+  let normalized = url.trim();
   if (!normalized) {
     return null;
+  }
+
+  // Rewrite localhost URLs from backend to point to secure tunnel origin
+  const localhostRegex = /^https?:\/\/(localhost|127\.0\.0\.1):8080\/api\/uploads\/(.*)$/i;
+  const match = normalized.match(localhostRegex);
+  if (match) {
+    normalized = `${API_ORIGIN}/api/uploads/${match[2]}`;
+  } else {
+    const localhostFallbackRegex = /^https?:\/\/(localhost|127\.0\.0\.1):8080\/uploads\/(.*)$/i;
+    const fallbackMatch = normalized.match(localhostFallbackRegex);
+    if (fallbackMatch) {
+      normalized = `${API_ORIGIN}/api/uploads/${fallbackMatch[2]}`;
+    }
   }
 
   if (/^https?:\/\//i.test(normalized)) {

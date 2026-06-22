@@ -222,7 +222,8 @@ export default function KYCManagementPage() {
 
               <div className="space-y-4">
                 <p className="text-sm text-gray-500 uppercase tracking-wider">Hình ảnh đối chiếu</p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Row 1: Front and Back CCCD */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <p className="text-xs font-bold text-gray-600 text-center">Mặt trước CCCD</p>
                     <img
@@ -239,14 +240,34 @@ export default function KYCManagementPage() {
                       alt="Back"
                     />
                   </div>
+                </div>
+
+                {/* Row 2: Selfie and Business License side-by-side */}
+                <div className={`grid grid-cols-1 ${selectedUser.role === 'LANDLORD' ? 'md:grid-cols-2' : 'max-w-md mx-auto w-full'} gap-4 mt-6`}>
                   <div className="space-y-2">
                     <p className="text-xs font-bold text-gray-600 text-center">Ảnh chân dung</p>
                     <img
                       src={resolveMediaUrl(selectedUser.selfieUrl) || createPlaceholderImage('Ảnh chân dung', 400, 400)}
-                      className="w-full aspect-square object-cover rounded-xl border border-gray-200 shadow-sm"
+                      className="w-full aspect-video object-cover rounded-xl border border-gray-200 shadow-sm"
                       alt="Selfie"
                     />
                   </div>
+                  {selectedUser.role === 'LANDLORD' && (
+                    <div className="space-y-2">
+                      <p className="text-xs font-bold text-gray-600 text-center">Giấy phép kinh doanh / sở hữu trọ</p>
+                      {selectedUser.businessLicenseUrl ? (
+                        <img
+                          src={resolveMediaUrl(selectedUser.businessLicenseUrl)}
+                          className="w-full aspect-video object-cover rounded-xl border border-gray-200 shadow-sm"
+                          alt="Business License"
+                        />
+                      ) : (
+                        <div className="w-full aspect-video bg-gray-50 border border-dashed border-gray-300 rounded-xl flex items-center justify-center text-gray-400 text-sm">
+                          Chưa tải lên giấy phép
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

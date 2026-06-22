@@ -1,27 +1,47 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { ShieldCheck, Upload, FileCheck, AlertCircle, Clock, CheckCircle, Camera, Loader2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import userService from '../../services/userService';
 import mediaService from '../../services/mediaService';
 import { resolveMediaUrl } from '../../utils/mediaUrl';
 
-type ImageField = 'frontIdCardUrl' | 'backIdCardUrl' | 'selfieUrl';
+type ImageField = 'frontIdCardUrl' | 'backIdCardUrl' | 'selfieUrl' | 'businessLicenseUrl';
 
 export default function VerificationPage() {
   const { user, refreshUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [uploadingField, setUploadingField] = useState<ImageField | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
   
   const [formData, setFormData] = useState({
     frontIdCardUrl: '',
     backIdCardUrl: '',
-    selfieUrl: ''
+    selfieUrl: '',
+    businessLicenseUrl: ''
   });
+
+  // Fetch fresh user data on mount to ensure we have the latest KYC status
+  useEffect(() => {
+    refreshUser();
+  }, [refreshUser]);
+
+  // Pre-populate formData from current user if they have existing uploads
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        frontIdCardUrl: user.frontIdCardUrl || '',
+        backIdCardUrl: user.backIdCardUrl || '',
+        selfieUrl: user.selfieUrl || '',
+        businessLicenseUrl: user.businessLicenseUrl || ''
+      });
+    }
+  }, [user]);
 
   // Refs for file inputs
   const frontInputRef = useRef<HTMLInputElement>(null);
   const backInputRef = useRef<HTMLInputElement>(null);
   const selfieInputRef = useRef<HTMLInputElement>(null);
+  const licenseInputRef = useRef<HTMLInputElement>(null);
 
   const getStatusDisplay = () => {
     switch (user?.verificationStatus) {
@@ -66,6 +86,9 @@ export default function VerificationPage() {
       case 'selfieUrl':
         selfieInputRef.current?.click();
         break;
+      case 'businessLicenseUrl':
+        licenseInputRef.current?.click();
+        break;
     }
   };
 
@@ -98,8 +121,11 @@ export default function VerificationPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.frontIdCardUrl || !formData.backIdCardUrl || !formData.selfieUrl) {
-      alert('Vui lòng cung cấp đầy đủ hình ảnh yêu cầu');
+    const isLandlord = user?.role === 'LANDLORD';
+    const isMissingField = !formData.frontIdCardUrl || !formData.backIdCardUrl || !formData.selfieUrl || (isLandlord && !formData.businessLicenseUrl);
+    
+    if (isMissingField) {
+      alert(isLandlord ? 'Vui lòng cung cấp đầy đủ hình ảnh CCCD và Giấy phép kinh doanh/Giấy chứng nhận sở hữu' : 'Vui lòng cung cấp đầy đủ hình ảnh yêu cầu');
       return;
     }
 
@@ -107,6 +133,7 @@ export default function VerificationPage() {
       setLoading(true);
       await userService.submitKYC(formData);
       alert('Gửi hồ sơ thành công! Vui lòng chờ quản trị viên phê duyệt.');
+      setIsEditing(false); // Reset editing state on successful submit
       await refreshUser();
     } catch (error: any) {
       const message = error.response?.data?.message || 'Có lỗi xảy ra khi gửi hồ sơ';
@@ -116,16 +143,17 @@ export default function VerificationPage() {
     }
   };
 
-  if (status) {
+  if (status && !(user?.verificationStatus === 'REJECTED' && isEditing)) {
     return (
-      <div className="max-w-2xl mx-auto py-8 space-y-8 px-4">
-        <div className={`p-8 rounded-2xl border ${status.color} shadow-sm text-center space-y-4`}>
+      <div className="max-w-3xl mx-auto py-8 px-4 space-y-8">
+        {/* Status Header Block */}
+        <div className={`p-8 text-center space-y-4 border rounded-2xl shadow-sm ${status.color}`}>
           <div className="flex justify-center">{status.icon}</div>
           <h2 className="text-2xl font-bold">{status.title}</h2>
-          <p className="opacity-90 max-w-md mx-auto leading-relaxed">{status.description}</p>
+          <p className="opacity-90 max-w-lg mx-auto leading-relaxed text-sm">{status.description}</p>
           
           {user?.verificationStatus === 'REJECTED' && user.adminNote && (
-            <div className="mt-4 p-4 bg-white/50 rounded-xl border border-red-100 text-left">
+            <div className="mt-4 p-4 bg-white/40 rounded-xl border border-red-200/50 text-left text-red-950">
               <p className="text-xs font-bold text-red-600 uppercase tracking-wider mb-1">Lý do từ chối từ Admin:</p>
               <p className="text-sm italic">"{user.adminNote}"</p>
             </div>
@@ -133,8 +161,8 @@ export default function VerificationPage() {
 
           {user?.verificationStatus === 'REJECTED' && (
             <button 
-              onClick={() => { window.location.reload(); }}
-              className="mt-4 px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold"
+              onClick={() => setIsEditing(true)}
+              className="mt-4 px-6 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold shadow-sm"
             >
               Gửi lại yêu cầu
             </button>
@@ -142,19 +170,22 @@ export default function VerificationPage() {
         </div>
 
         {/* Submitted Documents Review Section */}
-        {(user?.frontIdCardUrl || user?.backIdCardUrl || user?.selfieUrl) && (
-          <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-6">
-            <h3 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-3 flex items-center gap-2">
+        {(user?.frontIdCardUrl || user?.backIdCardUrl || user?.selfieUrl || user?.businessLicenseUrl) && (
+          <div className="space-y-6">
+            <h3 className="text-lg font-bold text-gray-900 border-b border-gray-200 pb-3 flex items-center gap-2">
               <ShieldCheck className="w-5 h-5 text-blue-600" />
-              {user?.role === 'LANDLORD' ? 'Hình ảnh hồ sơ CCCD đã tải lên' : 'Hình ảnh thẻ sinh viên/CCCD đã tải lên'}
+              {user?.role === 'LANDLORD' 
+                ? 'Hình ảnh hồ sơ xác thực đã tải lên (CCCD & Giấy phép/Sở hữu)' 
+                : 'Hình ảnh thẻ sinh viên/CCCD đã tải lên'}
             </h3>
+            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {user.frontIdCardUrl && (
                 <div className="space-y-2">
                   <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block">
                     {user?.role === 'LANDLORD' ? 'Mặt trước CCCD/CMND' : 'Mặt trước Thẻ sinh viên / CCCD'}
                   </span>
-                  <div className="aspect-video rounded-xl border border-gray-100 overflow-hidden bg-gray-50 shadow-inner">
+                  <div className="aspect-video rounded-xl border border-gray-200 overflow-hidden bg-white shadow-sm">
                     <img 
                       src={resolveMediaUrl(user.frontIdCardUrl)} 
                       alt="Mặt trước CCCD" 
@@ -168,7 +199,7 @@ export default function VerificationPage() {
                   <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block">
                     {user?.role === 'LANDLORD' ? 'Mặt sau CCCD/CMND' : 'Mặt sau Thẻ sinh viên / CCCD'}
                   </span>
-                  <div className="aspect-video rounded-xl border border-gray-100 overflow-hidden bg-gray-50 shadow-inner">
+                  <div className="aspect-video rounded-xl border border-gray-200 overflow-hidden bg-white shadow-sm">
                     <img 
                       src={resolveMediaUrl(user.backIdCardUrl)} 
                       alt="Mặt sau CCCD" 
@@ -177,17 +208,38 @@ export default function VerificationPage() {
                   </div>
                 </div>
               )}
+            </div>
+
+            <div className={`grid grid-cols-1 ${user?.role === 'LANDLORD' ? 'md:grid-cols-2' : 'max-w-md mx-auto w-full'} gap-6 mt-6`}>
               {user.selfieUrl && (
-                <div className="md:col-span-2 space-y-2 max-w-md mx-auto w-full">
+                <div className="space-y-2">
                   <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block text-center">
                     {user?.role === 'LANDLORD' ? 'Ảnh chân dung cầm CCCD' : 'Ảnh chân dung cầm thẻ sinh viên / CCCD'}
                   </span>
-                  <div className="aspect-square rounded-xl border border-gray-100 overflow-hidden bg-gray-50 shadow-inner">
+                  <div className="aspect-video rounded-xl border border-gray-200 overflow-hidden bg-white shadow-sm">
                     <img 
                       src={resolveMediaUrl(user.selfieUrl)} 
                       alt="Ảnh chân dung" 
                       className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                     />
+                  </div>
+                </div>
+              )}
+              {user?.role === 'LANDLORD' && (
+                <div className="space-y-2">
+                  <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block text-center">
+                    Giấy phép kinh doanh / Chứng minh sở hữu
+                  </span>
+                  <div className="aspect-video rounded-xl border border-gray-200 overflow-hidden bg-white shadow-sm flex items-center justify-center">
+                    {user.businessLicenseUrl ? (
+                      <img 
+                        src={resolveMediaUrl(user.businessLicenseUrl)} 
+                        alt="Giấy phép kinh doanh" 
+                        className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                      />
+                    ) : (
+                      <span className="text-gray-400 text-sm italic">Chưa tải lên giấy phép</span>
+                    )}
                   </div>
                 </div>
               )}
@@ -229,6 +281,7 @@ export default function VerificationPage() {
         <input type="file" ref={frontInputRef} className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'frontIdCardUrl')} />
         <input type="file" ref={backInputRef} className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'backIdCardUrl')} />
         <input type="file" ref={selfieInputRef} className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'selfieUrl')} />
+        <input type="file" ref={licenseInputRef} className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'businessLicenseUrl')} />
 
         {/* Front ID Card */}
         <div className="space-y-3">
@@ -295,13 +348,13 @@ export default function VerificationPage() {
         </div>
 
         {/* Selfie */}
-        <div className="md:col-span-2 space-y-3">
+        <div className={`${user?.role === 'LANDLORD' ? 'md:col-span-1' : 'md:col-span-2'} space-y-3`}>
           <label className="block text-sm font-bold text-gray-700 text-center">
             {user?.role === 'LANDLORD' ? 'Ảnh chân dung cầm CCCD' : 'Ảnh chân dung cầm thẻ sinh viên / CCCD'}
           </label>
           <div 
             onClick={() => handleUploadClick('selfieUrl')}
-            className={`max-w-md mx-auto aspect-square rounded-2xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all relative overflow-hidden group ${
+            className={`max-w-md mx-auto aspect-video rounded-2xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all relative overflow-hidden group ${
               formData.selfieUrl ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-blue-400 hover:bg-blue-50'
             }`}
           >
@@ -325,6 +378,40 @@ export default function VerificationPage() {
             )}
           </div>
         </div>
+
+        {/* Giấy phép kinh doanh / Chứng nhận sở hữu (chỉ dành cho Chủ trọ) */}
+        {user?.role === 'LANDLORD' && (
+          <div className="md:col-span-1 space-y-3">
+            <label className="block text-sm font-bold text-gray-700 text-center">
+              Giấy phép kinh doanh / Giấy chứng nhận sở hữu trọ
+            </label>
+            <div 
+              onClick={() => handleUploadClick('businessLicenseUrl')}
+              className={`max-w-md mx-auto aspect-video rounded-2xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all relative overflow-hidden group ${
+                formData.businessLicenseUrl ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-blue-400 hover:bg-blue-50'
+              }`}
+            >
+              {uploadingField === 'businessLicenseUrl' ? (
+                <div className="flex flex-col items-center text-blue-600">
+                  <Loader2 className="w-12 h-12 animate-spin mb-2" />
+                  <span className="text-xs font-medium">Đang tải lên...</span>
+                </div>
+              ) : formData.businessLicenseUrl ? (
+                <>
+                  <img src={resolveMediaUrl(formData.businessLicenseUrl) || ''} alt="Giấy phép kinh doanh" className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                    <span className="text-white text-sm font-bold bg-white/20 backdrop-blur-md px-4 py-2 rounded-lg">Thay đổi ảnh</span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <Upload className="w-12 h-12 text-gray-400 mb-2" />
+                  <span className="text-sm text-gray-500">Bấm để tải ảnh giấy phép kinh doanh / sở hữu</span>
+                </>
+              )}
+            </div>
+          </div>
+        )}
 
         <div className="md:col-span-2 flex justify-center py-4">
           <button

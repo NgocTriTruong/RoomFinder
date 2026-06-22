@@ -56,6 +56,7 @@ public class UserServiceImpl implements UserService {
         user.setFrontIdCardUrl(request.getFrontIdCardUrl());
         user.setBackIdCardUrl(request.getBackIdCardUrl());
         user.setSelfieUrl(request.getSelfieUrl());
+        user.setBusinessLicenseUrl(request.getBusinessLicenseUrl());
         user.setVerificationStatus("PENDING");
 
         user = userRepository.save(user);
@@ -403,6 +404,7 @@ public class UserServiceImpl implements UserService {
                 .frontIdCardUrl(user.getFrontIdCardUrl())
                 .backIdCardUrl(user.getBackIdCardUrl())
                 .selfieUrl(user.getSelfieUrl())
+                .businessLicenseUrl(user.getBusinessLicenseUrl())
                 .verifiedAt(user.getVerifiedAt())
                 .dateOfBirth(user.getDateOfBirth())
                 .address(user.getAddress())

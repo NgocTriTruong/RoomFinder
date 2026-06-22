@@ -77,6 +77,9 @@ public class User extends BaseEntity {
     @Column(name = "selfie_url", length = 500)
     private String selfieUrl;
 
+    @Column(name = "business_license_url", length = 500)
+    private String businessLicenseUrl;
+
     @Column(name = "verified_at")
     private LocalDateTime verifiedAt;
 

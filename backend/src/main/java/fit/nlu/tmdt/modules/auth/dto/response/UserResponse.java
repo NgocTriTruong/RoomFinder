@@ -29,6 +29,7 @@ public class UserResponse {
     private String frontIdCardUrl;
     private String backIdCardUrl;
     private String selfieUrl;
+    private String businessLicenseUrl;
     private LocalDateTime verifiedAt;
     private LocalDate dateOfBirth;
     private String address;

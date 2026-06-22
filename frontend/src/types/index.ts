@@ -53,6 +53,7 @@ export interface UserResponse {
   frontIdCardUrl?: string;
   backIdCardUrl?: string;
   selfieUrl?: string;
+  businessLicenseUrl?: string;
   verifiedAt: string | null;
   dateOfBirth: string | null;
   address: string | null;

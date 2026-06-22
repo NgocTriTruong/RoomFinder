@@ -198,12 +198,6 @@ export default function AdminDashboard() {
           <h2 className="text-3xl font-black text-gray-900 tracking-tight">Tổng quan</h2>
           <p className="text-gray-500 font-medium mt-1">Chào mừng quay trở lại, đây là hoạt động mới nhất trong 30 ngày qua.</p>
         </div>
-        <div className="flex gap-2">
-          <div className="px-4 py-2 bg-white rounded-lg border border-gray-200 shadow-sm text-sm font-bold text-gray-700 flex items-center">
-            <div className="w-2 h-2 rounded-full bg-green-500 mr-2 animate-pulse" />
-            Hệ thống trực tuyến
-          </div>
-        </div>
       </div>
 
       {/* Stat Cards */}
