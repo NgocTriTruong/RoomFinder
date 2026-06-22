@@ -85,9 +85,9 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         // Allow specific origins for development
-        configuration.setAllowedOrigins(List.of(appUrl, "http://localhost:5173", "http://localhost:3000", "http://localhost:3001"));
+        configuration.setAllowedOriginPatterns(List.of("*"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept", "X-Requested-With", "Bypass-Tunnel-Reminder"));
+        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept", "X-Requested-With", "Bypass-Tunnel-Reminder", "bypass-tunnel-reminder"));
         configuration.setExposedHeaders(List.of("X-Total-Count", "X-Page-Number", "X-Page-Size"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
