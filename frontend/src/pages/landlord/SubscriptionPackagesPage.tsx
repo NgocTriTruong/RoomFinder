@@ -261,23 +261,36 @@ export default function SubscriptionPackagesPage() {
                 </ul>
               </div>
               <div className="p-8 pt-0 mt-auto">
-                <button
-                  onClick={() => handleBuy(pkg)}
-                  disabled={!pkg.isActive || (currentSubscription && currentSubscription.packageId === pkg.id)}
-                  className={`w-full py-3 px-4 rounded-lg font-bold transition-colors ${
-                    !pkg.isActive || (currentSubscription && currentSubscription.packageId === pkg.id)
-                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                      : pkg.isFeatured
-                      ? 'bg-blue-600 text-white hover:bg-blue-700'
-                      : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
-                  }`}
-                >
-                  {!pkg.isActive 
-                    ? 'Không khả dụng' 
-                    : (currentSubscription && currentSubscription.packageId === pkg.id)
-                    ? 'Đang sử dụng'
-                    : 'Mua gói ngay'}
-                </button>
+                {(() => {
+                  const currentPackagePrice = currentSubscription 
+                    ? packages.find(p => p.id === currentSubscription.packageId)?.price || 0 
+                    : 0;
+                  const isDowngrade = currentSubscription && pkg.price < currentPackagePrice;
+                  const isCurrent = currentSubscription && currentSubscription.packageId === pkg.id;
+                  const isDisabled = !pkg.isActive || isCurrent || isDowngrade;
+
+                  return (
+                    <button
+                      onClick={() => handleBuy(pkg)}
+                      disabled={isDisabled}
+                      className={`w-full py-3 px-4 rounded-lg font-bold transition-colors ${
+                        isDisabled
+                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                          : pkg.isFeatured
+                          ? 'bg-blue-600 text-white hover:bg-blue-700'
+                          : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
+                      }`}
+                    >
+                      {!pkg.isActive 
+                        ? 'Không khả dụng' 
+                        : isCurrent
+                        ? 'Đang sử dụng'
+                        : isDowngrade
+                        ? 'Cần chờ gói hiện tại hết hạn'
+                        : 'Mua gói ngay'}
+                    </button>
+                  );
+                })()}
               </div>
             </div>
           ))}

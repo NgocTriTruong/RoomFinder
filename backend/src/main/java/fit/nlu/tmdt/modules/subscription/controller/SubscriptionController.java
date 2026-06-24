@@ -11,6 +11,7 @@ import fit.nlu.tmdt.modules.subscription.service.SubscriptionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -71,10 +72,11 @@ public class SubscriptionController {
     @LogExecutionTime
     public ResponseEntity<ApiResponse<Map<String, Object>>> purchasePackage(
             @Valid @RequestBody PurchasePackageRequest request,
-            @CurrentUser Long userId) {
+            @CurrentUser Long userId,
+            HttpServletRequest servletRequest) {
 
         log.info("Purchase package: {} for user: {}", request.getPackageId(), userId);
-        Map<String, Object> paymentData = subscriptionService.initiatePurchase(request, userId);
+        Map<String, Object> paymentData = subscriptionService.initiatePurchase(request, userId, servletRequest);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.created("Purchase initiated successfully", paymentData));
     }
@@ -98,10 +100,11 @@ public class SubscriptionController {
     public ResponseEntity<ApiResponse<Map<String, Object>>> boostPost(
             @PathVariable Long postId,
             @RequestParam Long packageId,
-            @CurrentUser Long userId) {
+            @CurrentUser Long userId,
+            HttpServletRequest servletRequest) {
 
         log.info("Boost post: {} with package: {} for user: {}", postId, packageId, userId);
-        Map<String, Object> boostData = subscriptionService.boostPost(postId, packageId, userId);
+        Map<String, Object> boostData = subscriptionService.boostPost(postId, packageId, userId, servletRequest);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.created("Boost initiated successfully", boostData));
     }

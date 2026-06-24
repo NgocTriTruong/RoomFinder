@@ -45,8 +45,26 @@ public class VNPayGateway {
     @Value("${vnpay.ipn-url}")
     private String ipnUrl;
 
-    public String buildPaymentUrl(String orderId, Double amount, String orderInfo, String bankCode, String ipAddr) {
+    public String buildPaymentUrl(String orderId, Double amount, String orderInfo, String bankCode, HttpServletRequest request) {
         Map<String, String> params = new TreeMap<>();
+
+        String ipAddr = getClientIp(request);
+        String origin = request.getHeader("Origin");
+        if (origin == null || origin.isBlank()) {
+            origin = request.getHeader("Referer");
+            if (origin != null) {
+                try {
+                    java.net.URL url = new java.net.URL(origin);
+                    origin = url.getProtocol() + "://" + url.getHost() + (url.getPort() != -1 ? ":" + url.getPort() : "");
+                } catch (Exception e) {}
+            }
+        }
+        
+        String dynamicReturnUrl = returnUrl;
+        if (origin != null && !origin.isBlank() && !origin.contains("room-finder-zeta.vercel.app")) {
+             // If local frontend, override the return URL
+             dynamicReturnUrl = origin + "/payment/vnpay/return";
+        }
 
         params.put("vnp_Version", VNP_VERSION);
         params.put("vnp_Command", VNP_COMMAND_PAY);
@@ -57,7 +75,7 @@ public class VNPayGateway {
         params.put("vnp_OrderInfo", orderInfo);
         params.put("vnp_OrderType", "other");
         params.put("vnp_Locale", VNP_LOCALE);
-        params.put("vnp_ReturnUrl", returnUrl);
+        params.put("vnp_ReturnUrl", dynamicReturnUrl);
         params.put("vnp_IpAddr", ipAddr != null ? ipAddr : "127.0.0.1");
         params.put("vnp_CreateDate", LocalDateTime.now().format(VNP_DATE_FORMATTER));
         params.put("vnp_ExpireDate", LocalDateTime.now().plusMinutes(15).format(VNP_DATE_FORMATTER));

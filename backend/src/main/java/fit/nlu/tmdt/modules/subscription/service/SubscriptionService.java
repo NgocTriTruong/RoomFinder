@@ -7,6 +7,7 @@ import fit.nlu.tmdt.modules.subscription.dto.response.SubscriptionResponse;
 
 import java.util.List;
 import java.util.Map;
+import jakarta.servlet.http.HttpServletRequest;
 
 /**
  * Subscription Service Interface
@@ -33,7 +34,7 @@ public interface SubscriptionService {
     /**
      * Initiate package purchase (creates pending subscription)
      */
-    Map<String, Object> initiatePurchase(PurchasePackageRequest request, Long userId);
+    Map<String, Object> initiatePurchase(PurchasePackageRequest request, Long userId, HttpServletRequest servletRequest);
 
     /**
      * Toggle auto-renew setting
@@ -43,7 +44,7 @@ public interface SubscriptionService {
     /**
      * Boost a post
      */
-    Map<String, Object> boostPost(Long postId, Long packageId, Long userId);
+    Map<String, Object> boostPost(Long postId, Long packageId, Long userId, HttpServletRequest servletRequest);
 
     /**
      * Get active boosts for user

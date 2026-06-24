@@ -107,7 +107,7 @@ public class PaymentServiceImpl implements PaymentService {
                 transaction.getAmount(),
                 orderInfo,
                 null,
-                ipAddr
+                servletRequest
         );
 
         transaction.setPaymentUrl(paymentUrl);

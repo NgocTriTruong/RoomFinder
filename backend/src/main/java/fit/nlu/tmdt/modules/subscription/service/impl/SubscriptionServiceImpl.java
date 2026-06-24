@@ -23,6 +23,7 @@ import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -96,7 +97,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
     @Override
     @Transactional
-    public Map<String, Object> initiatePurchase(PurchasePackageRequest request, Long userId) {
+    public Map<String, Object> initiatePurchase(PurchasePackageRequest request, Long userId, HttpServletRequest servletRequest) {
         log.info("Initiating purchase for user: {}, package: {}", userId, request.getPackageId());
 
         // 1. Validate user
@@ -109,6 +110,15 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
         if (!pkg.isActive()) {
             throw new BusinessException(ErrorCode.SUB_004, "Package is not available");
+        }
+
+        // 2.5 Check current active subscription logic to prevent downgrade
+        Optional<Subscription> currentSubOpt = subscriptionRepository.findActiveByLandlordId(userId, LocalDateTime.now());
+        if (currentSubOpt.isPresent()) {
+            Subscription currentSub = currentSubOpt.get();
+            if (pkg.getPrice() < currentSub.getPkg().getPrice()) {
+                throw new BusinessException(ErrorCode.SUB_004, "Không thể mua gói có giá trị thấp hơn khi đang sử dụng gói cao cấp. Vui lòng chờ gói hiện tại hết hạn.");
+            }
         }
 
         // 3. Check max purchase limit
@@ -154,13 +164,18 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
         fit.nlu.tmdt.modules.payment.dto.response.PaymentResponse paymentResponse = paymentService.createOrder(userId, paymentRequest);
 
+        String paymentUrl = null;
+        if ("VNPAY".equalsIgnoreCase(paymentRequest.getPaymentMethod())) {
+            paymentUrl = paymentService.getPaymentUrl(paymentResponse.getId(), userId, servletRequest);
+        }
+
         Map<String, Object> paymentData = new HashMap<>();
         paymentData.put("subscriptionId", subscription.getId());
         paymentData.put("transactionId", paymentResponse.getId());
         paymentData.put("orderId", paymentResponse.getOrderId());
         paymentData.put("packageName", pkg.getName());
         paymentData.put("finalPrice", finalPrice);
-        paymentData.put("paymentUrl", paymentResponse.getPaymentUrl());
+        paymentData.put("paymentUrl", paymentUrl);
 
         log.info("Purchase initiated: subscription={}, transaction={}", subscription.getId(), paymentResponse.getId());
 
@@ -188,7 +203,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
     @Override
     @Transactional
-    public Map<String, Object> boostPost(Long postId, Long packageId, Long userId) {
+    public Map<String, Object> boostPost(Long postId, Long packageId, Long userId, HttpServletRequest servletRequest) {
         log.info("Boost post: {} with package: {} for user: {}", postId, packageId, userId);
 
         // 1. Validate user
@@ -236,13 +251,18 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
         fit.nlu.tmdt.modules.payment.dto.response.PaymentResponse paymentResponse = paymentService.createOrder(userId, paymentRequest);
 
+        String paymentUrl = null;
+        if ("VNPAY".equalsIgnoreCase(paymentRequest.getPaymentMethod())) {
+            paymentUrl = paymentService.getPaymentUrl(paymentResponse.getId(), userId, servletRequest);
+        }
+
         Map<String, Object> boostData = new HashMap<>();
         boostData.put("boostId", boost.getId());
         boostData.put("transactionId", paymentResponse.getId());
         boostData.put("orderId", paymentResponse.getOrderId());
         boostData.put("packageName", pkg.getName());
         boostData.put("price", boost.getPrice());
-        boostData.put("paymentUrl", paymentResponse.getPaymentUrl());
+        boostData.put("paymentUrl", paymentUrl);
 
         log.info("Boost initiated: boost={}, transaction={}", boost.getId(), paymentResponse.getId());
 
@@ -277,6 +297,17 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
         Subscription subscription = subscriptionRepository.findById(subscriptionId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.SUB_001, "Subscription not found"));
+
+        // Deactivate old active subscriptions
+        List<Subscription> currentActiveSubs = subscriptionRepository.findAllActiveByLandlordId(subscription.getLandlord().getId(), LocalDateTime.now());
+        for (Subscription sub : currentActiveSubs) {
+            if (!sub.getId().equals(subscriptionId)) {
+                sub.cancel("Đã nâng cấp lên gói mới");
+            }
+        }
+        if (!currentActiveSubs.isEmpty()) {
+            subscriptionRepository.saveAll(currentActiveSubs);
+        }
 
         // Activate subscription
         subscription.setIsActive(true);
@@ -341,7 +372,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
                 .price(request.getPrice())
                 .originalPrice(request.getOriginalPrice())
                 .discountPercent(request.getDiscountPercent())
-                .features(request.getFeatures() != null ? request.getFeatures() : new ArrayList<>())
+                .features(request.getFeatures() != null ? new java.util.HashSet<>(request.getFeatures()) : new java.util.HashSet<>())
                 .isActive(request.getIsActive() != null ? request.getIsActive() : true)
                 .displayOrder(request.getDisplayOrder() != null ? request.getDisplayOrder() : 0)
                 .isFeatured(request.getIsFeatured() != null ? request.getIsFeatured() : false)
@@ -375,7 +406,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         pkg.setOriginalPrice(request.getOriginalPrice());
         pkg.setDiscountPercent(request.getDiscountPercent());
         if (request.getFeatures() != null) {
-            pkg.setFeatures(request.getFeatures());
+            pkg.setFeatures(new java.util.HashSet<>(request.getFeatures()));
         }
         
         if (request.getIsActive() != null) pkg.setIsActive(request.getIsActive());
@@ -442,7 +473,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
                 .cancelledAt(subscription.getCancelledAt())
                 .cancellationReason(subscription.getCancellationReason())
                 .createdAt(subscription.getCreatedAt())
-                .features(pkg.getFeatures())
+                .features(pkg.getFeatures() != null ? new java.util.ArrayList<>(pkg.getFeatures()) : null)
                 .build();
     }
 
@@ -463,7 +494,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
                 .discountPercent(pkg.getDiscountPercent())
                 .discountedPrice(pkg.getDiscountedPrice())
                 .hasDiscount(pkg.hasDiscount())
-                .features(pkg.getFeatures())
+                .features(new java.util.ArrayList<>(pkg.getFeatures()))
                 .isActive(pkg.isActive())
                 .isFeatured(pkg.getIsFeatured())
                 .displayOrder(pkg.getDisplayOrder())
