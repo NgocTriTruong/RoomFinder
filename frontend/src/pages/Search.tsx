@@ -236,6 +236,7 @@ export default function Search() {
       }
 
       if (district) {
+        params.district = district;
         params.location = district;
       }
 

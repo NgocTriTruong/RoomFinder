@@ -14,12 +14,19 @@ export interface PostSearchParams {
   areaMin?: number;
   areaMax?: number;
   location?: string;
+  district?: string;
+  province?: string;
+  ward?: string;
   amenityIds?: number[];
   category?: string;
   latitude?: number;
   longitude?: number;
   radiusKm?: number;
   nearbyUniversityId?: number;
+  petFriendly?: boolean;
+  parkingAvailable?: boolean;
+  hasBalcony?: boolean;
+  hasWindows?: boolean;
 }
 
 export interface AdminPostQuery extends PostSearchParams {

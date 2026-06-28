@@ -60,7 +60,7 @@ export default function FloatingChatWidget() {
             setBotMessages([
                 {
                     sender: 'bot',
-                    text: `Xin chào ${user.fullName.split(' ')[0]}! Tôi là RoomFinder, trợ lý AI thông minh của bạn.\n\nTôi có thể giúp bạn:\nTìm kiếm phòng trọ, căn hộ (ví dụ: "tìm phòng ở Quận 1 dưới 4 triệu")\nHướng dẫn đặt lịch hẹn xem phòng\nGiải đáp thông tin xác thực KYC & Tích xanh\n\nBạn muốn tôi hỗ trợ thông tin gì hôm nay?`,
+                    text: `Xin chào ${user.fullName.split(' ')[0]}! Tôi là RoomFinder, trợ lý AI thông minh của bạn.\n\nTôi có thể giúp bạn:\n- Tìm kiếm phòng trọ, căn hộ (ví dụ: "tìm phòng ở Quận 1 dưới 4 triệu")\n- Hướng dẫn đặt lịch hẹn xem phòng\n- Giải đáp thông tin xác thực KYC & Tích xanh\n\nBạn muốn tôi hỗ trợ thông tin gì hôm nay?`,
                     timestamp: new Date()
                 }
             ]);
@@ -97,13 +97,179 @@ export default function FloatingChatWidget() {
     const processBotMessage = async (userInput: string) => {
         const textLower = userInput.toLowerCase();
         
-        // 1. DYNAMIC ROOM SEARCH INTENT DETECTION
-        const isSearchIntent = textLower.includes('tìm') || textLower.includes('phòng') || textLower.includes('căn hộ') || textLower.includes('nhà trọ') || textLower.includes('thuê');
+        // University Map to detect university intents
+        const universityMap = [
+            { id: 1, name: 'Trường Đại học Nông Lâm TP.HCM', abbreviation: 'NLU', keywords: ['nlu', 'nông lâm', 'nong lam'] },
+            { id: 2, name: 'Trường Đại học Sư phạm Kỹ thuật TP.HCM', abbreviation: 'HCMUTE', keywords: ['hcmute', 'sư phạm kỹ thuật', 'su pham ky thuat', 'spkt'] },
+            { id: 3, name: 'Trường Đại học Công nghệ thông tin - ĐHQG TP.HCM', abbreviation: 'UIT', keywords: ['uit', 'công nghệ thông tin', 'cong nghe thong tin', 'cntt'] },
+            { id: 4, name: 'Trường Đại học Bách Khoa - ĐHQG TP.HCM (Cơ sở Dĩ An)', abbreviation: 'HCMUT', keywords: ['hcmut', 'bách khoa', 'bach khoa', 'bk'] },
+            { id: 5, name: 'Trường Đại học Khoa học Tự nhiên - ĐHQG TP.HCM (Cơ sở Dĩ An)', abbreviation: 'HCMUS', keywords: ['hcmus', 'khoa học tự nhiên', 'khoa hoc tu nhien', 'khtn'] },
+            { id: 6, name: 'Trường Đại học Quốc tế - ĐHQG TP.HCM', abbreviation: 'IU', keywords: ['iu', 'quốc tế', 'quoc te'] },
+            { id: 7, name: 'Trường Đại học Kinh tế TP.HCM (Cơ sở A)', abbreviation: 'UEH', keywords: ['ueh', 'kinh tế', 'kinh te'] },
+            { id: 8, name: 'Trường Đại học Ngoại thương - Cơ sở 2', abbreviation: 'FTU2', keywords: ['ftu', 'ngoại thương', 'ngoai thuong'] }
+        ];
+
+        let nearbyUniversityId: number | undefined = undefined;
+        let nearbyUniversityName = '';
+        for (const uni of universityMap) {
+            if (uni.keywords.some(kw => textLower.includes(kw))) {
+                nearbyUniversityId = uni.id;
+                nearbyUniversityName = uni.abbreviation;
+                break;
+            }
+        }
+
+        // 1. AI-POWERED SUMMARIZATION INTENT
+        const isSummaryRequest = textLower.includes('tại sao nên thuê') || 
+                                 textLower.includes('tai sao nen thue') ||
+                                 textLower.includes('tại sao tôi nên thuê') || 
+                                 textLower.includes('tai sao toi nen thue') ||
+                                 textLower.includes('tóm tắt') || 
+                                 textLower.includes('tom tat') ||
+                                 textLower.includes('có gì tốt') || 
+                                 textLower.includes('co gi tot') ||
+                                 textLower.includes('sao nên thuê') || 
+                                 textLower.includes('sao nen thue') ||
+                                 textLower.includes('tại sao phải thuê') ||
+                                 textLower.includes('tai sao phai thue') ||
+                                 (textLower.includes('thuê') && textLower.includes('căn')) ||
+                                 (textLower.includes('thue') && textLower.includes('can')) ||
+                                 (textLower.includes('thuê') && textLower.includes('phòng')) ||
+                                 (textLower.includes('thue') && textLower.includes('phong'));
+
+        if (isSummaryRequest) {
+            // Find the last recommended rooms from the bot message history
+            const lastBotMessageWithRooms = [...botMessages]
+                .reverse()
+                .find(msg => msg.sender === 'bot' && msg.rooms && msg.rooms.length > 0);
+            
+            const recommendedRooms = lastBotMessageWithRooms?.rooms || [];
+            let targetRoomId: number | string | null = null;
+            let targetIndex: number | null = null;
+
+            if (recommendedRooms.length > 0) {
+                if (
+                    textLower.includes('căn số 1') || textLower.includes('căn 1') || textLower.includes('phòng 1') ||
+                    textLower.includes('căn thứ 1') || textLower.includes('căn thứ nhất') || textLower.includes('căn đầu tiên') ||
+                    textLower.includes('căn đầu') || textLower.includes('căn số một') || textLower.includes('phòng số 1') ||
+                    textLower.includes('phòng thứ 1') || textLower.includes('phòng thứ nhất') || textLower.includes('phòng đầu tiên') ||
+                    textLower.includes('phòng số một')
+                ) {
+                    targetIndex = 0;
+                } else if (
+                    textLower.includes('căn số 2') || textLower.includes('căn 2') || textLower.includes('phòng 2') ||
+                    textLower.includes('căn thứ 2') || textLower.includes('căn thứ hai') || textLower.includes('căn số hai') ||
+                    textLower.includes('phòng số 2') || textLower.includes('phòng thứ 2') || textLower.includes('phòng thứ hai') ||
+                    textLower.includes('phòng số hai')
+                ) {
+                    targetIndex = 1;
+                } else if (
+                    textLower.includes('căn số 3') || textLower.includes('căn 3') || textLower.includes('phòng 3') ||
+                    textLower.includes('căn thứ 3') || textLower.includes('căn thứ ba') || textLower.includes('căn số ba') ||
+                    textLower.includes('phòng số 3') || textLower.includes('phòng thứ 3') || textLower.includes('phòng thứ ba') ||
+                    textLower.includes('phòng số ba')
+                ) {
+                    targetIndex = 2;
+                } else if (
+                    textLower.includes('căn số 4') || textLower.includes('căn 4') || textLower.includes('phòng 4') ||
+                    textLower.includes('căn thứ 4') || textLower.includes('căn thứ tư') || textLower.includes('căn số bốn') ||
+                    textLower.includes('phòng số 4') || textLower.includes('phòng thứ 4') || textLower.includes('phòng thứ tư') ||
+                    textLower.includes('phòng số bốn')
+                ) {
+                    targetIndex = 3;
+                }
+            }
+
+            if (targetIndex !== null && recommendedRooms[targetIndex]) {
+                targetRoomId = recommendedRooms[targetIndex].id;
+            } else {
+                const roomDetailMatch = window.location.pathname.match(/\/room\/(\d+)/);
+                targetRoomId = roomDetailMatch ? roomDetailMatch[1] : null;
+            }
+
+            if (!targetRoomId) {
+                return {
+                    text: "Tôi rất sẵn lòng tóm tắt thông tin phòng trọ cho bạn! Tuy nhiên, bạn vui lòng truy cập vào trang chi tiết của căn hộ/phòng trọ bạn đang quan tâm, hoặc tìm kiếm phòng trước để tôi có thể hỗ trợ tóm tắt thông tin chi tiết và đưa ra lý do khuyên dùng cho bạn nhé!"
+                };
+            }
+
+            try {
+                const post = await postService.getPostById(targetRoomId);
+                if (!post) {
+                    return {
+                        text: "Không tìm thấy thông tin phòng trọ hiện tại để tóm tắt. Vui lòng tải lại trang và thử lại!"
+                    };
+                }
+
+                const priceFormatted = post.price.toLocaleString('vi-VN');
+                const area = post.room?.area || 0;
+                const address = post.room?.address || "Chưa cập nhật";
+                const university = post.room?.nearbyUniversityName || "";
+                const distance = post.room?.distanceToUniversity;
+                const parking = post.room?.hasParking;
+                const balcony = post.room?.hasBalcony;
+                const amenities = post.room?.amenities || [];
+                const landlordName = post.landlord?.fullName || "Chủ trọ";
+                const isKyc = post.landlord?.isVerified;
+
+                const cleanDesc = post.description
+                    ? post.description
+                        .replace(/<[^>]*>/g, '') 
+                        .replace(/\s+/g, ' ') 
+                        .trim()
+                    : "Chưa có mô tả chi tiết từ chủ trọ.";
+                
+                const sentences = cleanDesc.split(/[.!?]\s+/);
+                const descSummary = sentences.slice(0, 3).join('. ') + (sentences.length > 3 ? '...' : '');
+
+                let text = `**Dưới đây là tóm tắt những lý do nổi bật bạn nên thuê căn hộ "${post.title}":**\n\n`;
+
+                if (university) {
+                    text += `- **Vị trí lý tưởng**: Nằm tại **${address}**, rất gần trường **${university}** ${distance ? `(chỉ cách khoảng **${distance} km**)` : ''}. Vị trí này sẽ giúp bạn tiết kiệm đáng kể thời gian và chi phí di chuyển đi học/đi làm hàng ngày.\n\n`;
+                } else {
+                    text += `- **Vị trí**: Nằm tại khu vực an ninh thuộc **${address}**.\n\n`;
+                }
+
+                text += `- **Chi phí & Không gian**: Giá thuê là **${priceFormatted} đ/tháng** cho không gian rộng rãi **${area} m²** ${post.room?.floor ? `(tầng ${post.room.floor})` : ''}. Đây là mức giá rất cạnh tranh trong phân khúc khu vực.\n\n`;
+
+                if (amenities.length > 0) {
+                    const amenityNames = amenities.map(a => a.name).join(', ');
+                    text += `- **Trang bị sẵn có**: Phòng có đầy đủ các tiện ích thiết yếu giúp bạn dọn vào ở ngay mà không cần sắm sửa nhiều: **${amenityNames}**.\n\n`;
+                }
+
+                const details = [];
+                if (balcony) details.push('có ban công rộng thoáng');
+                if (parking) details.push('chỗ để xe an toàn');
+                if (details.length > 0) {
+                    text += `- **Đặc điểm phòng**: Phòng ${details.join(', ')}.\n\n`;
+                }
+
+                text += `- **Độ uy tín**: Được đăng bởi chủ trọ **${landlordName}** ${isKyc ? '(đã xác thực KYC tích xanh uy tín)' : '(chưa xác thực KYC)'}, giúp bạn an tâm tuyệt đối khi giao dịch và đặt cọc.\n\n`;
+
+                text += `- **Mô tả chi tiết**: *"${descSummary}"*\n\n`;
+
+                text += `- *Nếu bạn muốn đi xem phòng trực tiếp, hãy click vào nút **Đặt lịch hẹn xem phòng** ở phần bên phải màn hình nhé!*`;
+
+                return { text };
+            } catch (err) {
+                console.error('Error fetching room detail for bot summary:', err);
+                return {
+                    text: "Rất tiếc, tôi gặp lỗi khi tải thông tin căn hộ này để tóm tắt. Vui lòng kiểm tra lại kết nối mạng!"
+                };
+            }
+        }
+
+        // 2. DYNAMIC ROOM SEARCH INTENT DETECTION
+        const isSearchIntent = textLower.includes('tìm') || 
+                               textLower.includes('phòng') || 
+                               textLower.includes('căn hộ') || 
+                               textLower.includes('nhà trọ') || 
+                               textLower.includes('thuê') ||
+                               nearbyUniversityId !== undefined;
         
         if (isSearchIntent) {
             let district = '';
             let maxPrice = 999999999;
-            let category = '';
 
             // Detect Districts in TP.HCM
             if (textLower.includes('quận 1') || textLower.includes('q1')) district = 'Quận 1';
@@ -111,6 +277,7 @@ export default function FloatingChatWidget() {
             else if (textLower.includes('quận 9') || textLower.includes('q9')) district = 'Quận 9';
             else if (textLower.includes('bình thạnh') || textLower.includes('bình thạnh')) district = 'Quận Bình Thạnh';
             else if (textLower.includes('gò vấp') || textLower.includes('gò vấp')) district = 'Quận Gò Vấp';
+            else if (textLower.includes('thủ đức') || textLower.includes('thủ đức')) district = 'Thủ Đức';
 
             // Super-robust price extraction
             let foundPrice = false;
@@ -120,7 +287,7 @@ export default function FloatingChatWidget() {
             if (millionNumericMatch) {
                 const cleanedNumber = millionNumericMatch[1].replace(/[\.,]/g, '');
                 const parsedVal = parseInt(cleanedNumber);
-                if (parsedVal > 100000) { // Make sure it's a valid big amount
+                if (parsedVal > 100000) { 
                     maxPrice = parsedVal;
                     foundPrice = true;
                 }
@@ -138,43 +305,39 @@ export default function FloatingChatWidget() {
             }
 
             try {
-                // Fetch public rooms to filter
+                // Fetch public rooms using direct API filtering parameters
                 const response = await postService.getPublicPosts({
                     page: 0,
-                    size: 50,
-                    keyword: district || undefined
+                    size: 4,
+                    district: district || undefined,
+                    nearbyUniversityId: nearbyUniversityId,
+                    maxPrice: maxPrice < 999999999 ? maxPrice : undefined
                 });
 
-                let filteredRooms = response.content;
-
-                if (district) {
-                    filteredRooms = filteredRooms.filter(room => 
-                        room.room.address.toLowerCase().includes(district.toLowerCase())
-                    );
-                }
-
-                if (maxPrice) {
-                    filteredRooms = filteredRooms.filter(room => room.price <= maxPrice);
-                }
-
-                // Slice to top 4 results
-                const finalRooms = filteredRooms.slice(0, 4);
+                const finalRooms = response.content;
 
                 if (finalRooms.length > 0) {
                     const priceLabel = maxPrice < 999999999 ? ` dưới ${(maxPrice / 1000000).toLocaleString('vi-VN')} triệu` : '';
                     const districtLabel = district ? ` tại ${district}` : '';
+                    const uniLabel = nearbyUniversityName ? ` gần trường ${nearbyUniversityName}` : '';
                     
                     return {
-                        text: `Tôi đã tìm thấy ${finalRooms.length} phòng phù hợp với yêu cầu của bạn${districtLabel}${priceLabel}. Dưới đây là danh sách gợi ý dành cho bạn:`,
+                        text: `Tôi đã tìm thấy ${response.totalElements} phòng phù hợp với yêu cầu của bạn${uniLabel}${districtLabel}${priceLabel}. Dưới đây là danh sách gợi ý dành cho bạn:`,
                         rooms: finalRooms
                     };
                 } else {
+                    const priceLabel = maxPrice < 999999999 ? ` dưới ${(maxPrice / 1000000).toLocaleString('vi-VN')} triệu` : '';
+                    const districtLabel = district ? ` tại ${district}` : '';
+                    const uniLabel = nearbyUniversityName ? ` gần trường ${nearbyUniversityName}` : '';
                     return {
-                        text: `Rất tiếc, hiện tại hệ thống chưa có phòng nào khớp hoàn toàn với yêu cầu tìm kiếm của bạn. Bạn có thể thử mở rộng khu vực tìm kiếm hoặc nâng mức giá trần xem sao nhé!`
+                        text: `Rất tiếc, hiện tại hệ thống chưa có phòng nào khớp hoàn toàn với yêu cầu tìm kiếm của bạn${uniLabel}${districtLabel}${priceLabel}. Bạn có thể thử mở rộng khu vực tìm kiếm hoặc nâng mức giá trần xem sao nhé!`
                     };
                 }
             } catch (err) {
                 console.error('Error fetching rooms for bot:', err);
+                return {
+                    text: "Rất tiếc, tôi gặp lỗi khi kết nối máy chủ để tìm kiếm phòng trọ. Vui lòng thử lại sau!"
+                };
             }
         }
 
@@ -187,13 +350,13 @@ export default function FloatingChatWidget() {
 
         if (textLower.includes('kyc') || textLower.includes('xác thực') || textLower.includes('tích xanh') || textLower.includes('uy tín')) {
             return {
-                text: "**Hệ thống xác thực KYC & Tích xanh uy tín:**\n\n* **Đối với Chủ trọ (Landlord):** Phải gửi tài liệu CCCD (mặt trước, mặt sau và ảnh selfie) tại trang *Xác thực tài khoản*. Khi Admin phê duyệt, tài khoản chủ trọ sẽ có biểu tượng **Tích xanh uy tín** kế bên tên của họ.\n* **Đối với Người thuê (Sinh viên):** Nếu bạn đăng ký tài khoản bằng **Gmail Sinh viên** (.edu.vn) và xác thực mã OTP thành công, tài khoản của bạn sẽ tự động được hệ thống KYC, thể hiện độ uy tín tối đa trong mắt chủ trọ!"
+                text: "**Hệ thống xác thực KYC & Tích xanh uy tín:**\n\n- **Đối với Chủ trọ (Landlord):** Phải gửi tài liệu CCCD (mặt trước, mặt sau và ảnh selfie) tại trang *Xác thực tài khoản*. Khi Admin phê duyệt, tài khoản chủ trọ sẽ có biểu tượng **Tích xanh uy tín** kế bên tên của họ.\n- **Đối với Người thuê (Sinh viên):** Nếu bạn đăng ký tài khoản bằng **Gmail Sinh viên** (.edu.vn) và xác thực mã OTP thành công, tài khoản của bạn sẽ tự động được hệ thống KYC, thể hiện độ uy tín tối đa trong mắt chủ trọ!"
             };
         }
 
         if (textLower.includes('hotline') || textLower.includes('hỗ trợ') || textLower.includes('liên hệ') || textLower.includes('sđt') || textLower.includes('email')) {
             return {
-                text: "**Thông tin hỗ trợ kỹ thuật:**\n\nBạn có thể liên hệ trực tiếp đội ngũ hỗ trợ qua:\n* **Hotline:** 1900 6868 (Thời gian hỗ trợ: 8:00 - 22:00 hàng ngày)\n* **Email:** support@tmdt.vn\n* **Địa chỉ:** Trường Đại học Nông Lâm TP.HCM, Phường Linh Trung, Thành phố Thủ Đức."
+                text: "**Thông tin hỗ trợ kỹ thuật:**\n\nBạn có thể liên hệ trực tiếp đội ngũ hỗ trợ qua:\n- **Hotline:** 1900 6868 (Thời gian hỗ trợ: 8:00 - 22:00 hàng ngày)\n- **Email:** support@tmdt.vn\n- **Địa chỉ:** Trường Đại học Nông Lâm TP.HCM, Phường Linh Trung, Thành phố Thủ Đức."
             };
         }
 

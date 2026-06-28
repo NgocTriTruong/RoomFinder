@@ -119,6 +119,8 @@ export interface RoomResponse {
   latitude: number;
   longitude: number;
   area: number;
+  floor?: number | null;
+  direction?: string | null;
   thumbnailUrl?: string | null;
   images: string[];
   amenities: AmenityResponse[];
@@ -127,6 +129,13 @@ export interface RoomResponse {
     fullName: string;
     avatar: string | null;
   };
+  nearbyUniversityId?: string | number | null;
+  nearbyUniversityName?: string | null;
+  distanceToUniversity?: number | null;
+  district?: string | null;
+  province?: string | null;
+  hasParking?: boolean | null;
+  hasBalcony?: boolean | null;
 }
 
 export interface AmenityResponse {
