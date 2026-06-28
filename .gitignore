@@ -2,3 +2,11 @@
 backend/uploads/
 data (1)/
 Phongtro/
+uploads.tar.gz
+data/
+node_modules/
+dist/
+target/
+.env.local
+.env.*.local
+

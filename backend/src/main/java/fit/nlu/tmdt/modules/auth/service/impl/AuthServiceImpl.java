@@ -380,6 +380,16 @@ public class AuthServiceImpl implements AuthService {
                             });
                 });
 
+        // Ensure student verification status is updated if it matches a student email domain
+        University university = findUniversityByEmail(email);
+        if (university != null && user.getRole() == UserRole.USER) {
+            user.setIsVerified(true);
+            user.setUniversityId(university.getId());
+            if (user.getVerificationStatus() == null || "NONE".equals(user.getVerificationStatus()) || "PENDING".equals(user.getVerificationStatus())) {
+                user.setVerificationStatus("APPROVED");
+            }
+        }
+
         // 4. Generate tokens
         String accessToken = jwtTokenProvider.generateAccessToken(user.getId(), user.getEmail(), user.getRole().name());
         String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId());

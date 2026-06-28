@@ -55,7 +55,7 @@ SELECT setval('amenities_id_seq', 12);
 -- Khởi tạo Universities
 INSERT INTO universities (id, created_at, updated_at, name, abbreviation, address, province, district, latitude, longitude, website, logo_url, email_domain, is_active, version)
 VALUES
-  (1, NOW(), NOW(), 'Trường Đại học Nông Lâm TP.HCM', 'NLU', 'Đường số 6, Phường Linh Trung, Thủ Đức, TP.HCM', 'TP Hồ Chí Minh', 'Thủ Đức', 10.87002, 106.787687, 'https://www.nlu.edu.vn', 'https://upload.wikimedia.org/wikipedia/vi/c/c7/Logo_Nong_Lam_University.svg', 'nlu.edu.vn', true, 0),
+  (1, NOW(), NOW(), 'Trường Đại học Nông Lâm TP.HCM', 'NLU', 'Đường số 6, Phường Linh Trung, Thủ Đức, TP.HCM', 'TP Hồ Chí Minh', 'Thủ Đức', 10.87002, 106.787687, 'https://www.nlu.edu.vn', 'https://upload.wikimedia.org/wikipedia/vi/c/c7/Logo_Nong_Lam_University.svg', 'nlu.edu.vn,hcmuaf.edu.vn,st.hcmuaf.edu.vn', true, 0),
   (2, NOW(), NOW(), 'Trường Đại học Sư phạm Kỹ thuật TP.HCM', 'HCMUTE', '1 Võ Văn Ngân, Phường Linh Chiểu, Thủ Đức, TP.HCM', 'TP Hồ Chí Minh', 'Thủ Đức', 10.851419, 106.77197, 'https://hcmute.edu.vn', 'https://upload.wikimedia.org/wikipedia/vi/2/25/Logo_HCMUTE.png', 'hcmute.edu.vn', true, 0),
   (3, NOW(), NOW(), 'Trường Đại học Công nghệ thông tin - ĐHQG TP.HCM', 'UIT', 'Đường Hàn Thuyên, Khu phố 6, Phường Linh Trung, Thủ Đức, TP.HCM', 'TP Hồ Chí Minh', 'Thủ Đức', 10.870009, 106.803027, 'https://www.uit.edu.vn', 'https://upload.wikimedia.org/wikipedia/vi/1/15/Logo_UIT.png', 'uit.edu.vn', true, 0),
   (4, NOW(), NOW(), 'Trường Đại học Bách Khoa - ĐHQG TP.HCM (Cơ sở Dĩ An)', 'HCMUT', 'Đường Tạ Quang Bửu, Khu phố Tân Lập, Dĩ An, Bình Dương', 'Bình Dương', 'Dĩ An', 10.880312, 106.80666, 'https://www.hcmut.edu.vn', 'https://upload.wikimedia.org/wikipedia/vi/1/1b/Logo_HCMUT.svg', 'hcmut.edu.vn', true, 0),

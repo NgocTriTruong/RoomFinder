@@ -189,7 +189,11 @@ public class VNPayGateway {
             }
             sb.append(entry.getKey());
             sb.append("=");
-            sb.append(value);
+            try {
+                sb.append(URLEncoder.encode(value, StandardCharsets.US_ASCII.toString()));
+            } catch (Exception e) {
+                log.error("Error encoding parameter value for hash data: {}", value, e);
+            }
         }
         return sb.toString();
     }
@@ -204,9 +208,13 @@ public class VNPayGateway {
             if (sb.length() > 0) {
                 sb.append("&");
             }
-            sb.append(URLEncoder.encode(entry.getKey(), StandardCharsets.UTF_8));
-            sb.append("=");
-            sb.append(URLEncoder.encode(value, StandardCharsets.UTF_8).replace("+", "%20"));
+            try {
+                sb.append(URLEncoder.encode(entry.getKey(), StandardCharsets.US_ASCII.toString()));
+                sb.append("=");
+                sb.append(URLEncoder.encode(value, StandardCharsets.US_ASCII.toString()));
+            } catch (Exception e) {
+                log.error("Error encoding parameter for query string: {}={}", entry.getKey(), value, e);
+            }
         }
         return sb.toString();
     }
