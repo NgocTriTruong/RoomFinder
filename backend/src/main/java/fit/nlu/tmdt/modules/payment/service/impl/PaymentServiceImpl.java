@@ -147,9 +147,32 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     @Transactional
-    public void processVnpayIpn(HttpServletRequest request) {
+    public String processVnpayIpn(HttpServletRequest request) {
         Map<String, String> params = vnPayGateway.extractParams(request);
-        processGatewayCallback(params, true);
+        String vnpTxnRef = params.get("vnp_TxnRef");
+
+        if (vnpTxnRef != null && paymentRepository.existsByVnpTxnRefAndIsProcessedTrue(vnpTxnRef)) {
+            log.info("VNPay callback already processed for txnRef: {} (ipn)", vnpTxnRef);
+            return "{\"RspCode\":\"02\",\"Message\":\"Order already confirmed\"}";
+        }
+
+        try {
+            processGatewayCallback(params, true);
+            return "{\"RspCode\":\"00\",\"Message\":\"Confirm Success\"}";
+        } catch (BusinessException e) {
+            log.error("Business error processing VNPay IPN: {}", e.getMessage());
+            if (ErrorCode.PAY_005.getCode().equals(e.getErrorCode())) {
+                return "{\"RspCode\":\"97\",\"Message\":\"Invalid Checksum\"}";
+            } else if (ErrorCode.PAY_002.getCode().equals(e.getErrorCode())) {
+                return "{\"RspCode\":\"01\",\"Message\":\"Order not found\"}";
+            } else if (ErrorCode.PAY_004.getCode().equals(e.getErrorCode())) {
+                return "{\"RspCode\":\"04\",\"Message\":\"Invalid Amount\"}";
+            }
+            return "{\"RspCode\":\"99\",\"Message\":\"Unknown error\"}";
+        } catch (Exception e) {
+            log.error("Error processing VNPay IPN: {}", e.getMessage(), e);
+            return "{\"RspCode\":\"99\",\"Message\":\"Unknown error\"}";
+        }
     }
 
     @Override

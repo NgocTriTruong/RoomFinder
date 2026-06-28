@@ -65,13 +65,8 @@ public class PaymentController {
     @LogExecutionTime
     public ResponseEntity<String> vnpayIpn(HttpServletRequest request) {
         log.info("Received VNPay IPN callback");
-        try {
-            paymentService.processVnpayIpn(request);
-            return ResponseEntity.ok("{\"RspCode\":\"00\",\"Message\":\"Confirm Success\"}");
-        } catch (Exception e) {
-            log.error("Error processing VNPay IPN: {}", e.getMessage());
-            return ResponseEntity.ok("{\"RspCode\":\"99\",\"Message\":\"Unknown error\"}");
-        }
+        String ipnResponse = paymentService.processVnpayIpn(request);
+        return ResponseEntity.ok(ipnResponse);
     }
 
     @GetMapping("/vnpay/return")

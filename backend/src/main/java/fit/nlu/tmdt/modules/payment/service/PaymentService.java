@@ -21,7 +21,7 @@ public interface PaymentService {
     /**
      * Xử lý IPN callback từ VNPay
      */
-    void processVnpayIpn(HttpServletRequest request);
+    String processVnpayIpn(HttpServletRequest request);
 
     /**
      * Xử lý return URL từ VNPay (sau khi user hoàn tất thanh toán)

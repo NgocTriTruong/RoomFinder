@@ -92,8 +92,9 @@ public class VNPayGateway {
 
         Map<String, String> filteredParams = new TreeMap<>();
         for (Map.Entry<String, String> entry : params.entrySet()) {
-            if (!entry.getKey().equals("vnp_SecureHash") && !entry.getKey().equals("vnp_SecureHashType")) {
-                filteredParams.put(entry.getKey(), entry.getValue());
+            String key = entry.getKey();
+            if (key != null && key.startsWith("vnp_") && !key.equals("vnp_SecureHash") && !key.equals("vnp_SecureHashType")) {
+                filteredParams.put(key, entry.getValue());
             }
         }
 
@@ -114,7 +115,9 @@ public class VNPayGateway {
         Enumeration<String> paramNames = request.getParameterNames();
         while (paramNames.hasMoreElements()) {
             String name = paramNames.nextElement();
-            params.put(name, request.getParameter(name));
+            if (name != null && name.startsWith("vnp_")) {
+                params.put(name, request.getParameter(name));
+            }
         }
         return params;
     }
