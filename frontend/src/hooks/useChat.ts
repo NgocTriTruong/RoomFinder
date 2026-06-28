@@ -457,13 +457,31 @@ export function useChat() {
           const existing = prev.messages[conversationId] || [];
           const alreadyExists = existing.some((m) => m.id === newMsg.id);
 
+          if (alreadyExists) {
+            return prev;
+          }
+
+          let updatedMessages = [...existing];
+
+          if (isCurrentUser) {
+            // Find a pending message with negative ID and same content
+            const pendingIndex = updatedMessages.findIndex(
+              (m) => m.id < 0 && m.senderId === currentUserId && m.content === newMsg.content
+            );
+            if (pendingIndex !== -1) {
+              updatedMessages[pendingIndex] = newMsg;
+            } else {
+              updatedMessages.push(newMsg);
+            }
+          } else {
+            updatedMessages.push(newMsg);
+          }
+
           return {
             ...prev,
             messages: {
               ...prev.messages,
-              [conversationId]: alreadyExists
-                ? existing
-                : [...existing, newMsg],
+              [conversationId]: updatedMessages,
             },
             conversations: prev.conversations.map((c) =>
               c.id === conversationId
@@ -672,34 +690,78 @@ export function useChat() {
     const trimmed = content.trim();
     if (!trimmed) return;
 
+    const tempId = -Date.now();
+    const tempMsg: MessageResponse = {
+      id: tempId,
+      conversationId,
+      senderId: currentUserId!,
+      senderName: user?.fullName || '',
+      senderAvatar: user?.avatar || null,
+      content: trimmed,
+      type: 'TEXT',
+      createdAt: new Date().toISOString(),
+      isRead: true,
+    };
+
+    // 1. Optimistic Update: append the temporary message to state immediately
+    setState((prev) => ({
+      ...prev,
+      messages: {
+        ...prev.messages,
+        [conversationId]: [...(prev.messages[conversationId] || []), tempMsg],
+      },
+    }));
+
     try {
+      // 2. Authoritative REST call
       const newMsg = await messageService.sendMessage({
         receiverId,
         content: trimmed,
       });
 
+      // 3. Replace temp message with authoritative REST response, handling race condition
+      setState((prev) => {
+        const existing = prev.messages[conversationId] || [];
+        const hasRealMsg = existing.some((m) => m.id === newMsg.id);
+        
+        let updatedMessages;
+        if (hasRealMsg) {
+          // If the real message was already added by WS handler, just filter out the temp message
+          updatedMessages = existing.filter((m) => m.id !== tempId);
+        } else {
+          // Otherwise, replace the temp message with the real one
+          updatedMessages = existing.map((m) => m.id === tempId ? newMsg : m);
+        }
+
+        return {
+          ...prev,
+          messages: {
+            ...prev.messages,
+            [conversationId]: updatedMessages,
+          },
+          conversations: prev.conversations.map((c) =>
+            c.id === conversationId
+              ? ({
+                ...c,
+                lastMessage: newMsg,
+                lastMessageAt: newMsg.createdAt
+              } as ConversationResponse)
+              : c
+          ),
+        };
+      });
+    } catch (err) {
+      console.error('[useChat] Failed to send message:', err);
+      // Remove the temp message from state if the send failed
       setState((prev) => ({
         ...prev,
         messages: {
           ...prev.messages,
-          [conversationId]: [...(prev.messages[conversationId] || []), newMsg],
+          [conversationId]: (prev.messages[conversationId] || []).filter((m) => m.id !== tempId),
         },
-        conversations: prev.conversations.map((c) =>
-          c.id === conversationId
-            ? ({
-              ...c,
-              lastMessage: newMsg,
-              lastMessageAt: newMsg.createdAt
-            } as ConversationResponse)
-            : c
-        ),
       }));
-
-      chatWebSocket.sendMessage(conversationId, receiverId, trimmed);
-    } catch (err) {
-      console.error('[useChat] Failed to send message:', err);
     }
-  }, []);
+  }, [currentUserId, user]);
 
   // ─── Send Typing Indicator ──────────────────────────────────────────────
   const sendTyping = useCallback(

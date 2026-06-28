@@ -109,6 +109,9 @@ public class ChatServiceImpl implements ChatService {
         // Gửi cho người nhận (user-specific destination)
         sendToUser(message.getReceiverId(), response);
 
+        // Broadcast tới conversation topic
+        broadcastToConversation(conversation.getId(), response);
+
         // Gửi delivery receipt cho người gửi
         ChatMessage deliveryReceipt = ChatMessage.delivered(conversation.getId(), msg.getId(), senderId);
         sendToUser(senderId, deliveryReceipt);
@@ -119,6 +122,15 @@ public class ChatServiceImpl implements ChatService {
     @Override
     public void sendToUser(Long userId, ChatMessage message) {
         // Gửi tới user-specific destination: /user/{userId}/queue/messages
+        if (message.getSenderId() != null && (message.getSenderName() == null || message.getSenderName().isEmpty())) {
+            try {
+                User sender = getUser(message.getSenderId());
+                message.setSenderName(sender.getFullName());
+                message.setSenderAvatar(sender.getAvatarUrl());
+            } catch (Exception e) {
+                log.warn("Failed to populate sender info for private message: {}", e.getMessage());
+            }
+        }
         String destination = "/queue/messages";
         messagingTemplate.convertAndSendToUser(userId.toString(), destination, message);
         log.debug("Sent message to user {}: messageId={}", userId, message.getMessageId());

@@ -92,24 +92,26 @@ public class MessageServiceImpl implements MessageService {
         MessageResponse response = toMessageResponse(message);
 
         // Broadcast via WebSocket for real-time notification
-        chatService.broadcastToConversation(conversation.getId(),
-                fit.nlu.tmdt.modules.message.dto.websocket.ChatMessage.builder()
-                        .type(fit.nlu.tmdt.modules.message.dto.websocket.ChatMessage.MessageType.CHAT)
-                        .conversationId(conversation.getId())
-                        .messageId(message.getId())
-                        .senderId(senderId)
-                        .senderName(sender.getFullName())
-                        .senderAvatar(sender.getAvatarUrl())
-                        .receiverId(receiver.getId())
-                        .receiverName(receiver.getFullName())
-                        .receiverAvatar(receiver.getAvatarUrl())
-                        .content(message.getContent())
-                        .attachmentUrl(message.getMediaUrl())
-                        .postId(conversation.getPostId())
-                        .timestamp(message.getCreatedAt())
-                        .isRead(false)
-                        .isDelivered(true)
-                        .build());
+        fit.nlu.tmdt.modules.message.dto.websocket.ChatMessage chatMessage = fit.nlu.tmdt.modules.message.dto.websocket.ChatMessage.builder()
+                .type(fit.nlu.tmdt.modules.message.dto.websocket.ChatMessage.MessageType.CHAT)
+                .conversationId(conversation.getId())
+                .messageId(message.getId())
+                .senderId(senderId)
+                .senderName(sender.getFullName())
+                .senderAvatar(sender.getAvatarUrl())
+                .receiverId(receiver.getId())
+                .receiverName(receiver.getFullName())
+                .receiverAvatar(receiver.getAvatarUrl())
+                .content(message.getContent())
+                .attachmentUrl(message.getMediaUrl())
+                .postId(conversation.getPostId())
+                .timestamp(message.getCreatedAt())
+                .isRead(false)
+                .isDelivered(true)
+                .build();
+
+        chatService.broadcastToConversation(conversation.getId(), chatMessage);
+        chatService.sendToUser(receiver.getId(), chatMessage);
 
         return response;
     }
@@ -192,24 +194,26 @@ public class MessageServiceImpl implements MessageService {
         // Broadcast via WebSocket
         String thumbnailUrl = mediaResponse != null ? mediaResponse.getThumbnailUrl() : null;
         
-        chatService.broadcastToConversation(conversation.getId(),
-                fit.nlu.tmdt.modules.message.dto.websocket.ChatMessage.builder()
-                        .type(fit.nlu.tmdt.modules.message.dto.websocket.ChatMessage.MessageType.CHAT)
-                        .conversationId(conversation.getId())
-                        .messageId(message.getId())
-                        .senderId(senderId)
-                        .senderName(sender.getFullName())
-                        .senderAvatar(sender.getAvatarUrl())
-                        .receiverId(receiver.getId())
-                        .receiverName(receiver.getFullName())
-                        .receiverAvatar(receiver.getAvatarUrl())
-                        .content(message.getContent())
-                        .attachmentUrl(attachmentUrl)
-                        .postId(conversation.getPostId())
-                        .timestamp(message.getCreatedAt())
-                        .isRead(false)
-                        .isDelivered(true)
-                        .build());
+        fit.nlu.tmdt.modules.message.dto.websocket.ChatMessage chatMessage = fit.nlu.tmdt.modules.message.dto.websocket.ChatMessage.builder()
+                .type(fit.nlu.tmdt.modules.message.dto.websocket.ChatMessage.MessageType.CHAT)
+                .conversationId(conversation.getId())
+                .messageId(message.getId())
+                .senderId(senderId)
+                .senderName(sender.getFullName())
+                .senderAvatar(sender.getAvatarUrl())
+                .receiverId(receiver.getId())
+                .receiverName(receiver.getFullName())
+                .receiverAvatar(receiver.getAvatarUrl())
+                .content(message.getContent())
+                .attachmentUrl(attachmentUrl)
+                .postId(conversation.getPostId())
+                .timestamp(message.getCreatedAt())
+                .isRead(false)
+                .isDelivered(true)
+                .build();
+
+        chatService.broadcastToConversation(conversation.getId(), chatMessage);
+        chatService.sendToUser(receiver.getId(), chatMessage);
 
         return response;
     }
