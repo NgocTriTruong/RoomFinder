@@ -25,10 +25,10 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [mostViewedRooms, setMostViewedRooms] = useState<PostResponse[]>([]);
-  
+
   // Voice search state
   const [isVoiceOpen, setIsVoiceOpen] = useState(false);
-  
+
   // University personalization
   const { user } = useAuth();
   const [userUniversity, setUserUniversity] = useState<UniversityResponse | null>(null);
@@ -61,7 +61,7 @@ export default function Home() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        
+
         // Parallel data fetching
         const [featured, publicPosts, topViewed] = await Promise.all([
           postService.getFeaturedPosts(8),
@@ -78,7 +78,7 @@ export default function Home() {
           try {
             const uni = await universityService.getById(user.universityId);
             setUserUniversity(uni);
-            
+
             const nearby = await postService.getPublicPosts({
               page: 0,
               size: 4,
@@ -184,15 +184,15 @@ export default function Home() {
                 </button>
               </div>
             </form>
-            <VoiceSearchModal 
-              isOpen={isVoiceOpen} 
-              onClose={() => setIsVoiceOpen(false)} 
+            <VoiceSearchModal
+              isOpen={isVoiceOpen}
+              onClose={() => setIsVoiceOpen(false)}
               onResult={(text) => {
                 setSearchQuery(text);
                 const params = new URLSearchParams();
                 params.append('q', text);
                 navigate(`/search?${params.toString()}`);
-              }} 
+              }}
             />
           </div>
 
@@ -215,7 +215,7 @@ export default function Home() {
         {/* Bottom Wave */}
         <div className="absolute bottom-0 left-0 right-0">
           <svg viewBox="0 0 1440 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M0 120L60 105C120 90 240 60 360 45C480 30 600 30 720 37.5C840 45 960 60 1080 67.5C1200 75 1320 75 1380 75L1440 75V120H1380C1320 120 1200 120 1080 120C960 120 840 120 720 120C600 120 480 120 360 120C240 120 120 120 60 120H0Z" fill="#f9fafb"/>
+            <path d="M0 120L60 105C120 90 240 60 360 45C480 30 600 30 720 37.5C840 45 960 60 1080 67.5C1200 75 1320 75 1380 75L1440 75V120H1380C1320 120 1200 120 1080 120C960 120 840 120 720 120C600 120 480 120 360 120C240 120 120 120 60 120H0Z" fill="#f9fafb" />
           </svg>
         </div>
       </section>
@@ -229,11 +229,10 @@ export default function Home() {
               <button
                 key={cat.value}
                 onClick={() => handleCategoryClick(cat.value)}
-                className={`flex items-center gap-3 px-6 py-3 rounded-full transition-all ${
-                  selectedCategory === cat.value
+                className={`flex items-center gap-3 px-6 py-3 rounded-full transition-all ${selectedCategory === cat.value
                     ? 'bg-blue-600 text-white shadow-lg scale-105'
                     : 'bg-white text-gray-700 hover:bg-gray-50 shadow-md hover:shadow-lg'
-                }`}
+                  }`}
               >
                 <Icon className="w-5 h-5" />
                 <span className="font-medium">{cat.label}</span>
@@ -255,8 +254,8 @@ export default function Home() {
               <p className="text-gray-600">Những phòng trọ nằm trong bán kính 5km quanh trường của bạn</p>
             </div>
             {userUniversity && (
-              <button 
-                onClick={() => navigate(`/search?nearbyUniversityId=${userUniversity.id}`)} 
+              <button
+                onClick={() => navigate(`/search?nearbyUniversityId=${userUniversity.id}`)}
                 className="hidden md:flex bg-white text-blue-600 px-4 py-2 rounded-lg border border-blue-200 hover:bg-blue-50 font-medium items-center gap-1 transition-colors"
               >
                 Xem thêm
@@ -283,13 +282,13 @@ export default function Home() {
         <div className="flex justify-between items-center mb-6">
           <div>
             <div className="flex items-center gap-2 mb-1">
-               <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-full">Gần bạn</span>
-               <h2 className="text-2xl md:text-3xl font-bold text-gray-900">Gợi ý cho bạn</h2>
+              <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-full">Gần bạn</span>
+              <h2 className="text-2xl md:text-3xl font-bold text-gray-900">Gợi ý cho bạn</h2>
             </div>
             <p className="text-gray-500">Các phòng trọ được đề xuất tối ưu theo vị trí và trường học của bạn</p>
           </div>
-          <button 
-            onClick={() => navigate('/search')} 
+          <button
+            onClick={() => navigate('/search')}
             className="text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
           >
             Xem tất cả
@@ -326,8 +325,8 @@ export default function Home() {
             </div>
             <p className="text-gray-500">Phòng trọ chất lượng cao được chủ nhà đăng tin VIP</p>
           </div>
-          <button 
-            onClick={() => navigate('/search?filter=vip')} 
+          <button
+            onClick={() => navigate('/search?filter=vip')}
             className="text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
           >
             Xem tất cả
@@ -353,7 +352,7 @@ export default function Home() {
           </div>
         )}
       </section>
-      
+
 
       {/* Most Viewed Rooms Section */}
       <section className="py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
@@ -369,11 +368,11 @@ export default function Home() {
             </div>
             <p className="text-gray-500">Những bài viết đang thu hút sự quan tâm lớn từ cộng đồng</p>
           </div>
-          <button 
-            onClick={() => navigate('/search?sortBy=viewCount&sortDirection=desc')} 
+          <button
+            onClick={() => navigate('/search?sortBy=viewCount&sortDirection=desc')}
             className="text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1 transition-transform hover:translate-x-1"
           >
-            Xem tất cả 
+            Xem tất cả
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
@@ -448,7 +447,7 @@ export default function Home() {
             }
           ].map((act, idx) => {
             return (
-              <div 
+              <div
                 key={idx}
                 className="group p-2 transition-all duration-300"
               >
@@ -478,7 +477,7 @@ export default function Home() {
             <h3 className="text-3xl md:text-4xl font-extrabold text-gray-900 tracking-tight">
               Hành Trình Xây Dựng Cổng Kết Nối Phòng Trọ Lớn Nhất Việt Nam
             </h3>
-            
+
             <div className="space-y-4 text-gray-600 text-sm leading-relaxed">
               <p>
                 RoomFinder khởi đầu từ một dự án tình nguyện của nhóm cựu sinh viên công nghệ, những người thấu hiểu sâu sắc nỗi ám ảnh của sinh viên ngoại tỉnh mỗi mùa nhập học: từ việc lạc đường, ép giá, gặp cò mồi lừa đảo, cho tới những điều kiện sống tồi tàn không đúng như quảng cáo.
@@ -522,9 +521,9 @@ export default function Home() {
           {/* Right Column - Visual Representation */}
           <div className="lg:col-span-5 relative">
             <div className="relative overflow-hidden rounded-3xl shadow-xl border border-gray-150 group">
-              <img 
-                src="/about_us_room.png" 
-                alt="Không gian phòng trọ sinh viên tiện nghi" 
+              <img
+                src="/about_us_room.png"
+                alt="Không gian phòng trọ sinh viên tiện nghi"
                 className="w-full h-[450px] object-cover transform group-hover:scale-105 transition-transform duration-700"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent p-8 flex flex-col justify-end text-white">
@@ -563,7 +562,7 @@ export default function Home() {
             playsInline
             onClick={togglePlay}
           />
-          
+
           {/* Custom controls overlay */}
           <div className="absolute inset-0 bg-black/35 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center pointer-events-none">
             <div className="flex gap-4 pointer-events-auto">

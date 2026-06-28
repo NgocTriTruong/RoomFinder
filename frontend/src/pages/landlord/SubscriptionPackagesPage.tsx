@@ -25,7 +25,10 @@ export default function SubscriptionPackagesPage() {
     try {
       const [packagesData, currentSubData] = await Promise.all([
         subscriptionService.getAvailablePackages(),
-        subscriptionService.getCurrentSubscription()
+        subscriptionService.getCurrentSubscription().catch(err => {
+          console.warn('No active subscription:', err);
+          return null;
+        })
       ]);
       setPackages(packagesData);
       setCurrentSubscription(currentSubData);
