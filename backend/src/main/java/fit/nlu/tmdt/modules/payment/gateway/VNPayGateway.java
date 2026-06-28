@@ -168,7 +168,7 @@ public class VNPayGateway {
             }
             sb.append(URLEncoder.encode(entry.getKey(), StandardCharsets.UTF_8));
             sb.append("=");
-            sb.append(URLEncoder.encode(value, StandardCharsets.UTF_8));
+            sb.append(URLEncoder.encode(value, StandardCharsets.UTF_8).replace("+", "%20"));
         }
         return sb.toString();
     }
