@@ -274,7 +274,7 @@ export interface BookingResponse {
     title: string;
     thumbnailUrl: string | null;
     address: string | null;
-  };
+  } | null;
   user: {
     id: number;
     fullName: string;
@@ -288,7 +288,7 @@ export interface BookingResponse {
     phone: string | null;
     avatar: string | null;
     isVerified?: boolean;
-  };
+  } | null;
   createdAt: string;
   updatedAt: string;
   confirmedAt: string | null;

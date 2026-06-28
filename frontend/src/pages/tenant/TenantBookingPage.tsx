@@ -5,6 +5,7 @@ import type { BookingResponse } from '../../types';
 import { Calendar, User, Home, Star, XCircle, Loader2, AlertCircle, ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import ReviewModal from '../../components/ui/ReviewModal';
 import { getErrorMessage } from '../../services/api';
+import { createPlaceholderImage } from '../../utils/localImage';
 
 export default function TenantBookingPage() {
   const [bookings, setBookings] = useState<BookingResponse[]>([]);
@@ -147,26 +148,41 @@ export default function TenantBookingPage() {
           {currentBookings.map((booking) => (
             <div key={booking.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 md:p-6 flex flex-col md:flex-row gap-6 hover:shadow-md transition-shadow duration-300">
               {/* Thumbnail */}
-              <Link to={`/room/${booking.post.id}`} className="w-full md:w-48 h-32 flex-shrink-0 block overflow-hidden rounded-lg group">
-                <img
-                  src={booking.post.thumbnailUrl || 'https://via.placeholder.com/400x300?text=No+Image'}
-                  alt={booking.post.title}
-                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                  referrerPolicy="no-referrer"
-                  onError={(e) => {
-                    (e.currentTarget as HTMLImageElement).src = 'https://via.placeholder.com/400x300?text=No+Image';
-                  }}
-                />
-              </Link>
+              {booking.post ? (
+                <Link to={`/room/${booking.post.id}`} className="w-full md:w-48 h-32 flex-shrink-0 block overflow-hidden rounded-lg group">
+                  <img
+                    src={booking.post.thumbnailUrl || createPlaceholderImage(booking.post.title, 400, 300)}
+                    alt={booking.post.title}
+                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src = createPlaceholderImage(booking.post?.title || 'No Image', 400, 300);
+                    }}
+                  />
+                </Link>
+              ) : (
+                <div className="w-full md:w-48 h-32 flex-shrink-0 block overflow-hidden rounded-lg bg-gray-100 flex items-center justify-center">
+                  <img
+                    src={createPlaceholderImage('Tin đăng đã bị xóa', 400, 300)}
+                    alt="No Image"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
 
               {/* Info */}
               <div className="flex-1 flex flex-col justify-between">
                 <div>
                   <div className="flex justify-between items-start mb-2">
                     <h3 className="text-lg font-semibold text-gray-900 line-clamp-2 md:pr-4">
-                      <Link to={`/room/${booking.post.id}`} className="hover:text-blue-600 transition-colors duration-200">
-                        {booking.post.title}
-                      </Link>
+                      {booking.post ? (
+                        <Link to={`/room/${booking.post.id}`} className="hover:text-blue-600 transition-colors duration-200">
+                          {booking.post.title}
+                        </Link>
+                      ) : (
+                        <span className="text-gray-500 italic">Thông tin phòng không khả dụng (Tin đăng đã bị xóa)</span>
+                      )}
                     </h3>
                     <div className="hidden md:block">{getStatusBadge(booking.status)}</div>
                   </div>
@@ -183,8 +199,8 @@ export default function TenantBookingPage() {
                       <span className="flex items-center gap-1">
                         Chủ trọ:{' '}
                         <span className="font-medium text-gray-900 flex items-center gap-1">
-                          {booking.landlord.fullName}
-                          {booking.landlord.isVerified && (
+                          {booking.landlord?.fullName || 'Chưa có thông tin'}
+                          {booking.landlord?.isVerified && (
                             <span className="inline-flex items-center justify-center bg-blue-500 text-white rounded-full p-0.5" title="Chủ trọ đã xác thực KYC">
                               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3.5" d="M5 13l4 4L19 7"></path>
@@ -196,7 +212,7 @@ export default function TenantBookingPage() {
                     </div>
                     <div className="flex items-center text-sm text-gray-600">
                       <Home className="w-4 h-4 mr-2 text-gray-400" />
-                      <span>{booking.post.address || 'Chưa xác định địa chỉ'}</span>
+                      <span>{booking.post?.address || 'Chưa xác định địa chỉ'}</span>
                     </div>
                   </div>
                 </div>
@@ -296,8 +312,8 @@ export default function TenantBookingPage() {
         onClose={() => setIsReviewModalOpen(false)}
         booking={selectedBooking ? {
           id: selectedBooking.id.toString(),
-          postId: selectedBooking.post.id,
-          roomTitle: selectedBooking.post.title,
+          postId: selectedBooking.post?.id || 0,
+          roomTitle: selectedBooking.post?.title || 'Phòng trọ',
         } : null}
         onSuccess={fetchBookings}
       />

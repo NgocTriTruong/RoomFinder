@@ -56,6 +56,10 @@ public class MessageServiceImpl implements MessageService {
     public MessageResponse sendMessage(SendMessageRequest request, Long senderId) {
         log.info("Send message from user: {} to user: {}", senderId, request.getReceiverId());
 
+        if (senderId.equals(request.getReceiverId())) {
+            throw new BusinessException("MSG_003", "Cannot send messages to yourself");
+        }
+
         User sender = userRepository.findByIdAndDeletedAtIsNull(senderId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_001, "Sender not found"));
 
@@ -114,6 +118,10 @@ public class MessageServiceImpl implements MessageService {
     @Transactional
     public MessageResponse sendMediaMessage(SendMediaMessageRequest request, Long senderId) {
         log.info("Send media message from user: {} to user: {}", senderId, request.getReceiverId());
+
+        if (senderId.equals(request.getReceiverId())) {
+            throw new BusinessException("MSG_003", "Cannot send messages to yourself");
+        }
 
         User sender = userRepository.findByIdAndDeletedAtIsNull(senderId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_001, "Sender not found"));
@@ -209,7 +217,10 @@ public class MessageServiceImpl implements MessageService {
     @Override
     public List<MessageResponse> getConversation(Long userId, Long otherUserId, int page, int size) {
         Conversation conversation = conversationRepository.findByTwoUsers(userId, otherUserId)
-                .orElseThrow(() -> new BusinessException("MSG_001", "Conversation not found"));
+                .orElse(null);
+        if (conversation == null) {
+            return java.util.Collections.emptyList();
+        }
 
         if (!conversation.hasParticipant(userId)) {
             throw new BusinessException("MSG_002", "Not authorized to access this conversation");
@@ -235,8 +246,11 @@ public class MessageServiceImpl implements MessageService {
     @Override
     @Transactional
     public ConversationResponse getOrCreateConversation(Long userId, Long otherUserId) {
+        if (userId.equals(otherUserId)) {
+            throw new BusinessException("MSG_003", "Cannot create a conversation with yourself");
+        }
         Conversation conversation = getOrCreateConversationEntity(userId, otherUserId, null);
-        return toConversationResponse(conversation);
+        return toConversationResponse(conversation, userId);
     }
 
     @Override
