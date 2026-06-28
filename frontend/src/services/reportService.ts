@@ -4,9 +4,12 @@ import type { ApiResponse, PaginatedData } from '@/types';
 export interface CreateReportRequest {
   targetId: number;
   targetType: 'POST' | 'USER' | 'REVIEW';
+  type: 'SPAM' | 'FAKE_POST' | 'INAPPROPRIATE' | 'HARASSMENT' | 'FRAUD' | 'OTHER';
   reason: string;
   description?: string;
-  evidenceUrls?: string[];
+  evidenceUrl?: string;
+  postId?: number;
+  bookingId?: number;
 }
 
 export interface ReportResponse {

@@ -20,6 +20,21 @@ export default function ReportModal({ isOpen, onClose, roomId }: ReportModalProp
 
   if (!isOpen) return null;
 
+  const getReportType = (reasonText: string): 'SPAM' | 'FAKE_POST' | 'INAPPROPRIATE' | 'HARASSMENT' | 'FRAUD' | 'OTHER' => {
+    switch (reasonText) {
+      case 'Tin giả / Không đúng thực tế':
+        return 'FAKE_POST';
+      case 'Lừa đảo tiền cọc':
+        return 'FRAUD';
+      case 'Môi giới trá hình':
+        return 'FRAUD';
+      case 'Phòng đã cho thuê':
+        return 'FAKE_POST';
+      default:
+        return 'OTHER';
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!roomId) return;
@@ -45,13 +60,17 @@ export default function ReportModal({ isOpen, onClose, roomId }: ReportModalProp
         setUploading(false);
       }
 
+      const numericRoomId = parseInt(roomId);
+
       // 2. Submit report
       await reportService.createReport({
-        targetId: parseInt(roomId),
+        targetId: numericRoomId,
         targetType: 'POST',
+        type: getReportType(reason),
         reason,
         description,
-        evidenceUrls: finalEvidenceUrl ? [finalEvidenceUrl] : undefined
+        evidenceUrl: finalEvidenceUrl,
+        postId: numericRoomId
       });
 
       alert('Báo cáo của bạn đã được gửi thành công! Chúng tôi sẽ xem xét trong thời gian sớm nhất.');
