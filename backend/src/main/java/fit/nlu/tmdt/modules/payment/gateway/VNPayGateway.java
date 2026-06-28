@@ -48,6 +48,14 @@ public class VNPayGateway {
     private String ipnUrl;
 
     public String buildPaymentUrl(String orderId, Double amount, String orderInfo, String bankCode, String ipAddr) {
+        return buildPaymentUrlInternal(orderId, amount, orderInfo, bankCode, null, ipAddr);
+    }
+
+    public String buildPaymentUrl(String orderId, Double amount, String orderInfo, String bankCode, jakarta.servlet.http.HttpServletRequest request) {
+        return buildPaymentUrlInternal(orderId, amount, orderInfo, bankCode, request, null);
+    }
+
+    private String buildPaymentUrlInternal(String orderId, Double amount, String orderInfo, String bankCode, jakarta.servlet.http.HttpServletRequest request, String fallbackIpAddr) {
         Map<String, String> params = new TreeMap<>();
 
         params.put("vnp_Version", VNP_VERSION);
@@ -59,8 +67,33 @@ public class VNPayGateway {
         params.put("vnp_OrderInfo", removeAccents(orderInfo));
         params.put("vnp_OrderType", "other");
         params.put("vnp_Locale", VNP_LOCALE);
-        params.put("vnp_ReturnUrl", returnUrl);
-        params.put("vnp_IpAddr", ipAddr != null ? ipAddr : "127.0.0.1");
+
+        String ipAddr = fallbackIpAddr != null ? fallbackIpAddr : "127.0.0.1";
+        String dynamicReturnUrl = returnUrl;
+
+        if (request != null) {
+            ipAddr = getClientIp(request);
+            String origin = request.getHeader("Origin");
+            if (origin == null || origin.isBlank()) {
+                origin = request.getHeader("Referer");
+                if (origin != null) {
+                    try {
+                        java.net.URL url = new java.net.URL(origin);
+                        origin = url.getProtocol() + "://" + url.getHost() + (url.getPort() != -1 ? ":" + url.getPort() : "");
+                    } catch (Exception e) {
+                        log.warn("Could not parse referer header: {}", origin, e);
+                    }
+                }
+            }
+            if (origin != null && !origin.isBlank() && !origin.contains("room-finder-zeta.vercel.app")) {
+                // If local frontend or dev server, override the return URL
+                dynamicReturnUrl = origin + "/payment/vnpay/return";
+            }
+        }
+
+        params.put("vnp_ReturnUrl", dynamicReturnUrl);
+        params.put("vnp_IpAddr", ipAddr);
+
         java.time.ZoneId vnZone = java.time.ZoneId.of("Asia/Ho_Chi_Minh");
         params.put("vnp_CreateDate", LocalDateTime.now(vnZone).format(VNP_DATE_FORMATTER));
         params.put("vnp_ExpireDate", LocalDateTime.now(vnZone).plusMinutes(15).format(VNP_DATE_FORMATTER));

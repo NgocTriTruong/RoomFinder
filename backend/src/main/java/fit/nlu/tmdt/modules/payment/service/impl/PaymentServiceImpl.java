@@ -91,7 +91,6 @@ public class PaymentServiceImpl implements PaymentService {
                 log.warn("Could not get current HttpServletRequest from context: {}", e.getMessage());
             }
 
-            String ipAddr = servletRequest != null ? vnPayGateway.getClientIp(servletRequest) : "127.0.0.1";
             String orderInfo = transaction.getOrderDescription() != null
                     ? transaction.getOrderDescription()
                     : "Thanh toan don hang " + transaction.getOrderId();
@@ -101,7 +100,7 @@ public class PaymentServiceImpl implements PaymentService {
                     transaction.getAmount(),
                     orderInfo,
                     null,
-                    ipAddr
+                    servletRequest
             );
             transaction.setPaymentUrl(paymentUrl);
             transaction = transactionRepository.save(transaction);
@@ -126,7 +125,6 @@ public class PaymentServiceImpl implements PaymentService {
             throw new BusinessException(ErrorCode.PAY_007.getCode(), ErrorCode.PAY_007.getMessage());
         }
 
-        String ipAddr = vnPayGateway.getClientIp(servletRequest);
         String orderInfo = transaction.getOrderDescription() != null
                 ? transaction.getOrderDescription()
                 : "Thanh toan don hang " + transaction.getOrderId();
@@ -136,7 +134,7 @@ public class PaymentServiceImpl implements PaymentService {
                 transaction.getAmount(),
                 orderInfo,
                 null,
-                ipAddr
+                servletRequest
         );
 
         transaction.setPaymentUrl(paymentUrl);
