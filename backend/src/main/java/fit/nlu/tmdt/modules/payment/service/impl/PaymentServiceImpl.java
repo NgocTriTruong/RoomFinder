@@ -79,6 +79,35 @@ public class PaymentServiceImpl implements PaymentService {
         transaction = transactionRepository.save(transaction);
         log.info("Transaction created: {}", transaction.getOrderId());
 
+        if ("VNPAY".equalsIgnoreCase(transaction.getPaymentMethod())) {
+            HttpServletRequest servletRequest = null;
+            try {
+                org.springframework.web.context.request.RequestAttributes requestAttributes = 
+                        org.springframework.web.context.request.RequestContextHolder.getRequestAttributes();
+                if (requestAttributes instanceof org.springframework.web.context.request.ServletRequestAttributes) {
+                    servletRequest = ((org.springframework.web.context.request.ServletRequestAttributes) requestAttributes).getRequest();
+                }
+            } catch (Exception e) {
+                log.warn("Could not get current HttpServletRequest from context: {}", e.getMessage());
+            }
+
+            String ipAddr = servletRequest != null ? vnPayGateway.getClientIp(servletRequest) : "127.0.0.1";
+            String orderInfo = transaction.getOrderDescription() != null
+                    ? transaction.getOrderDescription()
+                    : "Thanh toan don hang " + transaction.getOrderId();
+
+            String paymentUrl = vnPayGateway.buildPaymentUrl(
+                    transaction.getOrderId(),
+                    transaction.getAmount(),
+                    orderInfo,
+                    null,
+                    ipAddr
+            );
+            transaction.setPaymentUrl(paymentUrl);
+            transaction = transactionRepository.save(transaction);
+            log.info("Generated VNPay payment URL for new transaction: {}", paymentUrl);
+        }
+
         return mapToPaymentResponse(transaction);
     }
 

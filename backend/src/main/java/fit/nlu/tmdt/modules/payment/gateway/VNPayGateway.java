@@ -59,25 +59,32 @@ public class VNPayGateway {
         params.put("vnp_Locale", VNP_LOCALE);
         params.put("vnp_ReturnUrl", returnUrl);
         params.put("vnp_IpAddr", ipAddr != null ? ipAddr : "127.0.0.1");
-        params.put("vnp_CreateDate", LocalDateTime.now().format(VNP_DATE_FORMATTER));
-        params.put("vnp_ExpireDate", LocalDateTime.now().plusMinutes(15).format(VNP_DATE_FORMATTER));
+        java.time.ZoneId vnZone = java.time.ZoneId.of("Asia/Ho_Chi_Minh");
+        params.put("vnp_CreateDate", LocalDateTime.now(vnZone).format(VNP_DATE_FORMATTER));
+        params.put("vnp_ExpireDate", LocalDateTime.now(vnZone).plusMinutes(15).format(VNP_DATE_FORMATTER));
 
         if (bankCode != null && !bankCode.isBlank()) {
             params.put("vnp_BankCode", bankCode);
         }
 
+        String hashData = buildHashData(params);
+        log.info("VNPay buildPaymentUrl hashData (raw): {}", hashData);
+        String secureHash = hmacSHA512(hashSecret, hashData);
+
         String queryString = buildQueryString(params);
-        String secureHash = hmacSHA512(hashSecret, queryString);
         String paymentEndpoint = vnpayUrl.endsWith("/paymentv2/vpcpay.html")
                 ? vnpayUrl
                 : vnpayUrl + "/paymentv2/vpcpay.html";
 
-        return paymentEndpoint + "?" + queryString + "&vnp_SecureHash=" + secureHash;
+        String finalUrl = paymentEndpoint + "?" + queryString + "&vnp_SecureHash=" + secureHash;
+        log.info("Generated VNPay payment URL: {}", finalUrl);
+        return finalUrl;
     }
 
     public boolean verifySignature(Map<String, String> params) {
         String receivedHash = params.get("vnp_SecureHash");
         if (receivedHash == null || receivedHash.isBlank()) {
+            log.warn("VNPay signature verification failed: received hash is empty");
             return false;
         }
 
@@ -88,9 +95,16 @@ public class VNPayGateway {
             }
         }
 
-        String queryString = buildQueryString(filteredParams);
-        String computedHash = hmacSHA512(hashSecret, queryString);
-        return computedHash.equalsIgnoreCase(receivedHash);
+        String hashData = buildHashData(filteredParams);
+        log.info("VNPay verifySignature hashData (raw): {}", hashData);
+        String computedHash = hmacSHA512(hashSecret, hashData);
+        boolean result = computedHash.equalsIgnoreCase(receivedHash);
+        if (!result) {
+            log.error("VNPay signature mismatch! Computed: {}, Received: {}", computedHash, receivedHash);
+        } else {
+            log.info("VNPay signature verified successfully");
+        }
+        return result;
     }
 
     public Map<String, String> extractParams(HttpServletRequest request) {
@@ -119,18 +133,42 @@ public class VNPayGateway {
         if (ip != null && ip.contains(",")) {
             ip = ip.split(",")[0].trim();
         }
+        if (ip == null || ip.contains(":")) {
+            return "127.0.0.1";
+        }
         return ip;
+    }
+
+    private String buildHashData(Map<String, String> params) {
+        StringBuilder sb = new StringBuilder();
+        for (Map.Entry<String, String> entry : params.entrySet()) {
+            String value = entry.getValue();
+            if (value == null || value.isEmpty()) {
+                continue;
+            }
+            if (sb.length() > 0) {
+                sb.append("&");
+            }
+            sb.append(entry.getKey());
+            sb.append("=");
+            sb.append(value);
+        }
+        return sb.toString();
     }
 
     private String buildQueryString(Map<String, String> params) {
         StringBuilder sb = new StringBuilder();
         for (Map.Entry<String, String> entry : params.entrySet()) {
+            String value = entry.getValue();
+            if (value == null || value.isEmpty()) {
+                continue;
+            }
             if (sb.length() > 0) {
                 sb.append("&");
             }
-            sb.append(URLEncoder.encode(entry.getKey(), StandardCharsets.US_ASCII));
+            sb.append(URLEncoder.encode(entry.getKey(), StandardCharsets.UTF_8));
             sb.append("=");
-            sb.append(URLEncoder.encode(entry.getValue(), StandardCharsets.US_ASCII));
+            sb.append(URLEncoder.encode(value, StandardCharsets.UTF_8));
         }
         return sb.toString();
     }

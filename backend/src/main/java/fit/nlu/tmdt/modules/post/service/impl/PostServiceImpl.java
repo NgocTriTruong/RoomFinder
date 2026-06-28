@@ -101,7 +101,7 @@ public class PostServiceImpl implements PostService {
 
         // 1. Check subscription or free quota
         Subscription subscription = subscriptionRepository.findActiveByLandlordId(landlordId, LocalDateTime.now())
-                .orElse(null);
+                .stream().findFirst().orElse(null);
 
         if (subscription != null) {
             if (!subscription.usePost()) {

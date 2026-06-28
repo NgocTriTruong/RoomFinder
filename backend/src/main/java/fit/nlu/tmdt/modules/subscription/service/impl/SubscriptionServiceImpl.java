@@ -56,6 +56,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         log.info("Getting current subscription for user: {}", userId);
 
         Subscription subscription = subscriptionRepository.findActiveByLandlordId(userId, LocalDateTime.now())
+                .stream().findFirst()
                 .orElseThrow(() -> new BusinessException(ErrorCode.SUB_002, "No active subscription"));
 
         return toSubscriptionResponse(subscription);
@@ -173,6 +174,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         log.info("Toggle auto-renew for user: {}, enabled: {}", userId, enabled);
 
         Subscription subscription = subscriptionRepository.findActiveByLandlordId(userId, LocalDateTime.now())
+                .stream().findFirst()
                 .orElseThrow(() -> new BusinessException(ErrorCode.SUB_002, "No active subscription to configure"));
 
         if (enabled) {
@@ -318,6 +320,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         log.info("Cancel subscription for user: {}, reason: {}", userId, reason);
 
         Subscription subscription = subscriptionRepository.findActiveByLandlordId(userId, LocalDateTime.now())
+                .stream().findFirst()
                 .orElseThrow(() -> new BusinessException(ErrorCode.SUB_002, "No active subscription to cancel"));
 
         subscription.cancel(reason);

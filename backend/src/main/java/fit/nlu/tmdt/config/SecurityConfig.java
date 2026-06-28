@@ -74,6 +74,7 @@ public class SecurityConfig {
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-resources/**").permitAll()
                         .requestMatchers("/uploads/**").permitAll()
                         .requestMatchers("/v1/payments/vnpay/**").permitAll()
+                        .requestMatchers("/ws", "/ws/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

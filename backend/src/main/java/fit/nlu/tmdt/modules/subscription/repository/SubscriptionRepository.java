@@ -19,8 +19,8 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Long
 
     Optional<Subscription> findByLandlordIdAndIsActiveTrue(Long landlordId);
 
-    @Query("SELECT s FROM Subscription s WHERE s.landlord.id = :landlordId AND s.isActive = true AND s.expiresAt > :now")
-    Optional<Subscription> findActiveByLandlordId(@Param("landlordId") Long landlordId, @Param("now") LocalDateTime now);
+    @Query("SELECT s FROM Subscription s WHERE s.landlord.id = :landlordId AND s.isActive = true AND s.expiresAt > :now ORDER BY s.expiresAt DESC, s.id DESC")
+    List<Subscription> findActiveByLandlordId(@Param("landlordId") Long landlordId, @Param("now") LocalDateTime now);
 
     List<Subscription> findByLandlordId(Long landlordId);
 

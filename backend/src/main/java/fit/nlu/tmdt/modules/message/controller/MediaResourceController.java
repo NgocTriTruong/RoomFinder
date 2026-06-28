@@ -21,7 +21,6 @@ import java.nio.file.Paths;
  * Serve các file media đã upload
  */
 @RestController
-@RequestMapping("/uploads")
 @RequiredArgsConstructor
 @Slf4j
 public class MediaResourceController {
@@ -29,53 +28,13 @@ public class MediaResourceController {
     @Value("${file.upload-dir:uploads}")
     private String uploadDir;
 
-    /**
-     * Get file by path
-     * GET /uploads/chat/image/2024/01/15/xxx.jpg
-     */
-    @GetMapping("/{*path}")
-    public ResponseEntity<Resource> getFile(@PathVariable("path") String path) {
-        try {
-            // Sanitize path to prevent directory traversal
-            String sanitizedPath = path.replace("..", "").replace("//", "/");
-            Path filePath = Paths.get(uploadDir, sanitizedPath);
-            
-            File file = filePath.toFile();
-            
-            if (!file.exists() || !file.isFile()) {
-                log.warn("File not found: {}", filePath);
-                return ResponseEntity.notFound().build();
-            }
-            
-            // Determine content type
-            String contentType = Files.probeContentType(filePath);
-            if (contentType == null) {
-                contentType = "application/octet-stream";
-            }
-            
-            // Get original filename from path
-            String originalFilename = file.getName();
-            
-            Resource resource = new FileSystemResource(file);
-            
-            return ResponseEntity.ok()
-                    .contentType(MediaType.parseMediaType(contentType))
-                    .header(HttpHeaders.CONTENT_DISPOSITION, 
-                            "inline; filename=\"" + originalFilename + "\"")
-                    .header(HttpHeaders.CACHE_CONTROL, "max-age=31536000") // Cache 1 year
-                    .body(resource);
-                    
-        } catch (Exception e) {
-            log.error("Error serving file: {}", e.getMessage(), e);
-            return ResponseEntity.internalServerError().build();
-        }
-    }
+
 
     /**
      * Download file
      * GET /uploads/download/{*path}
      */
-    @GetMapping("/download/{*path}")
+    @GetMapping("/uploads/download/{*path}")
     public ResponseEntity<Resource> downloadFile(@PathVariable("path") String path) {
         try {
             String sanitizedPath = path.replace("..", "").replace("//", "/");
@@ -112,7 +71,7 @@ public class MediaResourceController {
      * Get thumbnail
      * GET /uploads/thumb/{*path}
      */
-    @GetMapping("/thumb/{*path}")
+    @GetMapping("/uploads/thumb/{*path}")
     public ResponseEntity<Resource> getThumbnail(@PathVariable("path") String path) {
         try {
             String sanitizedPath = path.replace("..", "").replace("//", "/");
