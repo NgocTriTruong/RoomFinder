@@ -8,6 +8,7 @@ import { useAuth } from '../contexts/AuthContext';
 import universityService, { UniversityResponse } from '../services/universityService';
 import { createPlaceholderImage } from '../utils/localImage';
 import VoiceSearchModal from '../components/ui/VoiceSearchModal';
+import { resolveMediaUrl } from '../utils/mediaUrl';
 
 const CATEGORIES = [
   { icon: HomeIcon, label: 'Phòng trọ', value: 'room' },
@@ -555,7 +556,7 @@ export default function Home() {
         <div className="max-w-4xl mx-auto relative rounded-3xl overflow-hidden shadow-2xl border border-gray-200 aspect-video group bg-slate-900">
           <video
             ref={videoRef}
-            src="https://assets.mixkit.co/videos/preview/mixkit-modern-apartment-interior-with-a-living-room-and-kitchen-40141-large.mp4"
+            src={resolveMediaUrl('/posts/videos/phongtro_1/Phongtro1.mp4') || ''}
             className="w-full h-full object-cover"
             loop
             muted={isMuted}
