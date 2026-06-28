@@ -9,12 +9,14 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.text.Normalizer;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.regex.Pattern;
 
 /**
  * VNPay Payment Gateway
@@ -54,7 +56,7 @@ public class VNPayGateway {
         params.put("vnp_Amount", String.valueOf((long) (amount * 100)));
         params.put("vnp_CurrCode", VNP_CURRENCY);
         params.put("vnp_TxnRef", orderId);
-        params.put("vnp_OrderInfo", orderInfo);
+        params.put("vnp_OrderInfo", removeAccents(orderInfo));
         params.put("vnp_OrderType", "other");
         params.put("vnp_Locale", VNP_LOCALE);
         params.put("vnp_ReturnUrl", returnUrl);
@@ -192,5 +194,18 @@ public class VNPayGateway {
             log.error("Error computing HMAC-SHA512: {}", e.getMessage());
             throw new RuntimeException("Error computing payment signature", e);
         }
+    }
+
+    private String removeAccents(String src) {
+        if (src == null) {
+            return null;
+        }
+        String temp = Normalizer.normalize(src, Normalizer.Form.NFD);
+        Pattern pattern = Pattern.compile("\\p{InCombiningDiacriticalMarks}+");
+        String unsigned = pattern.matcher(temp).replaceAll("")
+                .replace("đ", "d")
+                .replace("Đ", "D");
+        // Keep only letters, digits, spaces, and hyphens/dashes
+        return unsigned.replaceAll("[^a-zA-Z0-9\\s\\-]", "");
     }
 }
