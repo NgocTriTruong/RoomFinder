@@ -110,8 +110,8 @@ public class MessageServiceImpl implements MessageService {
                 .isDelivered(true)
                 .build();
 
-        chatService.broadcastToConversation(conversation.getId(), chatMessage);
         chatService.sendToUser(receiver.getId(), chatMessage);
+        chatService.sendToUser(senderId, chatMessage);
 
         return response;
     }
@@ -212,8 +212,8 @@ public class MessageServiceImpl implements MessageService {
                 .isDelivered(true)
                 .build();
 
-        chatService.broadcastToConversation(conversation.getId(), chatMessage);
         chatService.sendToUser(receiver.getId(), chatMessage);
+        chatService.sendToUser(senderId, chatMessage);
 
         return response;
     }

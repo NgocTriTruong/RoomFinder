@@ -109,12 +109,8 @@ public class ChatServiceImpl implements ChatService {
         // Gửi cho người nhận (user-specific destination)
         sendToUser(message.getReceiverId(), response);
 
-        // Broadcast tới conversation topic
-        broadcastToConversation(conversation.getId(), response);
-
-        // Gửi delivery receipt cho người gửi
-        ChatMessage deliveryReceipt = ChatMessage.delivered(conversation.getId(), msg.getId(), senderId);
-        sendToUser(senderId, deliveryReceipt);
+        // Gửi cho người gửi để đồng bộ (user-specific destination)
+        sendToUser(senderId, response);
 
         return response;
     }
@@ -164,7 +160,7 @@ public class ChatServiceImpl implements ChatService {
 
     @Override
     public void sendTypingToUser(Long conversationId, Long receiverId, TypingIndicator indicator) {
-        String destination = "/topic/conversation/" + conversationId + "/typing";
+        String destination = "/topic/conversation/" + conversationId;
         messagingTemplate.convertAndSend(destination, indicator);
     }
 

@@ -14,6 +14,7 @@ export default function SubscriptionPackagesPage() {
   const [paymentStatus, setPaymentStatus] = useState<'idle' | 'processing' | 'success' | 'error'>('idle');
   const [paymentMethod, setPaymentMethod] = useState<string>('VNPAY');
   const [processing, setProcessing] = useState(false);
+  const [purchaseError, setPurchaseError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchPackages();
@@ -44,6 +45,7 @@ export default function SubscriptionPackagesPage() {
     setIsModalOpen(true);
     setPaymentStatus('idle');
     setPaymentMethod('VNPAY');
+    setPurchaseError(null);
   };
 
   const handlePayment = async () => {
@@ -51,6 +53,7 @@ export default function SubscriptionPackagesPage() {
     
     setPaymentStatus('processing');
     setProcessing(true);
+    setPurchaseError(null);
     
     try {
       const result = await subscriptionService.purchasePackage(
@@ -72,7 +75,7 @@ export default function SubscriptionPackagesPage() {
     } catch (err) {
       console.error('Payment error:', err);
       setPaymentStatus('error');
-      alert('Thanh toán thất bại: ' + getErrorMessage(err));
+      setPurchaseError(getErrorMessage(err));
     } finally {
       setProcessing(false);
     }
@@ -315,6 +318,15 @@ export default function SubscriptionPackagesPage() {
                 </div>
               ) : (
                 <>
+                  {purchaseError && (
+                    <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start text-red-700 text-sm">
+                      <AlertCircle className="w-5 h-5 mr-2 shrink-0 mt-0.5 text-red-500" />
+                      <div>
+                        <span className="font-semibold">Lỗi thanh toán:</span> {purchaseError}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="mb-6">
                     <p className="text-sm text-gray-500 mb-1">Gói dịch vụ</p>
                     <p className="font-semibold text-gray-900">{selectedPackage.name}</p>

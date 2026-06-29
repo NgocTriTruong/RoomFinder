@@ -112,6 +112,21 @@ public class SubscriptionServiceImpl implements SubscriptionService {
             throw new BusinessException(ErrorCode.SUB_004, "Package is not available");
         }
 
+        // 2.5. Check cheaper package purchase rule
+        if (pkg.isPostPackage()) {
+            List<Subscription> activeSubscriptions = subscriptionRepository.findActiveByLandlordId(userId, LocalDateTime.now());
+            Subscription activePostSub = activeSubscriptions.stream()
+                    .filter(s -> s.getPkg() != null && s.getPkg().isPostPackage())
+                    .findFirst()
+                    .orElse(null);
+
+            if (activePostSub != null) {
+                if (pkg.getPrice() < activePostSub.getPkg().getPrice()) {
+                    throw new BusinessException(ErrorCode.SUB_007, "Không thể mua gói dịch vụ rẻ hơn gói hiện tại đang hoạt động");
+                }
+            }
+        }
+
         // 3. Check max purchase limit
         if (pkg.getMaxPurchasePerUser() != null && pkg.getMaxPurchasePerUser() > 0) {
             int purchaseCount = subscriptionRepository.countByLandlordIdAndPackageId(userId, pkg.getId());
@@ -280,7 +295,20 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         Subscription subscription = subscriptionRepository.findById(subscriptionId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.SUB_001, "Subscription not found"));
 
-        // Activate subscription
+        // 1. Deactivate old active posting package subscription if this is a posting package
+        if (subscription.getPkg() != null && subscription.getPkg().isPostPackage()) {
+            List<Subscription> activeSubs = subscriptionRepository.findActiveByLandlordId(
+                    subscription.getLandlord().getId(), LocalDateTime.now());
+            for (Subscription activeSub : activeSubs) {
+                if (!activeSub.getId().equals(subscription.getId()) && 
+                        activeSub.getPkg() != null && activeSub.getPkg().isPostPackage()) {
+                    activeSub.cancel("Thay thế bởi gói mới: " + subscription.getPkg().getName());
+                    subscriptionRepository.save(activeSub);
+                }
+            }
+        }
+
+        // 2. Activate subscription
         subscription.setIsActive(true);
         subscription.setTransactionId(transactionId);
         subscription.setStartDate(LocalDateTime.now());

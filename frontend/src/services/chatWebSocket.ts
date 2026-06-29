@@ -52,6 +52,7 @@ class ChatWebSocketService {
   private messageHandlers = new Set<MessageHandler>();
   private connectionHandlers = new Set<ConnectionHandler>();
   private subscribedChannels = new Set<string>();
+  private subscriptions = new Map<string, any>();
   private userQueueSubscribed = false;
 
   connect(token: string) {
@@ -82,6 +83,7 @@ class ChatWebSocketService {
       onDisconnect: () => {
         this.connected = false;
         this.userQueueSubscribed = false;
+        this.subscriptions.clear();
         this.notifyConnectionHandlers(false);
         console.log('[WS] Disconnected from WebSocket');
       },
@@ -102,6 +104,7 @@ class ChatWebSocketService {
       this.client = null;
       this.connected = false;
       this.subscribedChannels.clear();
+      this.subscriptions.clear();
       this.userQueueSubscribed = false;
     }
   }
@@ -129,8 +132,9 @@ class ChatWebSocketService {
 
   private doSubscribe(channel: string) {
     if (!this.client || !this.connected || !this.client.connected) return;
+    if (this.subscriptions.has(channel)) return;
 
-    this.client.subscribe(channel, (message: IMessage) => {
+    const sub = this.client.subscribe(channel, (message: IMessage) => {
       try {
         const payload: WebSocketMessage = JSON.parse(message.body);
         this.notifyHandlers(payload);
@@ -138,6 +142,8 @@ class ChatWebSocketService {
         console.error('[WS] Failed to parse message:', e);
       }
     });
+
+    this.subscriptions.set(channel, sub);
   }
 
   subscribeConversation(conversationId: number) {
@@ -151,6 +157,11 @@ class ChatWebSocketService {
   unsubscribeConversation(conversationId: number) {
     const channel = `/topic/conversation/${conversationId}`;
     this.subscribedChannels.delete(channel);
+    const sub = this.subscriptions.get(channel);
+    if (sub) {
+      sub.unsubscribe();
+      this.subscriptions.delete(channel);
+    }
   }
 
   sendMessage(conversationId: number, receiverId: number, content: string) {

@@ -69,6 +69,7 @@ public enum ErrorCode {
     SUB_004("SUB_004", "Package is not available", HttpStatus.BAD_REQUEST),
     SUB_005("SUB_005", "Boost not found", HttpStatus.NOT_FOUND),
     SUB_006("SUB_006", "Package cannot be deleted because it is in use", HttpStatus.BAD_REQUEST),
+    SUB_007("SUB_007", "Không thể mua gói dịch vụ rẻ hơn gói hiện tại đang hoạt động", HttpStatus.BAD_REQUEST),
 
     // Voucher (VOU_xxx)
     VOU_001("VOU_001", "Voucher not found", HttpStatus.NOT_FOUND),
