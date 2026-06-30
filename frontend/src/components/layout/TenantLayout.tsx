@@ -29,6 +29,7 @@ export default function TenantLayout() {
   };
 
   const menuItems = [
+    { path: '/tenant/profile', icon: <User className="w-5 h-5" />, label: 'Thông tin cá nhân' },
     { path: '/tenant/saved', icon: <Heart className="w-5 h-5" />, label: 'Phòng đã lưu' },
     { path: '/tenant/bookings', icon: <Calendar className="w-5 h-5" />, label: 'Lịch hẹn của tôi' },
     { path: '/tenant/messages', icon: <MessageCircle className="w-5 h-5" />, label: 'Tin nhắn' },
@@ -100,7 +101,10 @@ export default function TenantLayout() {
 
             <div className="flex items-center gap-4">
               <NotificationDropdown />
-              <div className="flex items-center gap-2 pl-4 border-l border-gray-200 cursor-pointer">
+              <div 
+                onClick={() => navigate('/tenant/profile')}
+                className="flex items-center gap-2 pl-4 border-l border-gray-200 cursor-pointer hover:opacity-85 transition-opacity"
+              >
                 <img 
                   src={currentUser?.avatar || createAvatarPlaceholder(currentUser?.fullName || 'User', 100)} 
                   alt="Avatar" 

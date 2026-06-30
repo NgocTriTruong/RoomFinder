@@ -21,6 +21,26 @@ function useDebounce<T>(value: T, delay: number): T {
   return debouncedValue;
 }
 
+const UNIVERSITY_ALIASES = [
+  { id: 1, aliases: ['nông lâm', 'nong lam', 'nlu'] },
+  { id: 2, aliases: ['sư phạm kỹ thuật', 'su pham ky thuat', 'spkt', 'hcmute', 'ute'] },
+  { id: 3, aliases: ['công nghệ thông tin', 'cong nghe thong tin', 'uit', 'cntt'] },
+  { id: 4, aliases: ['bách khoa', 'bach khoa', 'hcmut'] },
+  { id: 5, aliases: ['khoa học tự nhiên', 'khoa hoc tu nhien', 'hcmus', 'khtn', 'tự nhiên', 'tu nhien'] },
+  { id: 6, aliases: ['quốc tế', 'quoc te', 'iu'] },
+  { id: 7, aliases: ['kinh tế', 'kinh te', 'ueh'] },
+  { id: 8, aliases: ['ngoại thương', 'ngoai thuong', 'ftu'] }
+];
+
+const detectUniversityFromQuery = (q: string | null): number | '' => {
+  if (!q) return '';
+  const qLower = q.toLowerCase();
+  const matched = UNIVERSITY_ALIASES.find(uni => 
+    uni.aliases.some(alias => qLower.includes(alias))
+  );
+  return matched ? matched.id : '';
+};
+
 export default function Search() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [posts, setPosts] = useState<PostResponse[]>([]);
@@ -76,7 +96,9 @@ export default function Search() {
   const [universities, setUniversities] = useState<UniversityResponse[]>([]);
   const [selectedUniversityId, setSelectedUniversityId] = useState<number | ''>(() => {
     const nearby = searchParams.get('nearbyUniversityId');
-    return nearby ? Number(nearby) : '';
+    if (nearby) return Number(nearby);
+    const q = searchParams.get('q');
+    return detectUniversityFromQuery(q);
   });
   const [selectedUniversity, setSelectedUniversity] = useState<UniversityResponse | null>(null);
   const [radiusKm, setRadiusKm] = useState(5);
@@ -143,6 +165,8 @@ export default function Search() {
     const nearbyUniId = searchParams.get('nearbyUniversityId');
     if (nearbyUniId) {
       setSelectedUniversityId(Number(nearbyUniId));
+    } else {
+      setSelectedUniversityId(detectUniversityFromQuery(q));
     }
 
     const categoryParam = searchParams.get('category');

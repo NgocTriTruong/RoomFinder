@@ -168,7 +168,8 @@ function App() {
               </ProtectedRoute>
             }
           >
-            <Route index element={<SavedRoomsPage />} />
+            <Route index element={<ProfilePage />} />
+            <Route path="profile" element={<ProfilePage />} />
             <Route path="saved" element={<SavedRoomsPage />} />
             <Route path="bookings" element={<TenantBookingPage />} />
             <Route path="messages" element={<ChatUI />} />

@@ -19,6 +19,96 @@ import java.util.List;
  */
 public class PostSpecifications {
 
+    private static class UniInfo {
+        Long id;
+        String name;
+        double lat;
+        double lon;
+
+        UniInfo(Long id, String name, double lat, double lon) {
+            this.id = id;
+            this.name = name;
+            this.lat = lat;
+            this.lon = lon;
+        }
+    }
+
+    private static final java.util.Map<Long, UniInfo> UNIVERSITY_MAP = java.util.Map.of(
+        1L, new UniInfo(1L, "Trường Đại học Nông Lâm TP.HCM", 10.87002, 106.787687),
+        2L, new UniInfo(2L, "Trường Đại học Sư phạm Kỹ thuật TP.HCM", 10.851419, 106.77197),
+        3L, new UniInfo(3L, "Trường Đại học Công nghệ thông tin - ĐHQG TP.HCM", 10.870009, 106.803027),
+        4L, new UniInfo(4L, "Trường Đại học Bách Khoa - ĐHQG TP.HCM (Cơ sở Dĩ An)", 10.880312, 106.80666),
+        5L, new UniInfo(5L, "Trường Đại học Khoa học Tự nhiên - ĐHQG TP.HCM (Cơ sở Dĩ An)", 10.875647, 106.799732),
+        6L, new UniInfo(6L, "Trường Đại học Quốc tế - ĐHQG TP.HCM", 10.877893, 106.801648),
+        7L, new UniInfo(7L, "Trường Đại học Kinh tế TP.HCM (Cơ sở A)", 10.782787, 106.69612),
+        8L, new UniInfo(8L, "Trường Đại học Ngoại thương - Cơ sở 2", 10.802194, 106.714498)
+    );
+
+    private static String cleanKeyword(String keyword, String matchedAlias) {
+        if (keyword == null || keyword.isBlank()) {
+            return "";
+        }
+        String clean = keyword.toLowerCase();
+        
+        // Remove matched alias
+        clean = clean.replace(matchedAlias.toLowerCase(), "");
+        
+        // Remove common university prefixes
+        clean = clean.replace("đại học", "")
+                     .replace("dai hoc", "")
+                     .replace("trường đh", "")
+                     .replace("truong dh", "")
+                     .replace("trường đại học", "")
+                     .replace("truong dai hoc", "")
+                     .replace("trường", "")
+                     .replace("truong", "")
+                     .replace("đh", "")
+                     .replace("dh", "");
+                     
+        // Remove search prefix noise words
+        clean = clean.replace("trọ gần", "")
+                     .replace("tro gan", "")
+                     .replace("phòng gần", "")
+                     .replace("phong gan", "")
+                     .replace("gần", "")
+                     .replace("gan", "")
+                     .replace("trọ", "")
+                     .replace("tro", "")
+                     .replace("phòng trọ", "")
+                     .replace("phong tro", "")
+                     .replace("phòng", "")
+                     .replace("phong", "")
+                     .replace("nhà trọ", "")
+                     .replace("nha tro", "")
+                     .replace("nhà", "")
+                     .replace("nha", "")
+                     .replace("cho thuê", "")
+                     .replace("cho thue", "");
+                     
+        return clean.trim();
+    }
+
+    private static Predicate buildDistancePredicateForUni(jakarta.persistence.criteria.CriteriaBuilder cb,
+                                                          Join<Post, fit.nlu.tmdt.modules.room.entity.Room> room,
+                                                          double lat,
+                                                          double lon,
+                                                          double radiusKm) {
+        double latDiff = radiusKm / 111.0;
+        double lonDiff = radiusKm / (111.0 * Math.cos(Math.toRadians(lat)));
+        
+        double minLat = lat - latDiff;
+        double maxLat = lat + latDiff;
+        double minLon = lon - lonDiff;
+        double maxLon = lon + lonDiff;
+        
+        return cb.and(
+                cb.greaterThanOrEqualTo(room.get("latitude"), minLat),
+                cb.lessThanOrEqualTo(room.get("latitude"), maxLat),
+                cb.greaterThanOrEqualTo(room.get("longitude"), minLon),
+                cb.lessThanOrEqualTo(room.get("longitude"), maxLon)
+        );
+    }
+
     public static Specification<Post> withSearchParams(PostSearchParams params) {
         return withSearchParams(params, false);
     }
@@ -91,9 +181,71 @@ public class PostSpecifications {
                 predicates.add(cb.greaterThan(root.get("boostedUntil"), java.time.LocalDateTime.now()));
             }
 
-            // Fuzzy keyword search
+            // University alias mapping & detection from keyword
+            Long detectedUniId = null;
+            String cleanedKeyword = params.getKeyword();
+            
             if (params.getKeyword() != null && !params.getKeyword().isBlank()) {
-                predicates.add(buildFuzzyKeywordPredicate(cb, root, room, params.getKeyword(), params.getFuzzyModeOrDefault()));
+                String normalized = FuzzySearchUtils.normalizeForSearch(params.getKeyword());
+                String matchedAlias = null;
+                
+                if (normalized.contains("nong lam") || normalized.contains("nlu")) {
+                    detectedUniId = 1L;
+                    matchedAlias = normalized.contains("nong lam") ? "nông lâm" : "nlu";
+                } else if (normalized.contains("su pham ky thuat") || normalized.contains("spkt") || normalized.contains("hcmute") || normalized.contains("ute")) {
+                    detectedUniId = 2L;
+                    if (normalized.contains("su pham ky thuat")) matchedAlias = "sư phạm kỹ thuật";
+                    else if (normalized.contains("spkt")) matchedAlias = "spkt";
+                    else if (normalized.contains("hcmute")) matchedAlias = "hcmute";
+                    else matchedAlias = "ute";
+                } else if (normalized.contains("cong nghe thong tin") || normalized.contains("uit") || normalized.contains("cntt")) {
+                    detectedUniId = 3L;
+                    if (normalized.contains("cong nghe thong tin")) matchedAlias = "công nghệ thông tin";
+                    else if (normalized.contains("uit")) matchedAlias = "uit";
+                    else matchedAlias = "cntt";
+                } else if (normalized.contains("bach khoa") || normalized.contains("hcmut")) {
+                    detectedUniId = 4L;
+                    matchedAlias = normalized.contains("bach khoa") ? "bách khoa" : "hcmut";
+                } else if (normalized.contains("khoa hoc tu nhien") || normalized.contains("hcmus") || normalized.contains("khtn") || normalized.contains("tu nhien")) {
+                    detectedUniId = 5L;
+                    if (normalized.contains("khoa hoc tu nhien")) matchedAlias = "khoa học tự nhiên";
+                    else if (normalized.contains("hcmus")) matchedAlias = "hcmus";
+                    else if (normalized.contains("khtn")) matchedAlias = "khtn";
+                    else matchedAlias = "tự nhiên";
+                } else if (normalized.contains("quoc te") || normalized.contains("iu")) {
+                    detectedUniId = 6L;
+                    matchedAlias = normalized.contains("quoc te") ? "quốc tế" : "iu";
+                } else if (normalized.contains("kinh te") || normalized.contains("ueh")) {
+                    detectedUniId = 7L;
+                    matchedAlias = normalized.contains("kinh te") ? "kinh tế" : "ueh";
+                } else if (normalized.contains("ngoai thuong") || normalized.contains("ftu")) {
+                    detectedUniId = 8L;
+                    matchedAlias = normalized.contains("ngoai thuong") ? "ngoại thương" : "ftu";
+                }
+                
+                if (detectedUniId != null) {
+                    cleanedKeyword = cleanKeyword(params.getKeyword(), matchedAlias);
+                }
+            }
+
+            // Apply Nearby university filter
+            Long finalUniId = params.getNearbyUniversityId() != null ? params.getNearbyUniversityId() : detectedUniId;
+            if (finalUniId != null) {
+                predicates.add(cb.equal(room.get("nearbyUniversityId"), finalUniId));
+                
+                // Auto-apply geo-spatial filtering if not explicitly specified
+                if (!params.hasLocationSearch()) {
+                    UniInfo uniInfo = UNIVERSITY_MAP.get(finalUniId);
+                    if (uniInfo != null) {
+                        double radius = params.getRadiusKm() != null ? params.getRadiusKm() : 5.0;
+                        predicates.add(buildDistancePredicateForUni(cb, room, uniInfo.lat, uniInfo.lon, radius));
+                    }
+                }
+            }
+
+            // Fuzzy keyword search
+            if (cleanedKeyword != null && !cleanedKeyword.isBlank()) {
+                predicates.add(buildFuzzyKeywordPredicate(cb, root, room, cleanedKeyword, params.getFuzzyModeOrDefault()));
             }
 
             // Amenities filter
@@ -132,10 +284,7 @@ public class PostSpecifications {
                 predicates.add(cb.equal(room.get("hasWindows"), true));
             }
 
-            // Nearby university filter
-            if (params.getNearbyUniversityId() != null) {
-                predicates.add(cb.equal(room.get("nearbyUniversityId"), params.getNearbyUniversityId()));
-            }
+            // Nearby university filter was handled above during alias checking
 
             // Rating filter
             if (params.getMinRating() != null) {
@@ -196,10 +345,10 @@ public class PostSpecifications {
      * Build fuzzy keyword search predicate
      */
     private static Predicate buildFuzzyKeywordPredicate(jakarta.persistence.criteria.CriteriaBuilder cb,
-                                                      jakarta.persistence.criteria.Root<Post> root,
-                                                      Join<Post, fit.nlu.tmdt.modules.room.entity.Room> room,
-                                                      String keyword,
-                                                      String fuzzyMode) {
+                                                       jakarta.persistence.criteria.Root<Post> root,
+                                                       Join<Post, fit.nlu.tmdt.modules.room.entity.Room> room,
+                                                       String keyword,
+                                                       String fuzzyMode) {
         
         String normalizedKeyword = FuzzySearchUtils.normalizeForSearch(keyword);
         
@@ -210,6 +359,7 @@ public class PostSpecifications {
         jakarta.persistence.criteria.Path<String> titlePath = root.get("title");
         jakarta.persistence.criteria.Path<String> descPath = root.get("description");
         jakarta.persistence.criteria.Path<String> addressPath = room.get("address");
+        jakarta.persistence.criteria.Path<String> uniNamePath = room.get("nearbyUniversityName");
 
         List<Predicate> keywordPredicates = new ArrayList<>();
 
@@ -218,6 +368,7 @@ public class PostSpecifications {
                 String exactPattern = "%" + normalizedKeyword + "%";
                 keywordPredicates.add(cb.like(cb.function("unaccent", String.class, cb.lower(titlePath)), exactPattern));
                 keywordPredicates.add(cb.like(cb.function("unaccent", String.class, cb.lower(descPath)), exactPattern));
+                keywordPredicates.add(cb.like(cb.function("unaccent", String.class, cb.lower(uniNamePath)), exactPattern));
                 break;
 
             case "PREFIX":
@@ -225,6 +376,7 @@ public class PostSpecifications {
                 keywordPredicates.add(cb.like(cb.function("unaccent", String.class, cb.lower(titlePath)), prefixPattern));
                 keywordPredicates.add(cb.like(cb.function("unaccent", String.class, cb.lower(descPath)), prefixPattern));
                 keywordPredicates.add(cb.like(cb.function("unaccent", String.class, cb.lower(addressPath)), prefixPattern));
+                keywordPredicates.add(cb.like(cb.function("unaccent", String.class, cb.lower(uniNamePath)), prefixPattern));
                 break;
 
             case "ALL_WORDS":
@@ -233,7 +385,8 @@ public class PostSpecifications {
                     String wordPattern = "%" + word + "%";
                     Predicate titleWord = cb.like(cb.function("unaccent", String.class, cb.lower(titlePath)), wordPattern);
                     Predicate descWord = cb.like(cb.function("unaccent", String.class, cb.lower(descPath)), wordPattern);
-                    keywordPredicates.add(cb.or(titleWord, descWord));
+                    Predicate uniWord = cb.like(cb.function("unaccent", String.class, cb.lower(uniNamePath)), wordPattern);
+                    keywordPredicates.add(cb.or(titleWord, descWord, uniWord));
                 }
                 break;
 
@@ -244,7 +397,8 @@ public class PostSpecifications {
                     String wordPattern = "%" + word + "%";
                     Predicate titleWord = cb.like(cb.function("unaccent", String.class, cb.lower(titlePath)), wordPattern);
                     Predicate descWord = cb.like(cb.function("unaccent", String.class, cb.lower(descPath)), wordPattern);
-                    anyWordPredicates.add(cb.or(titleWord, descWord));
+                    Predicate uniWord = cb.like(cb.function("unaccent", String.class, cb.lower(uniNamePath)), wordPattern);
+                    anyWordPredicates.add(cb.or(titleWord, descWord, uniWord));
                 }
                 keywordPredicates.add(cb.or(anyWordPredicates.toArray(new Predicate[0])));
                 break;
@@ -253,6 +407,7 @@ public class PostSpecifications {
                 String phrasePattern = "%" + normalizedKeyword.replace(" ", "%") + "%";
                 keywordPredicates.add(cb.like(cb.function("unaccent", String.class, cb.lower(titlePath)), phrasePattern));
                 keywordPredicates.add(cb.like(cb.function("unaccent", String.class, cb.lower(descPath)), phrasePattern));
+                keywordPredicates.add(cb.like(cb.function("unaccent", String.class, cb.lower(uniNamePath)), phrasePattern));
                 break;
 
             case "NORMAL":
@@ -266,6 +421,7 @@ public class PostSpecifications {
                     keywordPredicates.add(cb.like(cb.function("unaccent", String.class, cb.lower(descPath)), wordPattern));
                 }
                 keywordPredicates.add(cb.like(cb.function("unaccent", String.class, cb.lower(addressPath)), normalPattern));
+                keywordPredicates.add(cb.like(cb.function("unaccent", String.class, cb.lower(uniNamePath)), normalPattern));
                 break;
         }
 
