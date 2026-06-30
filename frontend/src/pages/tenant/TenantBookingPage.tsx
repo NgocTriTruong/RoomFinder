@@ -6,6 +6,7 @@ import { Calendar, User, Home, Star, XCircle, Loader2, AlertCircle, ChevronLeft,
 import ReviewModal from '../../components/ui/ReviewModal';
 import { getErrorMessage } from '../../services/api';
 import { createPlaceholderImage } from '../../utils/localImage';
+import { resolveMediaUrl } from '../../utils/mediaUrl';
 
 export default function TenantBookingPage() {
   const [bookings, setBookings] = useState<BookingResponse[]>([]);
@@ -151,7 +152,7 @@ export default function TenantBookingPage() {
               {booking.post ? (
                 <Link to={`/room/${booking.post.id}`} className="w-full md:w-48 h-32 flex-shrink-0 block overflow-hidden rounded-lg group">
                   <img
-                    src={booking.post.thumbnailUrl || createPlaceholderImage(booking.post.title, 400, 300)}
+                    src={resolveMediaUrl(booking.post.thumbnailUrl) || createPlaceholderImage(booking.post.title, 400, 300)}
                     alt={booking.post.title}
                     className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                     referrerPolicy="no-referrer"
